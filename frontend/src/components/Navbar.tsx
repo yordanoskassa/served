@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react"
 import { useState } from "react"
 
 import { BrandMark } from "@/components/BrandMark"
+import { Button } from "@/components/ui/button"
 
 const links = [
   { label: "how it works", href: "#how-it-works" },
@@ -24,7 +25,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
         <div className="col-span-6 hidden items-center justify-end gap-3 md:col-span-3 md:flex">
           <a href="#resources" className="text-xs text-zinc-700 hover:text-black">find help</a>
-          <button onClick={onGetStarted} className="rounded-full bg-[#1a1a1a] px-4 py-2 text-xs font-medium text-white transition-transform hover:scale-[1.03]">get started <span aria-hidden="true">→</span></button>
+          <Button onClick={onGetStarted} className="px-4 py-2 text-xs font-medium hover:scale-[1.03]">get started <span aria-hidden="true">→</span></Button>
         </div>
         <button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((value) => !value)} className="col-span-6 flex justify-end md:hidden">
           {open ? <X size={22} /> : <Menu size={22} />}
@@ -36,7 +37,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="flex flex-col gap-5 py-7 text-sm">
           {links.map((link) => <a onClick={() => setOpen(false)} href={link.href} key={link.label}>{link.label}</a>)}
           <a href="#resources" onClick={() => setOpen(false)}>find help</a>
-          <button onClick={() => { setOpen(false); onGetStarted() }} className="w-fit rounded-full bg-[#1a1a1a] px-5 py-2.5 text-white">get started →</button>
+          <Button onClick={() => { setOpen(false); onGetStarted() }} className="w-fit px-5 py-2.5">get started →</Button>
         </div>
       </motion.div>}
     </AnimatePresence>

@@ -4,7 +4,9 @@ import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type Analysis, analyzeDocument, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
@@ -82,17 +84,29 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
         <h2 className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">What this letter says</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
 
-        {detailItems.length > 0 && <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Key details</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{detailItems.map(({ label, value, icon: Icon }) => <div className="rounded-2xl border border-black/5 bg-white/80 p-4" key={label}><div className="flex items-center gap-2 text-zinc-400"><Icon size={14} /><span className="text-[11px]">{label}</span></div><p className="mt-2 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
+        <Tabs defaultValue="breakdown" className="mt-6">
+          <TabsList className="grid h-auto w-full grid-cols-3 rounded-full bg-black/5 p-1">
+            <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="breakdown">Breakdown</TabsTrigger>
+            <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="evidence">Evidence</TabsTrigger>
+            <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="checks">Checks</TabsTrigger>
+          </TabsList>
 
-        {breakdown.parties.length > 0 && <section className="mt-6 rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><Users size={15} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-3 flex flex-wrap gap-2">{breakdown.parties.map((party) => <span className="rounded-full bg-black/5 px-3 py-1.5 text-xs" key={party}>{party}</span>)}</div></section>}
+          <TabsContent value="breakdown" className="mt-4 space-y-4">
+            {detailItems.length > 0 && <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Key details</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{detailItems.map(({ label, value, icon: Icon }) => <div className="rounded-2xl border border-black/5 bg-white/80 p-4" key={label}><div className="flex items-center gap-2 text-zinc-400"><Icon size={14} /><span className="text-[11px]">{label}</span></div><p className="mt-2 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
+            {breakdown.parties.length > 0 && <section className="rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><Users size={15} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-3 flex flex-wrap gap-2">{breakdown.parties.map((party) => <Badge variant="secondary" key={party}>{party}</Badge>)}</div></section>}
+            {breakdown.requested_actions.length > 0 && <section className="rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={15} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-6 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+            {!detailItems.length && !breakdown.parties.length && !breakdown.requested_actions.length && <p className="py-6 text-center text-sm text-zinc-400">No additional details were extracted.</p>}
+          </TabsContent>
 
-        {breakdown.requested_actions.length > 0 && <section className="mt-6 rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={15} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-6 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+          <TabsContent value="evidence" className="mt-4 space-y-4">
+            <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-3">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p></div>)}</div></section>
+            {(analysis.limitations?.length ?? 0) > 0 && <Alert className="rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTriangle size={15} /><AlertTitle>What could not be confirmed</AlertTitle><AlertDescription><ul className="space-y-1">{analysis.limitations.map((limitation) => <li className="leading-6 text-amber-900/70" key={limitation}>{limitation}</li>)}</ul></AlertDescription></Alert>}
+          </TabsContent>
 
-        {(analysis.checks?.length ?? 0) > 0 && <><Separator className="my-6" /><section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Checks performed</p><div className="mt-3 space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div></section></>}
-
-        <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-3">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p></div>)}</div></section>
-
-        {(analysis.limitations?.length ?? 0) > 0 && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4"><div className="flex items-center gap-2 text-amber-900"><AlertTriangle size={15} /><p className="text-sm font-semibold">What could not be confirmed</p></div><ul className="mt-2 space-y-1">{analysis.limitations.map((limitation) => <li className="text-sm leading-6 text-amber-900/70" key={limitation}>{limitation}</li>)}</ul></section>}
+          <TabsContent value="checks" className="mt-4">
+            {(analysis.checks?.length ?? 0) > 0 ? <div className="space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No check trace was returned.</p>}
+          </TabsContent>
+        </Tabs>
 
         <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
         <Button className="mt-5" variant="outline" onClick={reset}><RotateCcw size={16} /> Check another letter</Button>
@@ -111,7 +125,7 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-0.5 text-xs text-zinc-400">{formatFileSize(file.size)} · {file.type === "application/pdf" ? "PDF" : "Image"}</p></div>
         <button type="button" onClick={chooseFile} disabled={loading} className="shrink-0 text-xs font-medium text-zinc-500 hover:text-black">Change</button>
       </div>}
-      {error && <div className="mt-4 flex items-start gap-2 rounded-lg bg-coral/10 p-3 text-left text-sm text-coral"><AlertTriangle className="mt-0.5 shrink-0" size={16} />{error}</div>}
+      {error && <Alert variant="destructive" className="mt-4 rounded-2xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       <div className="mt-6 flex justify-center gap-2">
         <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Agents are checking…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
