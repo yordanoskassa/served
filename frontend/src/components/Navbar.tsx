@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { Menu, X } from "lucide-react"
 import { useState } from "react"
 
-const links = ["service", "patient resources", "about us", "education center"]
+const links = ["how it works", "your documents", "evidence", "resources"]
 
 function FlowerMark() {
   return <svg aria-hidden="true" className="size-8 shrink-0" viewBox="0 0 36 36" fill="none">
@@ -16,8 +16,8 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
   return <>
     <nav className="fixed top-0 left-0 z-50 w-full bg-gradient-to-b from-[#f1f1f1]/80 to-transparent py-6 backdrop-blur-[2px] md:py-10">
       <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-x-4 px-8 md:gap-x-8 md:px-16 lg:px-20">
-        <a href="#top" className="col-span-6 flex items-center gap-2 md:col-span-3" aria-label="mėntality home">
-          <FlowerMark /><span className="font-display text-xl tracking-[-.04em]">mėntality</span>
+        <a href="#top" className="col-span-6 flex items-center gap-2 md:col-span-3" aria-label="Served home">
+          <FlowerMark /><span className="font-display text-xl tracking-[-.04em]">Served</span>
         </a>
         <div className="col-span-6 hidden items-center justify-center gap-6 md:col-span-6 md:flex">
           {links.map((link) => <a className="text-[11px] lowercase tracking-tight text-zinc-700 transition-colors hover:text-black" href={`#${link.replaceAll(" ", "-")}`} key={link}>{link}</a>)}
