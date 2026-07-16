@@ -31,6 +31,21 @@ npm run dev
 The frontend defaults to `http://localhost:8001/api`. Override it with
 `VITE_API_URL` when needed.
 
+## Deploying
+
+For EasyPanel, deploy the root `docker-compose.yml` (or the backend service
+using `backend/Dockerfile`). Add the variables from `.env.example` to the
+backend service, including `SERVED_CORS_ORIGINS` with the deployed Netlify
+origin, for example:
+
+```text
+SERVED_CORS_ORIGINS=["https://your-site.netlify.app"]
+```
+
+For Netlify, connect the repository and use the included `netlify.toml`.
+Set the build environment variable `VITE_API_URL` to the public EasyPanel
+backend URL ending in `/api`, such as `https://api.example.com/api`.
+
 ## EasyPanel
 
 Deploy the root `docker-compose.yml`, or create two services using

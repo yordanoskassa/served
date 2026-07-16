@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     app_name: str = "Served API"
     api_prefix: str = "/api"
     environment: str = "development"
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ]
     openai_api_key: str = Field(
         default="",
         validation_alias=AliasChoices("SERVED_OPENAI_API_KEY", "OPENAI_API_KEY"),
