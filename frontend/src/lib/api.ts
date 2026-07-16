@@ -15,6 +15,14 @@ export type DashboardSummary = {
   recent: { id: string; name: string; verdict: Verdict; created_at: string }[]
 }
 
+export type AgentStatus = {
+  name: string
+  description: string
+  enabled: boolean
+  last_run: string | null
+  last_error: string | null
+}
+
 export type UserProfile = {
   subject?: string
   email: string
@@ -73,5 +81,11 @@ export async function analyzeDocument(file: File, credential?: string | null): P
 export async function fetchDashboardSummary(credential: string): Promise<DashboardSummary> {
   const response = await fetch(`${API_URL}/dashboard/summary`, { headers: { Authorization: `Bearer ${credential}` } })
   if (!response.ok) throw await responseError(response, "Unable to load dashboard data")
+  return response.json()
+}
+
+export async function fetchAgentStatus(): Promise<{ agents: AgentStatus[]; healthy: boolean }> {
+  const response = await fetch(`${API_URL}/agents/status`)
+  if (!response.ok) throw await responseError(response, "Unable to load agent status")
   return response.json()
 }

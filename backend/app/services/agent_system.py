@@ -3,7 +3,7 @@
 Agents are intentionally isolated so a failed external provider cannot bring down
 the API.  The dashboard can use ``agent_status`` to show health and capabilities.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
 
@@ -33,7 +33,9 @@ class AgentCoordinator:
         ]
 
     async def run(self, name: str, **kwargs: Any) -> Any:
-        agent = self._agents[name]
+        agent = self._agents.get(name)
+        if agent is None:
+            return None
         if not agent.enabled or agent.runner is None:
             return None
         try:
@@ -51,6 +53,12 @@ coordinator.register(Agent("document_parser", "Extracts visible facts from uploa
 coordinator.register(Agent("fraud_patterns", "Matches extracted language against the fraud corpus."))
 coordinator.register(Agent("court_records", "Cross-checks case details against CourtListener RECAP."))
 coordinator.register(Agent("verdict", "Combines evidence into a cautious verdict and next step."))
+
+
+def register_runner(name: str, runner: Callable[..., Awaitable[Any]]) -> None:
+    """Attach a concrete worker without coupling the coordinator to providers."""
+    if name in coordinator._agents:
+        coordinator._agents[name].runner = runner
 
 
 def agent_status() -> list[dict[str, Any]]:

@@ -1,10 +1,10 @@
-import { Bell, FileText, LayoutDashboard, LogOut, Plus, ShieldCheck, Users, Settings, ArrowUpRight } from "lucide-react"
+import { Activity, Bell, FileText, LayoutDashboard, LogOut, Plus, ShieldCheck, Users, Settings, ArrowUpRight, CircleCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { UploadCard } from "@/components/UploadCard"
 import { Button } from "@/components/ui/button"
-import { fetchDashboardSummary, type DashboardSummary } from "@/lib/api"
+import { fetchAgentStatus, fetchDashboardSummary, type AgentStatus, type DashboardSummary } from "@/lib/api"
 
 function userInitials(name: string): string {
   return name
@@ -18,9 +18,11 @@ function Dashboard() {
   const { user, credential, logout } = useAuth()
   const [showUpload, setShowUpload] = useState(false)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [agents, setAgents] = useState<AgentStatus[]>([])
 
   useEffect(() => {
     if (credential) void fetchDashboardSummary(credential).then(setSummary).catch(() => setSummary(null))
+    void fetchAgentStatus().then((response) => setAgents(response.agents)).catch(() => setAgents([]))
   }, [credential])
 
   const counts = summary?.counts ?? { documents: 0, verified: 0, review: 0, scam: 0 }
@@ -143,6 +145,16 @@ function Dashboard() {
                 </div>
               ))}
               {!summary?.recent.length && <div className="px-5 py-10 text-center text-sm text-muted-foreground">No documents analyzed yet. Upload a letter to create your first record.</div>}
+            </div>
+          </section>
+          <section id="agents" className="rounded-xl border border-border bg-white">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div><h3 className="font-semibold">Analysis team</h3><p className="text-sm text-muted-foreground">Specialized agents working together on each document.</p></div>
+              <Activity className="text-zinc-500" size={18} />
+            </div>
+            <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+              {agents.map((agent) => <div className="rounded-lg border border-black/5 bg-bg-base p-4" key={agent.name}><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium capitalize">{agent.name.replaceAll("_", " ")}</p><CircleCheck className={agent.enabled && !agent.last_error ? "text-emerald-600" : "text-amber-600"} size={16} /></div><p className="mt-2 text-xs leading-5 text-muted-foreground">{agent.description}</p><p className="mt-3 text-[10px] uppercase tracking-wider text-zinc-500">{agent.last_run ? `Last run ${new Date(agent.last_run).toLocaleTimeString()}` : "Ready"}</p></div>)}
+              {!agents.length && <p className="text-sm text-muted-foreground">Agent status is unavailable.</p>}
             </div>
           </section>
           <div className="flex items-center gap-3 rounded-xl border border-pine/20 bg-pine/5 p-4 text-sm">

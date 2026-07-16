@@ -11,6 +11,7 @@ from app.engine.fraud_patterns import load_fraud_patterns
 from app.engine.verdict import decide_verdict
 from app.schemas.analysis import AnalysisResponse, EvidenceItem
 from app.services.courtlistener import lookup_docket
+from app.services.agent_system import coordinator, register_runner
 
 logger = logging.getLogger(__name__)
 
@@ -50,24 +51,22 @@ def _parse_with_openai(data: bytes, mime_type: str) -> DocumentParse:
 
 async def analyze_document(file: UploadFile) -> AnalysisResponse:
     data = await file.read()
-    if not settings.openai_api_key:
-        parsed = DocumentParse(doc_type="Legal correspondence", readable=False)
-    else:
-        try:
-            parsed = await asyncio.to_thread(
-                _parse_with_openai, data, file.content_type or "image/jpeg"
-            )
-        except Exception:
-            logger.exception("OpenAI document parsing failed; returning safe refusal")
-            parsed = DocumentParse(doc_type="Legal correspondence", readable=False)
-
-    docket, cross_check_passed, near_match = await lookup_docket(parsed)
-    result = decide_verdict(
-        parsed,
-        docket,
-        cross_check_passed=cross_check_passed,
-        near_match=near_match,
+    parsed = await coordinator.run(
+        "document_parser", data=data, mime_type=file.content_type or "image/jpeg"
     )
+    if parsed is None:
+        parsed = DocumentParse(doc_type="Legal correspondence", readable=False)
+
+    fraud_ids = await coordinator.run("fraud_patterns", parsed=parsed) or []
+    parsed.scam_pattern_ids = fraud_ids
+    court_result = await coordinator.run("court_records", parsed=parsed) or ([], False, None)
+    docket, cross_check_passed, near_match = court_result
+    result = await coordinator.run(
+        "verdict", parsed=parsed, docket=docket,
+        cross_check_passed=cross_check_passed, near_match=near_match,
+    )
+    if result is None:
+        result = decide_verdict(parsed, docket, cross_check_passed=cross_check_passed, near_match=near_match)
     patterns = load_fraud_patterns()
     indicator_items = [
         EvidenceItem(
@@ -113,3 +112,32 @@ async def analyze_document(file: UploadFile) -> AnalysisResponse:
             "Check the case through the court’s official website or ask a qualified attorney to review it."
         ),
     )
+
+
+async def _parser_agent(*, data: bytes, mime_type: str) -> DocumentParse:
+    if not settings.openai_api_key:
+        return DocumentParse(doc_type="Legal correspondence", readable=False)
+    try:
+        return await asyncio.to_thread(_parse_with_openai, data, mime_type)
+    except Exception:
+        logger.exception("OpenAI document parsing failed; returning safe refusal")
+        return DocumentParse(doc_type="Legal correspondence", readable=False)
+
+
+async def _fraud_agent(*, parsed: DocumentParse) -> list[str]:
+    known = load_fraud_patterns()
+    return [pattern_id for pattern_id in parsed.scam_pattern_ids if pattern_id in known]
+
+
+async def _court_agent(*, parsed: DocumentParse):
+    return await lookup_docket(parsed)
+
+
+async def _verdict_agent(*, parsed: DocumentParse, docket, cross_check_passed: bool, near_match):
+    return decide_verdict(parsed, docket, cross_check_passed=cross_check_passed, near_match=near_match)
+
+
+register_runner("document_parser", _parser_agent)
+register_runner("fraud_patterns", _fraud_agent)
+register_runner("court_records", _court_agent)
+register_runner("verdict", _verdict_agent)
