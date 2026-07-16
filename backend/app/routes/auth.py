@@ -13,10 +13,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _profile_from_claims(claims: dict) -> UserProfile:
+    subject = str(claims.get("sub") or "")
+    if not subject:
+        raise HTTPException(status_code=401, detail="Google token has no subject.")
     email = str(claims.get("email") or "")
     if not email or claims.get("email_verified") is False:
         raise HTTPException(status_code=401, detail="Google email is not verified.")
     return UserProfile(
+        subject=subject,
         email=email,
         name=str(claims.get("name") or email),
         given_name=str(claims.get("given_name") or ""),
@@ -48,11 +52,7 @@ def _verify_google_token(token: str) -> UserProfile:
 @router.post("/google", response_model=UserProfile)
 async def google_auth(body: GoogleAuthRequest) -> UserProfile:
     profile = _verify_google_token(body.credential)
-    await get_db().users.update_one(
-        {"email": profile.email},
-        {"$set": {**profile.model_dump(), "last_login_at": datetime.now(UTC)}},
-        upsert=True,
-    )
+    await _save_login(profile)
     return profile
 
 
@@ -61,4 +61,19 @@ async def verify_google_auth(authorization: str = Header(default="")) -> UserPro
     token = authorization.removeprefix("Bearer ").strip()
     if not token:
         raise HTTPException(status_code=401, detail="Missing bearer token.")
-    return _verify_google_token(token)
+    profile = _verify_google_token(token)
+    await _save_login(profile)
+    return profile
+
+
+async def _save_login(profile: UserProfile) -> None:
+    """Upsert by Google's immutable subject, retaining email changes safely."""
+    await get_db().users.update_one(
+        {"google_subject": profile.subject},
+        {"$set": {
+            "google_subject": profile.subject,
+            **profile.model_dump(),
+            "last_login_at": datetime.now(UTC),
+        }},
+        upsert=True,
+    )
