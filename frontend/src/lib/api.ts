@@ -84,10 +84,10 @@ export async function loadSampleDocument(sample: "D1" | "D2" | "D3"): Promise<Fi
   return new File([await response.blob()], `${sample}.pdf`, { type: "application/pdf" })
 }
 
-export async function analyzeDocument(file: File, credential?: string | null): Promise<Analysis> {
+export async function analyzeDocument(file: File, credential: string): Promise<Analysis> {
   const body = new FormData()
   body.append("file", file)
-  const response = await fetch(`${API_URL}/documents/analyze`, { method: "POST", body, headers: credential ? { Authorization: `Bearer ${credential}` } : undefined })
+  const response = await fetch(`${API_URL}/documents/analyze`, { method: "POST", body, headers: { Authorization: `Bearer ${credential}` } })
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
     throw new Error(payload?.detail ?? "We couldn’t analyze that photo. Please try again.")

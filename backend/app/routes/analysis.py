@@ -42,21 +42,25 @@ async def analyze(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="The document must be smaller than 20 MB.",
         )
-    result = await analyze_document(file)
     token = authorization.removeprefix("Bearer ").strip()
-    if token:
-        profile = _verify_google_token(token)
-        try:
-            await get_db().analyses.insert_one({
-                "google_subject": profile.subject,
-                "filename": file.filename,
-                "verdict": result.verdict,
-                "document_type": result.document_type,
-                "created_at": datetime.now(UTC),
-            })
-        except Exception as exc:
-            raise HTTPException(
-                status_code=503,
-                detail="The analysis completed but could not be saved. Please try again.",
-            ) from exc
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sign in before analyzing a document.",
+        )
+    profile = _verify_google_token(token)
+    result = await analyze_document(file)
+    try:
+        await get_db().analyses.insert_one({
+            "google_subject": profile.subject,
+            "filename": file.filename,
+            "verdict": result.verdict,
+            "document_type": result.document_type,
+            "created_at": datetime.now(UTC),
+        })
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The analysis completed but could not be saved. Please try again.",
+        ) from exc
     return result

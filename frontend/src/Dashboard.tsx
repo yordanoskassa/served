@@ -1,20 +1,20 @@
-import { Activity, FileText, LayoutDashboard, LogOut, Plus, ShieldCheck } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Activity, ArrowRight, FileText, LayoutDashboard, LogOut, Plus, ShieldCheck } from "lucide-react"
+import { lazy, Suspense, useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { BrandMark } from "@/components/BrandMark"
-import { UploadCard } from "@/components/UploadCard"
+import { UploadCard, type AnalysisRunState } from "@/components/UploadCard"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { fetchAgentStatus, fetchDashboardSummary, type AgentStatus, type DashboardSummary } from "@/lib/api"
+import { fetchAgentStatus, fetchDashboardSummary, type AgentStatus, type Analysis, type DashboardSummary } from "@/lib/api"
 import type { EntryIntent } from "@/lib/entry"
 
 type LoadState = "loading" | "ready" | "error"
 const AGENT_ORDER = ["reader", "checker", "explainer"] as const
+const OrchestrationView = lazy(() => import("@/components/OrchestrationView").then((module) => ({ default: module.OrchestrationView })))
 
 function userInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("")
@@ -43,6 +43,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const [summaryState, setSummaryState] = useState<LoadState>("loading")
   const [agents, setAgents] = useState<AgentStatus[]>([])
   const [agentState, setAgentState] = useState<LoadState>("loading")
+  const [latestAnalysis, setLatestAnalysis] = useState<Analysis | null>(null)
+  const [analysisRunState, setAnalysisRunState] = useState<AnalysisRunState>("idle")
   const [activeTab, setActiveTab] = useState("overview")
   const intentConsumed = useRef(false)
 
@@ -87,7 +89,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         <TabsList className="mt-12 flex h-auto w-full flex-col items-stretch gap-2 bg-transparent p-0 text-sm">
           <TabsTrigger value="overview" className="justify-start gap-3 rounded-full px-4 py-2.5 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><LayoutDashboard size={16} /> Overview</TabsTrigger>
           <TabsTrigger value="documents" className="justify-start gap-3 rounded-full px-4 py-2.5 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileText size={16} /> Documents</TabsTrigger>
-          <TabsTrigger value="agents" className="justify-start gap-3 rounded-full px-4 py-2.5 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Activity size={16} /> Three-agent pipeline</TabsTrigger>
+          <TabsTrigger value="agents" className="justify-start gap-3 rounded-full px-4 py-2.5 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Activity size={16} /> Agent pipeline</TabsTrigger>
           <TabsTrigger value="privacy" className="justify-start gap-3 rounded-full px-4 py-2.5 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><ShieldCheck size={16} /> Privacy</TabsTrigger>
         </TabsList>
         <button type="button" onClick={logout} className="absolute bottom-6 left-6 flex items-center gap-3 rounded-full px-4 py-2.5 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> Sign out</button>
@@ -103,27 +105,45 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           </div>
         </header>
 
-        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-4 rounded-full bg-black/5 p-1 lg:hidden">
+        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-2 rounded-[22px] bg-black/5 p-1 sm:grid-cols-4 sm:rounded-full lg:hidden">
           <TabsTrigger value="overview" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Overview</TabsTrigger>
           <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Docs</TabsTrigger>
-          <TabsTrigger value="agents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">3 agents</TabsTrigger>
+          <TabsTrigger value="agents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Pipeline</TabsTrigger>
           <TabsTrigger value="privacy" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Privacy</TabsTrigger>
         </TabsList>
 
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-12">
           <TabsContent value="overview" className="mt-0 space-y-8">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Your workspace</p><h1 className="font-display text-4xl font-medium tracking-[-.055em] sm:text-5xl">Understand before you act.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">READER extracts the facts, CHECKER investigates the evidence, and EXPLAINER makes the code-decided result clear. Deterministic code—not an AI agent—sets the verdict.</p></div>
+            <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Your workspace</p><h1 className="font-display text-4xl font-medium tracking-[-.055em] sm:text-5xl">Understand before you act.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">One code orchestrator routes each letter through READER, CHECKER, and EXPLAINER. Between CHECKER and EXPLAINER, fixed rules—not an AI agent—set the verdict.</p></div>
             <Button onClick={() => setShowUpload(true)}><Plus size={17} /> Analyze a document</Button>
           </section>
 
           {showUpload && <section className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
-            <UploadCard initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined} onAnalysisComplete={() => setRefreshKey((value) => value + 1)} />
-            <div className="rounded-[28px] border border-black/10 bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
-              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Analysis route</p>
-              <h2 className="mt-3 font-display text-2xl tracking-[-.04em]">Three agents. One code-decided verdict.</h2>
-              <p className="mt-2 text-xs leading-5 text-white/45">READER → CHECKER → deterministic code → EXPLAINER</p>
-              <div className="mt-6 space-y-3">{orderedAgents.map((agent, index) => <div className="flex gap-3 rounded-2xl bg-white/[.06] p-3" key={agent.name}><span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><div><p className="text-sm font-medium">{agent.name.toUpperCase()}</p><p className="mt-1 text-xs leading-5 text-white/45">{agent.description}</p></div></div>)}{agentState === "ready" && orderedAgents.length !== 3 && <p className="rounded-2xl bg-white/[.06] p-3 text-xs leading-5 text-white/50">The three-agent backend status is not fully available yet.</p>}</div>
+            <UploadCard
+              initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined}
+              onAnalysisComplete={(analysis) => {
+                setLatestAnalysis(analysis)
+                setRefreshKey((value) => value + 1)
+              }}
+              onAnalysisStateChange={(state) => {
+                setAnalysisRunState(state)
+                if (state === "running") setLatestAnalysis(null)
+              }}
+              onViewPipeline={() => setActiveTab("agents")}
+            />
+            <div className="flex flex-col rounded-[28px] border border-black/10 bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
+              <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Orchestrated route</p><h2 className="mt-3 font-display text-2xl tracking-[-.04em]">One controller. Three bounded agents.</h2></div><span className="rounded-full border border-white/10 bg-white/[.06] px-3 py-1 text-[10px] uppercase tracking-[.16em] text-white/55">application code</span></div>
+              <div className="mt-6 space-y-2">
+                {AGENT_ORDER.map((name, index) => {
+                  const agent = orderedAgents.find((item) => item.name === name)
+                  return <div key={name}>
+                    <div className="flex items-center gap-3 rounded-2xl bg-white/[.06] p-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><div className="min-w-0 flex-1"><p className="text-sm font-medium">{name.toUpperCase()}</p><p className="mt-0.5 truncate text-[11px] text-white/40">{agent?.description ?? (name === "reader" ? "Extracts visible document facts." : name === "checker" ? "Checks records and warning patterns." : "Explains the code-decided result.")}</p></div><span className={`size-2 rounded-full ${agent?.enabled && !agent.last_error ? "bg-brand-green" : "bg-white/20"}`} /></div>
+                    {index === 1 && <div className="mx-auto my-2 w-fit rounded-full border border-dashed border-white/15 px-3 py-1 text-[9px] uppercase tracking-[.16em] text-white/45">fixed if / else verdict</div>}
+                  </div>
+                })}
+              </div>
+              <Button variant="outline" onClick={() => setActiveTab("agents")} className="mt-5 w-full border-white/15 bg-white/[.08] text-white hover:bg-white/[.14]">Open the full system map <ArrowRight size={15} /></Button>
             </div>
           </section>}
 
@@ -143,15 +163,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             </div>
           </section></TabsContent>
 
-          <TabsContent value="agents" className="mt-0"><section className="rounded-[28px] bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">System readiness</p><h2 className="mt-2 font-display text-2xl tracking-[-.04em]">READER, CHECKER, EXPLAINER</h2><p className="mt-2 text-sm text-white/45">Three agents read, investigate, and explain. Deterministic code—not AI—decides every verdict.</p></div><Activity className="text-brand-green" size={20} /></div>
-            <TooltipProvider><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {agentState === "loading" && <p className="text-sm text-white/45">Checking agent readiness…</p>}
-              {agentState === "error" && <Alert className="border-white/10 bg-white/[.06] text-white"><AlertTitle>Readiness unavailable</AlertTitle><AlertDescription className="text-white/50">The status service could not be reached.</AlertDescription></Alert>}
-              {agentState === "ready" && orderedAgents.map((agent, index) => <article className="rounded-2xl border border-white/10 bg-white/[.06] p-4" key={agent.name}><div className="flex items-center justify-between"><span className="grid size-7 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><Tooltip><TooltipTrigger asChild><span tabIndex={0} className={`size-2 rounded-full ${agent.enabled && !agent.last_error ? "bg-brand-soft" : "bg-orange-400"}`} /></TooltipTrigger><TooltipContent className="bg-white text-black">{agent.enabled && !agent.last_error ? "Ready" : "Unavailable"}</TooltipContent></Tooltip></div><p className="mt-4 text-sm font-medium">{agent.name.toUpperCase()}</p><p className="mt-2 text-xs leading-5 text-white/45">{agent.description}</p></article>)}
-              {agentState === "ready" && orderedAgents.length !== 3 && <Alert className="border-white/10 bg-white/[.06] text-white"><AlertTitle>Three-agent status incomplete</AlertTitle><AlertDescription className="text-white/50">The deployed backend did not return all three expected agents.</AlertDescription></Alert>}
-            </div></TooltipProvider>
-          </section></TabsContent>
+          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-4"><Skeleton className="h-52 w-full rounded-[28px] bg-black/5" /><Skeleton className="h-80 w-full rounded-[28px] bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={latestAnalysis} analysisRunState={analysisRunState} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
 
           <TabsContent value="privacy" className="mt-0"><section className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-white/55 p-5 text-sm backdrop-blur-xl"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={17} /></span><p className="pt-1.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis; the dashboard stores analysis metadata and results tied to your account.</p></section></TabsContent>
         </div>

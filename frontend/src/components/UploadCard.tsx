@@ -1,4 +1,4 @@
-import { AlertTriangle, Building2, CalendarDays, Camera, FileImage, Hash, ListChecks, LoaderCircle, RotateCcw, ShieldCheck, Users } from "lucide-react"
+import { AlertTriangle, ArrowRight, Building2, CalendarDays, Camera, FileImage, Hash, ListChecks, LoaderCircle, RotateCcw, ShieldCheck, Users } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -33,8 +33,12 @@ function decisionExplanation(analysis: Analysis): string | null {
   return "Fewer than two scam signals were validated, and a case-plus-party match was not established."
 }
 
-export function UploadCard({ onAnalysisComplete, initialSample }: {
+export type AnalysisRunState = "idle" | "running" | "complete" | "error"
+
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onViewPipeline, initialSample }: {
   onAnalysisComplete?: (analysis: Analysis) => void
+  onAnalysisStateChange?: (state: AnalysisRunState) => void
+  onViewPipeline?: () => void
   initialSample?: "D1" | "D2" | "D3"
 }) {
   const { credential } = useAuth()
@@ -66,28 +70,46 @@ export function UploadCard({ onAnalysisComplete, initialSample }: {
 
   async function submit() {
     if (!file) return input.current?.click()
+    if (!credential) {
+      setError("Sign in again before analyzing this letter.")
+      onAnalysisStateChange?.("error")
+      return
+    }
     setLoading(true)
     setError(undefined)
+    onAnalysisStateChange?.("running")
     try {
       const result = await analyzeDocument(file, credential)
       setAnalysis(result)
       onAnalysisComplete?.(result)
+      onAnalysisStateChange?.("complete")
     }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Analysis failed.") }
+    catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Analysis failed.")
+      onAnalysisStateChange?.("error")
+    }
     finally { setLoading(false) }
   }
 
   async function useSample(sample: "D1" | "D2" | "D3") {
+    if (!credential) {
+      setError("Sign in again before analyzing this letter.")
+      onAnalysisStateChange?.("error")
+      return
+    }
     setLoading(true)
     setError(undefined)
+    onAnalysisStateChange?.("running")
     try {
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
       const result = await analyzeDocument(sampleFile, credential)
       setAnalysis(result)
       onAnalysisComplete?.(result)
+      onAnalysisStateChange?.("complete")
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Sample analysis failed.")
+      onAnalysisStateChange?.("error")
     } finally {
       setLoading(false)
     }
@@ -146,7 +168,7 @@ export function UploadCard({ onAnalysisComplete, initialSample }: {
         </Tabs>
 
         <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
-        <Button className="mt-5" variant="outline" onClick={reset}><RotateCcw size={16} /> Check another letter</Button>
+        <div className="mt-5 flex flex-wrap gap-2"><Button variant="outline" onClick={reset}><RotateCcw size={16} /> Check another letter</Button>{onViewPipeline && <Button onClick={onViewPipeline}>See the full workflow <ArrowRight size={16} /></Button>}</div>
       </div>
     </Card>
   }
