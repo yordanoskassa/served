@@ -1,10 +1,14 @@
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.schemas.analysis import AnalysisResponse
 from app.config import settings
+from app.db import get_db
+from app.routes.auth import _verify_google_token
 from app.services.document_analyzer import analyze_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -23,7 +27,10 @@ async def sample_document(sample_id: str) -> FileResponse:
 
 
 @router.post("/analyze", response_model=AnalysisResponse)
-async def analyze(file: UploadFile = File(...)) -> AnalysisResponse:
+async def analyze(
+    file: UploadFile = File(...),
+    authorization: str = Header(default=""),
+) -> AnalysisResponse:
     allowed_types = {"image/jpeg", "image/png", "application/pdf"}
     if file.content_type not in allowed_types:
         raise HTTPException(
@@ -35,4 +42,19 @@ async def analyze(file: UploadFile = File(...)) -> AnalysisResponse:
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="The document must be smaller than 20 MB.",
         )
-    return await analyze_document(file)
+    result = await analyze_document(file)
+    token = authorization.removeprefix("Bearer ").strip()
+    if token:
+        profile = _verify_google_token(token)
+        try:
+            await get_db().analyses.insert_one({
+                "google_subject": profile.subject,
+                "filename": file.filename,
+                "verdict": result.verdict,
+                "document_type": result.document_type,
+                "created_at": datetime.now(UTC),
+            })
+        except Exception:
+            # Analysis remains available if persistence is temporarily unavailable.
+            pass
+    return result

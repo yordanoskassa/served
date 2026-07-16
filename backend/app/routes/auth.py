@@ -12,6 +12,12 @@ from app.schemas.auth import GoogleAuthRequest, UserProfile
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/client-id")
+async def auth_client_id() -> dict[str, str]:
+    """Return the Google OAuth client ID for the frontend (same contract as Lumper)."""
+    return {"client_id": settings.google_client_id}
+
+
 def _profile_from_claims(claims: dict) -> UserProfile:
     subject = str(claims.get("sub") or "")
     if not subject:

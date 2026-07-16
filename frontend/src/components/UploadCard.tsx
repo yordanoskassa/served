@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { type Analysis, analyzeDocument, loadSampleDocument } from "@/lib/api"
+import { useAuth } from "@/AuthContext"
 
 const verdictCopy = {
   verified: { label: "Evidence supports it", className: "bg-pine/10 text-pine" },
@@ -12,6 +13,7 @@ const verdictCopy = {
 }
 
 export function UploadCard() {
+  const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File>()
   const [analysis, setAnalysis] = useState<Analysis>()
@@ -22,7 +24,7 @@ export function UploadCard() {
     if (!file) return input.current?.click()
     setLoading(true)
     setError(undefined)
-    try { setAnalysis(await analyzeDocument(file)) }
+    try { setAnalysis(await analyzeDocument(file, credential)) }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Analysis failed.") }
     finally { setLoading(false) }
   }
@@ -33,7 +35,7 @@ export function UploadCard() {
     try {
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
-      setAnalysis(await analyzeDocument(sampleFile))
+      setAnalysis(await analyzeDocument(sampleFile, credential))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Sample analysis failed.")
     } finally {
