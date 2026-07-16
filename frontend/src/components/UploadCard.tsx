@@ -12,6 +12,11 @@ const verdictCopy = {
   scam_indicators: { label: "Scam warning signs found", className: "bg-coral/10 text-coral" },
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analysis: Analysis) => void }) {
   const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
@@ -54,6 +59,11 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
     if (input.current) input.current.value = ""
   }
 
+  function chooseFile() {
+    if (input.current) input.current.value = ""
+    input.current?.click()
+  }
+
   if (analysis) {
     const verdict = verdictCopy[analysis.verdict]
     return <Card className="overflow-hidden p-2">
@@ -76,14 +86,18 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
 
   return <Card className="overflow-hidden p-2">
     <div className="rounded-[22px] border border-dashed border-black/15 bg-white/65 px-6 py-10 text-center sm:px-10">
-      <div className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-brand-green text-black">{loading ? <LoaderCircle className="animate-spin" size={26} /> : file ? <FileImage size={26} /> : <Camera size={26} />}</div>
-      <h2 className="truncate font-display text-2xl font-medium tracking-[-.04em]">{file?.name ?? "Upload the letter"}</h2>
-      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{file ? "Ready to identify important details and warning signs." : "Use a clear, well-lit photo with the entire page visible."}</p>
-      <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setError(undefined) }} />
+      <div className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={26} /> : file ? <FileImage size={26} /> : <Camera size={26} />}</div>
+      <h2 className="font-display text-2xl font-medium tracking-[-.04em]">{file ? "Ready to analyze" : "Upload the letter"}</h2>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{file ? "Your selected file is shown below." : "Use a clear, well-lit photo with the entire page visible."}</p>
+      <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
+      {file && <div aria-live="polite" className="mx-auto mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-left shadow-sm">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={17} /></span>
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-0.5 text-xs text-zinc-400">{formatFileSize(file.size)} · {file.type === "application/pdf" ? "PDF" : "Image"}</p></div>
+        <button type="button" onClick={chooseFile} disabled={loading} className="shrink-0 text-xs font-medium text-zinc-500 hover:text-black">Change</button>
+      </div>}
       {error && <div className="mt-4 flex items-start gap-2 rounded-lg bg-coral/10 p-3 text-left text-sm text-coral"><AlertTriangle className="mt-0.5 shrink-0" size={16} />{error}</div>}
       <div className="mt-6 flex justify-center gap-2">
-        {file && <Button variant="outline" onClick={() => input.current?.click()} disabled={loading}>Change</Button>}
-        <Button onClick={submit} disabled={loading}><Camera size={18} /> {loading ? "Agents are checking…" : file ? "Analyze letter" : "Choose a file"}</Button>
+        <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Agents are checking…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
       {import.meta.env.DEV && <div className="mt-6 border-t border-black/5 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Try a demo document</p>

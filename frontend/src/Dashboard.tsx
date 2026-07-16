@@ -59,7 +59,7 @@ export function Dashboard() {
           <span className="font-display text-xl font-medium tracking-[-.04em]">Served</span>
         </a>
         <nav className="mt-12 space-y-2 text-sm">
-          <a className="flex items-center gap-3 rounded-full bg-brand-green px-4 py-2.5 font-medium" href="#overview"><LayoutDashboard size={16} /> Overview</a>
+          <a className="flex items-center gap-3 rounded-full bg-brand-soft px-4 py-2.5 font-medium" href="#overview"><LayoutDashboard size={16} /> Overview</a>
           <a className="flex items-center gap-3 rounded-full px-4 py-2.5 text-zinc-500 transition hover:bg-black/5 hover:text-black" href="#history"><FileText size={16} /> Documents</a>
           <a className="flex items-center gap-3 rounded-full px-4 py-2.5 text-zinc-500 transition hover:bg-black/5 hover:text-black" href="#agents"><Activity size={16} /> Agent pipeline</a>
           <a className="flex items-center gap-3 rounded-full px-4 py-2.5 text-zinc-500 transition hover:bg-black/5 hover:text-black" href="#privacy"><ShieldCheck size={16} /> Privacy</a>
@@ -88,7 +88,7 @@ export function Dashboard() {
             <div className="rounded-[28px] border border-black/10 bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Analysis route</p>
               <h2 className="mt-3 font-display text-2xl tracking-[-.04em]">Four checks, one evidence trail.</h2>
-              <div className="mt-6 space-y-3">{agents.map((agent, index) => <div className="flex gap-3 rounded-2xl bg-white/[.06] p-3" key={agent.name}><span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-green text-xs font-semibold text-black">{index + 1}</span><div><p className="text-sm font-medium capitalize">{agent.name.replaceAll("_", " ")}</p><p className="mt-1 text-xs leading-5 text-white/45">{agent.description}</p></div></div>)}</div>
+              <div className="mt-6 space-y-3">{agents.map((agent, index) => <div className="flex gap-3 rounded-2xl bg-white/[.06] p-3" key={agent.name}><span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><div><p className="text-sm font-medium capitalize">{agent.name.replaceAll("_", " ")}</p><p className="mt-1 text-xs leading-5 text-white/45">{agent.description}</p></div></div>)}</div>
             </div>
           </section>}
 
@@ -101,7 +101,7 @@ export function Dashboard() {
             <div className="divide-y divide-black/5">
               {summaryState === "loading" && <p className="px-6 py-10 text-center text-sm text-zinc-400">Loading your document history…</p>}
               {summaryState === "error" && <p className="px-6 py-10 text-center text-sm text-zinc-500">Document history is temporarily unavailable.</p>}
-              {summaryState === "ready" && summary?.recent.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4" key={item.id}><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-black/5"><FileText size={16} /></span><div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-zinc-400">{new Date(item.created_at).toLocaleString()}</p></div></div><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.verdict === "verified" ? "bg-brand-green text-black" : item.verdict === "scam_indicators" ? "bg-orange-100 text-orange-800" : "bg-amber-100 text-amber-800"}`}>{item.verdict === "verified" ? "Record match" : item.verdict === "scam_indicators" ? "Warning signals" : "Cannot confirm"}</span></div>)}
+              {summaryState === "ready" && summary?.recent.map((item) => <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4" key={item.id}><div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-black/5"><FileText size={16} /></span><div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-zinc-400">{new Date(item.created_at).toLocaleString()}</p></div></div><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.verdict === "verified" ? "bg-brand-soft text-black" : item.verdict === "scam_indicators" ? "bg-orange-100 text-orange-800" : "bg-amber-100 text-amber-800"}`}>{item.verdict === "verified" ? "Record match" : item.verdict === "scam_indicators" ? "Warning signals" : "Cannot confirm"}</span></div>)}
               {summaryState === "ready" && !summary?.recent.length && <p className="px-6 py-10 text-center text-sm text-zinc-400">No analyses yet. Your first completed check will appear here.</p>}
             </div>
           </section>
@@ -111,11 +111,11 @@ export function Dashboard() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {agentState === "loading" && <p className="text-sm text-white/45">Checking agent readiness…</p>}
               {agentState === "error" && <p className="text-sm text-white/45">Agent readiness is temporarily unavailable.</p>}
-              {agentState === "ready" && agents.map((agent, index) => <article className="rounded-2xl border border-white/10 bg-white/[.06] p-4" key={agent.name}><div className="flex items-center justify-between"><span className="grid size-7 place-items-center rounded-full bg-brand-green text-xs font-semibold text-black">{index + 1}</span><span className={`size-2 rounded-full ${agent.enabled && !agent.last_error ? "bg-brand-green" : "bg-orange-400"}`} /></div><p className="mt-4 text-sm font-medium capitalize">{agent.name.replaceAll("_", " ")}</p><p className="mt-2 text-xs leading-5 text-white/45">{agent.description}</p></article>)}
+              {agentState === "ready" && agents.map((agent, index) => <article className="rounded-2xl border border-white/10 bg-white/[.06] p-4" key={agent.name}><div className="flex items-center justify-between"><span className="grid size-7 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><span className={`size-2 rounded-full ${agent.enabled && !agent.last_error ? "bg-brand-soft" : "bg-orange-400"}`} /></div><p className="mt-4 text-sm font-medium capitalize">{agent.name.replaceAll("_", " ")}</p><p className="mt-2 text-xs leading-5 text-white/45">{agent.description}</p></article>)}
             </div>
           </section>
 
-          <section id="privacy" className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-brand-green p-5 text-sm"><ShieldCheck className="mt-0.5 shrink-0" size={19} /><p><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis; the dashboard stores analysis metadata and results tied to your account.</p></section>
+          <section id="privacy" className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-white/55 p-5 text-sm backdrop-blur-xl"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={17} /></span><p className="pt-1.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis; the dashboard stores analysis metadata and results tied to your account.</p></section>
         </div>
       </main>
     </div>

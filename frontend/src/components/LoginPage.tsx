@@ -25,7 +25,7 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-6">
-      <div className="pointer-events-none absolute -top-40 -right-32 size-[34rem] rounded-full bg-brand-green/35 blur-3xl" />
+      <div className="pointer-events-none absolute -top-40 -right-32 size-[34rem] rounded-full bg-brand-green/15 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-48 -left-40 size-[30rem] rounded-full bg-white/80 blur-3xl" />
       <div className="relative w-full max-w-md rounded-[28px] border border-white/80 bg-white/65 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,.12)] backdrop-blur-2xl sm:p-10">
         <div className="mb-7 flex justify-center">
