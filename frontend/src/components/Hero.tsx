@@ -1,28 +1,160 @@
-import { motion } from "motion/react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { Upload } from "lucide-react"
+import { useEffect, useRef, type Ref } from "react"
 
-export function Hero({ onGetStarted }: { onGetStarted: () => void }) {
-  return <section id="top" className="relative flex min-h-[110vh] w-full flex-col items-center justify-start overflow-hidden bg-bg-base sm:min-h-[140vh]">
-    <div className="pointer-events-none absolute top-[15vh] left-0 z-0 h-[95vh] w-full sm:top-[20vh] sm:h-[120vh]">
-      <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-center" />
-      <div className="absolute top-0 left-0 h-24 w-full bg-gradient-to-b from-bg-base to-transparent sm:h-32" />
-      <div className="absolute inset-0 bg-bg-base/5" />
-    </div>
-    <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-12 gap-x-4 px-8 pt-[23vh] md:gap-x-8 md:px-16 md:pt-[27vh] lg:px-20">
-      <div className="col-span-12 md:col-span-10 md:col-start-2">
-        <motion.h1 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="max-w-5xl font-display text-[clamp(2.7rem,7vw,7.5rem)] font-medium leading-[.93] tracking-[-.065em] text-[#8e8e8e]">
-          <span className="text-[#1a1a1a]">Served makes legal mail</span><br />
-          easier to understand<br />
-          with evidence and clear next steps<br />
-          before you <span className="inline-flex w-[16px] items-center justify-center rounded-full border-2 border-[#1a1a1a] align-[.08em] md:w-[42px] lg:w-[62px]"><span className="size-2 rounded-full bg-[#1a1a1a]" /></span> act.
-        </motion.h1>
-        <motion.button type="button" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: .15 }} onClick={onGetStarted} className="mt-8 flex w-full max-w-md items-center rounded-[6px] border border-black/[0.05] bg-white p-1 pl-4 text-left shadow-sm transition-transform hover:-translate-y-0.5">
-          <span className="min-w-0 flex-1 text-sm text-zinc-500">Analyze a legal letter</span>
-          <span className="relative flex size-9 items-center justify-center rounded-full bg-[#1a1a1a] text-white"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 7.5h8M7.5 3.5l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
-        </motion.button>
+import { BrandMark } from "@/components/BrandMark"
+import { Button } from "@/components/ui/button"
+import type { EntryIntent } from "@/lib/entry"
+
+const letters = [
+  { id: "D1" as const, title: "Letter 1", note: "Sample case D1", rotate: -5 },
+  { id: "D2" as const, title: "Letter 2", note: "Sample case D2", rotate: 1.5 },
+  { id: "D3" as const, title: "Letter 3", note: "Sample case D3", rotate: 5 },
+]
+
+function FlyingLetter({ letter, index, onSelect, buttonRef }: {
+  letter: (typeof letters)[number]
+  index: number
+  onSelect: (intent: EntryIntent) => void
+  buttonRef?: Ref<HTMLButtonElement>
+}) {
+  const reduceMotion = useReducedMotion()
+  return (
+    <motion.button
+      type="button"
+      ref={buttonRef}
+      aria-label={`Choose Letter ${index + 1}, sample ${letter.id}`}
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 190, scale: .35, rotate: 0 }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotate: reduceMotion ? 0 : letter.rotate }}
+      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 80, scale: .7 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 115, damping: 15, delay: .12 + index * .12 }}
+      whileHover={reduceMotion ? undefined : { y: -10, rotate: 0, scale: 1.025 }}
+      whileTap={reduceMotion ? undefined : { scale: .98 }}
+      onClick={() => onSelect(letter.id)}
+      className={`group relative aspect-[1.45/1] min-w-0 overflow-hidden rounded-[10px] border border-black/10 bg-[#fffdf6] p-3 text-left shadow-[0_24px_70px_rgba(37,40,33,.16)] transition-shadow hover:shadow-[0_30px_85px_rgba(37,40,33,.23)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:col-span-1 sm:w-auto sm:rounded-[14px] sm:p-5 ${index === 2 ? "col-span-2 w-[calc(50%-4px)] justify-self-center" : ""}`}
+    >
+      <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full text-black/[.08]" viewBox="0 0 300 190" preserveAspectRatio="none">
+        <path d="M1 188 112 87c22-20 54-20 76 0l111 101" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M1 1 119 104c18 16 44 16 62 0L299 1" fill="none" stroke="currentColor" strokeWidth="2" />
+      </svg>
+      <div className="relative z-10 flex items-start justify-between">
+        <span className="grid size-7 place-items-center rounded-full bg-[#1a1a1a] text-[9px] font-semibold text-white sm:size-9 sm:text-[10px]">{letter.id}</span>
+        <span className="grid size-7 place-items-center border border-dashed border-black/25 bg-brand-soft sm:size-9"><BrandMark className="size-4 sm:size-5" /></span>
       </div>
+      <div className="absolute inset-x-3 bottom-3 z-10 sm:inset-x-5 sm:bottom-5">
+        <p className="truncate font-display text-sm font-medium tracking-[-.03em] text-[#1a1a1a] sm:text-lg">{letter.title}</p>
+        <p className="mt-0.5 hidden text-[10px] text-zinc-400 sm:block">{letter.note}</p>
+      </div>
+    </motion.button>
+  )
+}
+
+function ServedMailbox({ open, onOpen, onSelect }: {
+  open: boolean
+  onOpen: () => void
+  onSelect: (intent: EntryIntent) => void
+}) {
+  const reduceMotion = useReducedMotion()
+  return (
+    <div className="relative h-[350px] w-[310px] sm:h-[390px] sm:w-[410px]" style={{ perspective: "900px" }}>
+      <div className="absolute bottom-4 left-1/2 h-9 w-64 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md sm:w-80" />
+      <div className="absolute bottom-8 left-1/2 h-40 w-14 -translate-x-1/2 rounded-b-xl bg-[#9d3a34] shadow-[inset_-10px_0_20px_rgba(0,0,0,.12)] sm:h-44 sm:w-16" />
+      <div className="absolute bottom-5 left-1/2 h-6 w-36 -translate-x-1/2 rounded-full bg-[#7d302c] sm:w-44" />
+
+      <motion.div
+        aria-hidden="true"
+        animate={{ rotate: open ? 0 : -82 }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 95, damping: 14 }}
+        className="absolute right-2 bottom-[184px] z-0 h-36 w-3 origin-bottom rounded-full bg-[#812d29] sm:right-5 sm:bottom-[210px] sm:h-40"
+      >
+        <div className="absolute -top-1 left-0 h-16 w-12 rounded-r-lg rounded-tl-lg bg-[#d75a4f] shadow-md" />
+      </motion.div>
+
+      <div className="absolute bottom-[135px] left-1/2 h-[185px] w-[270px] -translate-x-1/2 rounded-t-[135px] rounded-b-[28px] bg-[#3a2725] p-3 shadow-[0_30px_75px_rgba(78,43,38,.28)] sm:bottom-[155px] sm:h-[215px] sm:w-[330px] sm:rounded-t-[170px] sm:p-4">
+        <div className="h-full w-full rounded-t-[125px] rounded-b-[22px] bg-[radial-gradient(circle_at_50%_65%,#6e4a45_0%,#2b1c1a_68%)] sm:rounded-t-[155px]" />
+        <motion.div
+          animate={open ? { rotateX: reduceMotion ? -74 : -102, y: 20 } : { rotateX: 0, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 90, damping: 14 }}
+          style={{ transformOrigin: "50% 100%", transformStyle: "preserve-3d" }}
+          className={`absolute inset-0 rounded-t-[135px] rounded-b-[28px] border border-[#a63d35] bg-[#cf5047] shadow-[inset_0_8px_18px_rgba(255,255,255,.14),inset_-18px_-14px_30px_rgba(87,24,22,.16)] sm:rounded-t-[170px] ${open ? "pointer-events-none" : ""}`}
+        >
+          <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
+          <div className="absolute inset-x-0 top-[48%] text-center">
+            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.07em] text-[#fffaf1]">Served</p>
+            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.28em] text-white/55 sm:text-[9px]">legal mail, made clearer</p>
+          </div>
+          {!open && <button type="button" aria-expanded={open} aria-controls="served-letter-choices" onClick={onOpen} className="absolute bottom-5 left-1/2 z-10 flex min-h-11 -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-[#1a1a1a] px-5 py-3 text-xs font-medium text-white shadow-lg transition hover:-translate-y-0.5 hover:-translate-x-1/2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:bottom-7 sm:px-6">
+            Open the mailbox <span aria-hidden="true">↗</span>
+          </button>}
+        </motion.div>
+      </div>
+
+      <AnimatePresence>
+        {open && <motion.div initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: .65 }} className="absolute bottom-14 left-1/2 z-30 -translate-x-1/2">
+          <Button type="button" onClick={() => onSelect("upload")} className="whitespace-nowrap bg-[#1a1a1a] px-5 shadow-xl hover:bg-black">
+            <Upload size={15} /> Upload your own
+          </Button>
+        </motion.div>}
+      </AnimatePresence>
     </div>
-    <div className="absolute top-1/2 right-0 z-20 -translate-y-1/2 rounded-l-full border border-black/10 bg-white/55 px-4 py-2 text-xs shadow-sm backdrop-blur-md">PDF · JPG · PNG</div>
-    <span className="absolute bottom-8 left-8 z-20 text-[10px] tracking-wide text-zinc-500 md:left-16">{new Date().getFullYear()}</span>
-    <span className="absolute right-8 bottom-8 z-20 text-[10px] tracking-wide text-zinc-500 md:right-16">evidence-first tools</span>
+  )
+}
+
+export function Hero({ open, onOpen, onSelect }: {
+  open: boolean
+  onOpen: () => void
+  onSelect: (intent: EntryIntent) => void
+}) {
+  const reduceMotion = useReducedMotion()
+  const firstLetter = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const timeout = window.setTimeout(() => firstLetter.current?.focus(), reduceMotion ? 0 : 850)
+    return () => window.clearTimeout(timeout)
+  }, [open, reduceMotion])
+
+  return <section id="top" className="relative min-h-[100svh] w-full overflow-hidden bg-bg-base">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
+      <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-35 grayscale-[15%]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-bg-base/55 to-bg-base/10" />
+    </div>
+    <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
+
+    <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">An evidence-first legal-mail experience</motion.p>
+      <AnimatePresence mode="wait">
+        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
+          <h1 className="font-display text-[clamp(2.75rem,6.2vw,6rem)] font-medium leading-[.9] tracking-[-.07em] text-[#1a1a1a]">
+            {open ? <>Three letters.<br /><span className="text-[#8e8e8e]">Three evidence trails.</span></> : <>You’ve got legal mail.<br /><span className="text-[#8e8e8e]">Open it carefully.</span></>}
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
+            {open ? "Choose a sample letter, or use the button on the mailbox to bring your own. You’ll sign in before anything is analyzed." : "Open the red Served mailbox to explore three sample cases—then follow the facts from the letter to the record."}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+
+    <div
+      id="mailbox-stage"
+      className={`relative z-10 mx-auto w-full max-w-6xl px-3 sm:px-8 ${open ? "mt-3 h-[650px] sm:h-[610px]" : "-mt-2 h-[390px] sm:-mt-5 sm:h-[420px]"}`}
+    >
+      <AnimatePresence>
+        {open && <motion.div id="served-letter-choices" role="group" aria-label="Choose a sample letter" className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,850px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-6">
+          {letters.map((letter, index) => <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} buttonRef={index === 0 ? firstLetter : undefined} />)}
+        </motion.div>}
+      </AnimatePresence>
+      <motion.div
+        animate={{ y: open ? -72 : 0, scale: open ? .92 : 1 }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 85, damping: 17 }}
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+      >
+        <ServedMailbox open={open} onOpen={onOpen} onSelect={onSelect} />
+      </motion.div>
+    </div>
+
+    <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose Letter 1, Letter 2, Letter 3, or upload your own document." : "Mailbox closed."}</p>
+    <span className="absolute bottom-6 left-6 z-20 text-[10px] tracking-wide text-zinc-500 md:left-16">{new Date().getFullYear()}</span>
+    <span className="absolute right-6 bottom-6 z-20 text-[10px] tracking-wide text-zinc-500 md:right-16">three agents · one code-decided verdict</span>
   </section>
 }

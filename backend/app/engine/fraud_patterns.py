@@ -13,6 +13,7 @@ class FraudPattern(BaseModel):
     source_name: str
     source_url: str
     official_quote: str
+    counts_toward_verdict: bool = True
 
 
 @lru_cache

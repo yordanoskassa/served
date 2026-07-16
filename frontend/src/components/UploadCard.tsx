@@ -1,5 +1,5 @@
 import { AlertTriangle, Building2, CalendarDays, Camera, FileImage, Hash, ListChecks, LoaderCircle, RotateCcw, ShieldCheck, Users } from "lucide-react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -11,9 +11,10 @@ import { type Analysis, analyzeDocument, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
 const verdictCopy = {
-  verified: { label: "Evidence supports it", variant: "default" as const },
-  cannot_confirm: { label: "Cannot confirm authenticity", variant: "warning" as const },
-  scam_indicators: { label: "Scam warning signs found", variant: "destructive" as const },
+  scam: { label: "SCAM", variant: "destructive" as const },
+  verified: { label: "VERIFIED", variant: "default" as const },
+  cannot_confirm: { label: "CANNOT_CONFIRM", variant: "warning" as const },
+  scam_indicators: { label: "SCAM", variant: "destructive" as const },
 }
 
 function formatFileSize(bytes: number): string {
@@ -21,13 +22,47 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analysis: Analysis) => void }) {
+function decisionExplanation(analysis: Analysis): string | null {
+  if (!analysis.decision) return null
+  if (analysis.decision.rule === "two_or_more_scam_signals") {
+    return `${analysis.decision.counted_signal_ids.length} unique, cited scam patterns met the SCAM rule.`
+  }
+  if (analysis.decision.rule === "case_and_parties_match") {
+    return "CourtListener found the case and the extracted caption parties matched."
+  }
+  return "Fewer than two scam signals were validated, and a case-plus-party match was not established."
+}
+
+export function UploadCard({ onAnalysisComplete, initialSample }: {
+  onAnalysisComplete?: (analysis: Analysis) => void
+  initialSample?: "D1" | "D2" | "D3"
+}) {
   const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File>()
   const [analysis, setAnalysis] = useState<Analysis>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!initialSample) return
+    let cancelled = false
+    setLoading(true)
+    setError(undefined)
+    void loadSampleDocument(initialSample)
+      .then((sampleFile) => {
+        if (cancelled) return
+        setFile(sampleFile)
+        setAnalysis(undefined)
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Sample letter could not be prepared.")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [initialSample])
 
   async function submit() {
     if (!file) return input.current?.click()
@@ -70,6 +105,7 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
 
   if (analysis) {
     const verdict = verdictCopy[analysis.verdict]
+    const decision = decisionExplanation(analysis)
     const breakdown = analysis.breakdown ?? { court: null, case_number: null, parties: [], document_date: null, deadline: analysis.deadline, requested_actions: [] }
     const detailItems = [
       { label: "Court or issuer", value: breakdown.court, icon: Building2 },
@@ -99,12 +135,13 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
           </TabsContent>
 
           <TabsContent value="evidence" className="mt-4 space-y-4">
-            <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-3">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p></div>)}</div></section>
+            <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-4">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>{item.quote && <blockquote className="mt-3 rounded-xl bg-bg-base px-3 py-2 text-sm italic leading-6 text-zinc-600">“{item.quote}”</blockquote>}{item.source_url ? <a className="mt-2 inline-flex text-[10px] uppercase tracking-wider text-zinc-500 underline decoration-black/20 underline-offset-4" href={item.source_url} target="_blank" rel="noreferrer">{item.source}</a> : <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p>}</div>)}</div></section>
             {(analysis.limitations?.length ?? 0) > 0 && <Alert className="rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTriangle size={15} /><AlertTitle>What could not be confirmed</AlertTitle><AlertDescription><ul className="space-y-1">{analysis.limitations.map((limitation) => <li className="leading-6 text-amber-900/70" key={limitation}>{limitation}</li>)}</ul></AlertDescription></Alert>}
           </TabsContent>
 
           <TabsContent value="checks" className="mt-4">
-            {(analysis.checks?.length ?? 0) > 0 ? <div className="space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No check trace was returned.</p>}
+            {decision && <div className="mb-3 rounded-2xl border border-black/5 bg-white/80 p-4"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Why code chose this result</p><p className="mt-2 text-sm leading-6 text-zinc-600">{decision}</p><p className="mt-2 text-[10px] text-zinc-400">Policy {analysis.decision?.policy_version}</p></div>}
+            {(analysis.checks?.length ?? 0) > 0 ? <div className="space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className={`size-2 rounded-full ${check.status === "complete" ? "bg-brand-soft" : "bg-amber-400"}`} /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No check trace was returned.</p>}
           </TabsContent>
         </Tabs>
 
@@ -127,7 +164,7 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
       </div>}
       {error && <Alert variant="destructive" className="mt-4 rounded-2xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       <div className="mt-6 flex justify-center gap-2">
-        <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Agents are checking…" : file ? "Analyze letter" : "Choose a file"}</Button>
+        <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Three-agent analysis…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
       {import.meta.env.DEV && <><Separator className="mt-6" /><div className="pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Try a demo document</p>

@@ -2,7 +2,7 @@ import re
 
 from app.engine.models import (
     Confidence,
-    DocketEvidence,
+    CheckerReport,
     DocumentParse,
     EngineResult,
     EngineStep,
@@ -14,6 +14,7 @@ from app.engine.fraud_patterns import load_fraud_patterns
 
 FEDERAL_COURT = re.compile(r"(?:united states|u\.?s\.?)\s+district\s+court", re.I)
 STATE_COURT = re.compile(r"(?:superior|supreme|district|circuit|county)\s+court", re.I)
+VERDICT_POLICY_VERSION = "three-agent-v1"
 
 
 def classify_tier(parsed: DocumentParse) -> Tier:
@@ -25,28 +26,41 @@ def classify_tier(parsed: DocumentParse) -> Tier:
     return Tier.NONE
 
 
+def counted_pattern_ids(checker: CheckerReport) -> list[str]:
+    known_patterns = load_fraud_patterns()
+    return [
+        pattern_id
+        for pattern_id in dict.fromkeys(signal.pattern_id for signal in checker.scam_signals)
+        if pattern_id in known_patterns and known_patterns[pattern_id].counts_toward_verdict
+    ]
+
+
+def apply_verdict_policy(checker: CheckerReport) -> VerdictState:
+    """The complete verdict policy: plain code, never an AI-agent decision."""
+    signal_ids = counted_pattern_ids(checker)
+
+    if len(signal_ids) >= 2:
+        return VerdictState.SCAM
+    if checker.case_found and checker.parties_match:
+        return VerdictState.VERIFIED
+    return VerdictState.CANNOT_CONFIRM
+
+
 def decide_verdict(
     parsed: DocumentParse,
-    docket_evidence: list[DocketEvidence] | None = None,
-    *,
-    cross_check_passed: bool = False,
-    near_match: DocketEvidence | None = None,
+    checker: CheckerReport | None = None,
 ) -> EngineResult:
-    """Pure, deterministic precedence: scam signals, verified docket, refusal."""
-    evidence = docket_evidence or []
+    """Wrap the deterministic policy with presentation metadata."""
+    report = checker or CheckerReport()
+    evidence = report.docket_evidence
     tier = classify_tier(parsed)
-    known_patterns = load_fraud_patterns()
-    indicators = [
-        pattern_id for pattern_id in dict.fromkeys(parsed.scam_pattern_ids)
-        if pattern_id in known_patterns and pattern_id not in {"1", "7"}
-    ]
-    if len(indicators) >= 2:
-        verdict, confidence = VerdictState.SCAM_INDICATORS, Confidence.LOW
-    elif tier is Tier.FEDERAL and evidence and cross_check_passed:
-        verdict, confidence = VerdictState.VERIFIED, Confidence.HIGH
-    else:
-        verdict = VerdictState.CANNOT_CONFIRM
-        confidence = Confidence.MEDIUM if tier is Tier.STATE else Confidence.LOW
+    indicators = counted_pattern_ids(report)
+    verdict = apply_verdict_policy(report)
+    confidence = (
+        Confidence.HIGH
+        if verdict in {VerdictState.SCAM, VerdictState.VERIFIED}
+        else Confidence.MEDIUM if tier is Tier.STATE else Confidence.LOW
+    )
 
     steps = [
         EngineStep(key="parsed", label=f"Classified: {parsed.doc_type}"),
@@ -54,7 +68,10 @@ def decide_verdict(
     ]
     if indicators:
         steps.append(EngineStep(key="fraud", label=f"Checked warning signs: {len(indicators)} found"))
-    steps.append(EngineStep(key="verdict", label=f"Verdict ready: {verdict.value}"))
+    steps.append(EngineStep(
+        key="verdict",
+        label=f"Code policy {VERDICT_POLICY_VERSION} returned: {verdict.value}",
+    ))
     return EngineResult(
         parse=parsed,
         verdict=verdict,
@@ -63,5 +80,5 @@ def decide_verdict(
         confidence=confidence,
         steps=steps,
         indicators=indicators,
-        near_match=near_match,
+        near_match=report.near_match,
     )

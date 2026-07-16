@@ -1,4 +1,4 @@
-export type Verdict = "verified" | "cannot_confirm" | "scam_indicators"
+export type Verdict = "scam" | "verified" | "cannot_confirm" | "scam_indicators"
 
 export interface Analysis {
   document_type: string
@@ -15,8 +15,15 @@ export interface Analysis {
     requested_actions: string[]
   }
   checks: { key: string; label: string; status: string }[]
+  decision?: {
+    policy_version: string
+    rule: "two_or_more_scam_signals" | "case_and_parties_match" | "fallback"
+    counted_signal_ids: string[]
+    case_found: boolean
+    parties_match: boolean
+  } | null
   limitations: string[]
-  evidence: { label: string; detail: string; source: string }[]
+  evidence: { label: string; detail: string; source: string; quote: string | null; source_url: string | null }[]
   next_step: string
 }
 

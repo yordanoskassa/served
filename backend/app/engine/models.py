@@ -1,12 +1,13 @@
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class VerdictState(StrEnum):
+    SCAM = "scam"
     VERIFIED = "verified"
     CANNOT_CONFIRM = "cannot_confirm"
-    SCAM_INDICATORS = "scam_indicators"
 
 
 class Tier(StrEnum):
@@ -21,7 +22,11 @@ class Confidence(StrEnum):
     LOW = "low"
 
 
-class DocumentParse(BaseModel):
+class StrictAgentModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class DocumentParse(StrictAgentModel):
     doc_type: str
     court: str | None = None
     case_number: str | None = None
@@ -29,7 +34,7 @@ class DocumentParse(BaseModel):
     document_date: str | None = None
     deadline: str | None = None
     demands: list[str] = Field(default_factory=list)
-    scam_pattern_ids: list[str] = Field(default_factory=list)
+    visible_text: str = ""
     readable: bool = True
 
 
@@ -41,6 +46,38 @@ class DocketEvidence(BaseModel):
     filing_date: str
     docket_url: str
     source: str
+
+
+class ScamSignal(StrictAgentModel):
+    pattern_id: str
+    document_excerpt: str
+
+
+class CheckerReport(StrictAgentModel):
+    docket_evidence: list[DocketEvidence] = Field(default_factory=list)
+    case_found: bool = False
+    parties_match: bool = False
+    near_match: DocketEvidence | None = None
+    court_lookup_status: Literal[
+        "match",
+        "party_mismatch",
+        "near_match",
+        "no_match",
+        "unavailable",
+        "not_applicable",
+    ] = "not_applicable"
+    scam_signals: list[ScamSignal] = Field(default_factory=list)
+    scam_check_status: Literal["complete", "unavailable", "not_applicable"] = "not_applicable"
+    limitations: list[str] = Field(default_factory=list)
+
+
+class ScamSignalDraft(StrictAgentModel):
+    signals: list[ScamSignal] = Field(default_factory=list)
+
+
+class ExplanationDraft(StrictAgentModel):
+    summary: str
+    next_step: str
 
 
 class EngineStep(BaseModel):

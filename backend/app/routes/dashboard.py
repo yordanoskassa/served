@@ -21,7 +21,7 @@ async def summary(authorization: str = Header(default="")) -> dict:
     for record in records:
         verdict = record.get("verdict")
         if verdict == "verified": counts["verified"] += 1
-        elif verdict == "scam_indicators": counts["scam"] += 1
+        elif verdict in {"scam", "scam_indicators"}: counts["scam"] += 1
         else: counts["review"] += 1
     return {"counts": counts, "recent": [
         {"id": str(record.get("_id")), "name": record.get("filename") or "Uploaded document",

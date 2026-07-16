@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 from app.engine.models import Confidence, VerdictState
 
@@ -8,6 +10,8 @@ class EvidenceItem(BaseModel):
     label: str
     detail: str
     source: str
+    quote: str | None = None
+    source_url: str | None = None
 
 
 class LetterBreakdown(BaseModel):
@@ -25,6 +29,14 @@ class AnalysisCheck(BaseModel):
     status: str = "complete"
 
 
+class DecisionTrace(BaseModel):
+    policy_version: str
+    rule: Literal["two_or_more_scam_signals", "case_and_parties_match", "fallback"]
+    counted_signal_ids: list[str] = Field(default_factory=list)
+    case_found: bool
+    parties_match: bool
+
+
 class AnalysisResponse(BaseModel):
     document_type: str
     summary: str
@@ -33,6 +45,7 @@ class AnalysisResponse(BaseModel):
     deadline: str | None = None
     breakdown: LetterBreakdown = Field(default_factory=LetterBreakdown)
     checks: list[AnalysisCheck] = Field(default_factory=list)
+    decision: DecisionTrace | None = None
     limitations: list[str] = Field(default_factory=list)
     evidence: list[EvidenceItem]
     next_step: str

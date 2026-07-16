@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "cases": {
+    "D1": {
+      "document": "D1.pdf",
+      "reader": {
+        "doc_type": "Federal court filing",
+        "court": "United States District Court, Central District of California",
+        "case_number": "5:25-cv-02108-KK-SP",
+        "parties": [
+          "Audrea Barnes",
+          "Maximus Consulting Services"
+        ],
+        "document_date": null,
+        "deadline": null,
+        "demands": [],
+        "visible_text": "UNITED STATES DISTRICT COURT CENTRAL DISTRICT OF CALIFORNIA\nAUDREA BARNES, Plaintiff, v. MAXIMUS CONSULTING SERVICES, Defendant.\nCase No. 5:25-cv-02108-KK-SP",
+        "readable": true
+      },
+      "checker": {
+        "docket_evidence": [
+          {
+            "case_number_normalized": "5:25-cv-02108",
+            "court_id": "cacd",
+            "case_title": "Barnes v. Maximus Consulting Services",
+            "parties": [
+              "Audrea Barnes",
+              "Maximus Consulting Services"
+            ],
+            "filing_date": "2025-09-26",
+            "docket_url": "https://www.courtlistener.com/docket/5:25-cv-02108/",
+            "source": "recap"
+          }
+        ],
+        "case_found": true,
+        "parties_match": true,
+        "near_match": null,
+        "court_lookup_status": "match",
+        "scam_signal_draft": {
+          "signals": []
+        },
+        "scam_check_status": "complete",
+        "limitations": []
+      }
+    },
+    "D2": {
+      "document": "D2.pdf",
+      "reader": {
+        "doc_type": "Federal court filing",
+        "court": "United States District Court, Central District of California",
+        "case_number": "5:25-cv-92108-KK-SP",
+        "parties": [
+          "Audrea Barnes",
+          "Maximus Consulting Services"
+        ],
+        "document_date": null,
+        "deadline": null,
+        "demands": [],
+        "visible_text": "UNITED STATES DISTRICT COURT CENTRAL DISTRICT OF CALIFORNIA\nAUDREA BARNES, Plaintiff, v. MAXIMUS CONSULTING SERVICES, Defendant.\nCase No. 5:25-cv-92108-KK-SP",
+        "readable": true
+      },
+      "checker": {
+        "docket_evidence": [],
+        "case_found": false,
+        "parties_match": false,
+        "near_match": {
+          "case_number_normalized": "5:25-cv-02108",
+          "court_id": "cacd",
+          "case_title": "Barnes v. Maximus Consulting Services",
+          "parties": [
+            "Audrea Barnes",
+            "Maximus Consulting Services"
+          ],
+          "filing_date": "2025-09-26",
+          "docket_url": "https://www.courtlistener.com/docket/5:25-cv-02108/",
+          "source": "recap"
+        },
+        "court_lookup_status": "near_match",
+        "scam_signal_draft": {
+          "signals": []
+        },
+        "scam_check_status": "complete",
+        "limitations": [
+          "A similar docket was found, but the extracted case number did not match exactly."
+        ]
+      }
+    },
+    "D3": {
+      "document": "D3.pdf",
+      "reader": {
+        "doc_type": "Payment demand",
+        "court": null,
+        "case_number": null,
+        "parties": [],
+        "document_date": null,
+        "deadline": "within 48 hours",
+        "demands": [
+          "Purchase Google Play gift cards totaling $2,400.00.",
+          "Provide the gift-card redemption codes to the payment agent."
+        ],
+        "visible_text": "Purchase Google Play gift cards totaling $2,400.00 from any retail location.\nTo prevent a lawsuit and the immediate freezing of your business assets, payment in full must be received within 48 hours.\nProvide the gift-card redemption codes to the payment agent to stop legal filing.\nDo not send checks or contact your local courthouse.",
+        "readable": true
+      },
+      "checker": {
+        "docket_evidence": [],
+        "case_found": false,
+        "parties_match": false,
+        "near_match": null,
+        "court_lookup_status": "not_applicable",
+        "scam_signal_draft": {
+          "signals": [
+            {
+              "pattern_id": "2",
+              "document_excerpt": "Purchase Google Play gift cards totaling $2,400.00 from any retail location."
+            },
+            {
+              "pattern_id": "4",
+              "document_excerpt": "immediate freezing of your business assets"
+            },
+            {
+              "pattern_id": "5",
+              "document_excerpt": "Do not send checks or contact your local courthouse."
+            },
+            {
+              "pattern_id": "6",
+              "document_excerpt": "Provide the gift-card redemption codes to the payment agent to stop legal filing."
+            }
+          ]
+        },
+        "scam_check_status": "complete",
+        "limitations": []
+      }
+    }
+  }
+}
