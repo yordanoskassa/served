@@ -10,7 +10,7 @@ export interface Analysis {
   next_step: string
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8001/api" : "/api")
+const API_URL = "https://anton-served.hrvnvm.easypanel.host/api"
 
 export async function loadSampleDocument(sample: "D1" | "D2" | "D3"): Promise<File> {
   const response = await fetch(`${API_URL}/documents/samples/${sample}`)
