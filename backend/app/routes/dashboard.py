@@ -15,8 +15,8 @@ async def summary(authorization: str = Header(default="")) -> dict:
     query = {"google_subject": profile.subject}
     try:
         records = await get_db().analyses.find(query).sort("created_at", -1).to_list(length=50)
-    except Exception:
-        records = []
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Dashboard data is temporarily unavailable.") from exc
     counts = {"documents": len(records), "verified": 0, "review": 0, "scam": 0}
     for record in records:
         verdict = record.get("verdict")

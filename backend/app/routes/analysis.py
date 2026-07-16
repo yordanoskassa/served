@@ -54,7 +54,9 @@ async def analyze(
                 "document_type": result.document_type,
                 "created_at": datetime.now(UTC),
             })
-        except Exception:
-            # Analysis remains available if persistence is temporarily unavailable.
-            pass
+        except Exception as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="The analysis completed but could not be saved. Please try again.",
+            ) from exc
     return result

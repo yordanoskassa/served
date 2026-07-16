@@ -2,6 +2,7 @@ import { useGoogleLogin } from "@react-oauth/google"
 import { useState } from "react"
 
 import { useAuth } from "@/AuthContext"
+import { BrandMark } from "@/components/BrandMark"
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -23,18 +24,21 @@ export function LoginPage() {
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f7f8f6] px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-8 text-center">
-        <div className="mb-6 flex justify-center">
-          <span className="grid size-12 place-items-center rounded-xl bg-pine text-xl font-semibold text-white">S</span>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-6">
+      <div className="pointer-events-none absolute -top-40 -right-32 size-[34rem] rounded-full bg-brand-green/35 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-48 -left-40 size-[30rem] rounded-full bg-white/80 blur-3xl" />
+      <div className="relative w-full max-w-md rounded-[28px] border border-white/80 bg-white/65 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,.12)] backdrop-blur-2xl sm:p-10">
+        <div className="mb-7 flex justify-center">
+          <BrandMark className="size-12" />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome to Served</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Secure workspace</p>
+        <h1 className="font-display text-3xl font-medium tracking-[-.04em] text-[#1a1a1a]">Continue to Served</h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-zinc-500">
           Sign in to review legal mail with evidence-backed analysis.
         </p>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+          <div className="mt-5 rounded-xl border border-red-900/10 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -43,7 +47,7 @@ export function LoginPage() {
           type="button"
           onClick={() => googleLogin()}
           disabled={loading}
-          className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-muted disabled:opacity-50"
+          className="mt-7 inline-flex w-full items-center justify-center gap-3 rounded-full bg-[#1a1a1a] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-black disabled:opacity-50"
         >
           <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -53,6 +57,7 @@ export function LoginPage() {
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
         </button>
+        <p className="mt-6 text-[11px] leading-5 text-zinc-400">Your document history stays tied to your verified Google account.</p>
       </div>
     </div>
   )
