@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Served — Know what that legal letter really is</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Design tokens — mirror 1:1 into theme.ts
+     paper #FAF8F4 · paperRaised #FFFEFB · ink #1A1C18 · inkSoft #5C6058
+     inkFaint #9A9E94 · line #E6E2D8 · accent #1F3D2B · accentHover #2A5039
+     accentTint #EDF1EC · danger #8C3B2E · warning #8A6D2F · success #2F6B4A
+     display 'Source Serif 4' · ui 'Inter Tight' (Söhne unlicensed) · mono 'JetBrains Mono'
+     motion: fast 120ms / base 220ms / slow 420ms
+     out cubic-bezier(.22,1,.36,1) · reveal cubic-bezier(.16,1,.3,1)
+     ============================================================ */
+  :root {
+    --paper:#FAF8F4; --paper-raised:#FFFEFB;
+    --ink:#1A1C18; --ink-soft:#5C6058; --ink-faint:#9A9E94; --line:#E6E2D8;
+    --accent:#1F3D2B; --accent-hover:#2A5039; --accent-tint:#EDF1EC;
+    --danger:#8C3B2E; --warning:#8A6D2F; --success:#2F6B4A;
+    --font-display:'Source Serif 4', Georgia, serif;
+    --font-ui:'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+    --fast:120ms; --base:220ms; --slow:420ms;
+    --out:cubic-bezier(.22,1,.36,1); --reveal:cubic-bezier(.16,1,.3,1);
+    --shadow-raise:0 1px 2px rgba(26,28,24,.05), 0 0 0 1px rgba(26,28,24,.04);
+    --shadow-float:0 8px 24px rgba(26,28,24,.08), 0 0 0 1px rgba(26,28,24,.05);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--paper); color:var(--ink); font-family:var(--font-ui); font-size:15px;
+         line-height:1.55; -webkit-font-smoothing:antialiased; }
+  ::selection { background:var(--accent-tint); }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 24px; }
+
+  @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  .reveal { opacity:0; }
+  .reveal.in { animation:rise var(--base) var(--reveal) both; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+    .reveal { opacity:1 !important; transform:none !important; }
+  }
+
+  /* nav */
+  nav { position:sticky; top:0; z-index:40; background:rgba(250,248,244,.94); backdrop-filter:blur(8px);
+        border-bottom:1px solid var(--line); }
+  .navin { max-width:1040px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; gap:28px; }
+  .brand { font-family:var(--font-display); font-weight:500; font-size:21px; letter-spacing:-.01em; }
+  .navlinks { display:flex; gap:24px; margin-left:auto; align-items:center; }
+  .navlinks a { color:var(--ink-soft); text-decoration:none; font-size:14px; font-weight:500;
+                transition:color var(--fast) var(--out); }
+  .navlinks a:hover { color:var(--ink); }
+  .navcta { background:var(--accent); color:var(--paper-raised) !important; font-weight:550;
+            height:36px; display:inline-flex; align-items:center; padding:0 16px; border-radius:10px;
+            transition:background var(--fast) var(--out); }
+  .navcta:hover { background:var(--accent-hover); }
+  .navcta:active { transform:scale(.985); }
+
+  /* hero */
+  .hero { padding:104px 0 84px; text-align:center; }
+  .eyebrow { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--ink-soft); margin-bottom:22px; }
+  h1 { font-family:var(--font-display); font-size:clamp(36px,5vw,54px); font-weight:500; line-height:1.1;
+       letter-spacing:-.02em; max-width:19ch; margin:0 auto 22px; text-wrap:pretty; }
+  h1 .q { font-style:italic; }
+  .herosub { font-size:17px; color:var(--ink-soft); max-width:56ch; margin:0 auto 36px; text-wrap:pretty; }
+  .herosub b { color:var(--ink); font-weight:550; }
+  .bigcta { display:inline-block; background:var(--accent); color:var(--paper-raised); text-decoration:none;
+            font-weight:550; font-size:16px; padding:14px 30px; border-radius:10px;
+            transition:background var(--fast) var(--out); }
+  .bigcta:hover { background:var(--accent-hover); }
+  .bigcta:active { transform:scale(.985); }
+  .ctasub { margin-top:12px; font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); }
+  .trust { margin-top:30px; font-size:13px; color:var(--ink-soft); max-width:64ch; margin-left:auto; margin-right:auto; }
+  .trust b { color:var(--ink); font-weight:550; }
+
+  /* verdict strip */
+  .strip { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:60px auto 0; max-width:940px; }
+  .vchip { flex:1; min-width:250px; text-align:left; background:var(--paper-raised); border:1px solid var(--line);
+           border-left:3px solid var(--line); border-radius:14px; padding:18px 20px; font-size:13.5px;
+           color:var(--ink-soft); box-shadow:var(--shadow-raise); }
+  .vchip .vl { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; }
+  .vchip .vt { font-family:var(--font-display); font-weight:500; font-size:18px; color:var(--ink); margin:3px 0 5px; }
+  .vchip.ok   { border-left-color:var(--success); } .vchip.ok .vl { color:var(--success); }
+  .vchip.hold { border-left-color:var(--warning); } .vchip.hold .vl { color:var(--warning); }
+  .vchip.bad  { border-left-color:var(--danger); }  .vchip.bad .vl { color:var(--danger); }
+
+  /* sections */
+  section { padding:88px 0; border-top:1px solid var(--line); scroll-margin-top:64px; }
+  .seceyebrow { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+                color:var(--ink-soft); margin-bottom:12px; }
+  h2 { font-family:var(--font-display); font-size:clamp(26px,3.2vw,32px); font-weight:500; line-height:1.15;
+       letter-spacing:-.015em; margin-bottom:14px; text-wrap:pretty; }
+  .secsub { font-size:16px; color:var(--ink-soft); max-width:64ch; margin-bottom:44px; text-wrap:pretty; }
+
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px; }
+  .card { background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+          padding:24px; box-shadow:var(--shadow-raise); }
+  .card .k { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--ink-soft); margin-bottom:10px; }
+  .card h3 { font-family:var(--font-display); font-size:20px; font-weight:500; margin-bottom:8px; letter-spacing:-.01em; }
+  .card p { font-size:14px; color:var(--ink-soft); }
+  .card p b { color:var(--ink); font-weight:550; }
+
+  /* steps */
+  .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; }
+  .step { background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+          padding:22px 22px 20px; box-shadow:var(--shadow-raise); }
+  .step .n { font-family:var(--font-mono); font-size:12px; color:var(--ink-faint); margin-bottom:12px; }
+  .step h3 { font-family:var(--font-display); font-size:19px; font-weight:500; margin-bottom:7px; letter-spacing:-.01em; }
+  .step p { font-size:13.5px; color:var(--ink-soft); }
+  .step p b { color:var(--ink); font-weight:550; }
+
+  .receipt { margin-top:40px; background:var(--accent); color:var(--accent-tint); border-radius:14px;
+             padding:30px 34px; display:flex; gap:26px; flex-wrap:wrap; align-items:baseline; }
+  .receipt .big { font-family:var(--font-display); font-size:22px; font-weight:500; letter-spacing:-.01em;
+                  flex:1; min-width:260px; color:var(--paper-raised); text-wrap:pretty; }
+  .receipt .small { font-size:13.5px; opacity:.85; flex:1.5; min-width:280px; }
+  .prodlink { margin-top:32px; font-size:15px; }
+  .prodlink a { color:var(--accent); font-weight:550; text-decoration:none; }
+  .prodlink a:hover { text-decoration:underline; }
+
+  /* pricing */
+  .plans { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px; align-items:stretch; }
+  .plan { background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+          padding:28px 26px; display:flex; flex-direction:column; box-shadow:var(--shadow-raise); }
+  .plan.hot { border-color:var(--accent); }
+  .plan .k { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--ink-soft); margin-bottom:6px; }
+  .plan.hot .k { color:var(--accent); }
+  .plan h3 { font-family:var(--font-display); font-size:20px; font-weight:500; letter-spacing:-.01em; }
+  .plan .who { font-size:13px; color:var(--ink-soft); margin-bottom:18px; }
+  .plan .price { font-family:var(--font-display); font-size:40px; font-weight:500; line-height:1; letter-spacing:-.015em; }
+  .plan .per { font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); margin:6px 0 20px; }
+  .plan ul { list-style:none; margin:0 0 24px; flex:1; }
+  .plan li { font-size:13.5px; padding:8px 0; border-bottom:1px solid var(--line); color:var(--ink-soft); }
+  .plan li:last-child { border-bottom:none; }
+  .plan li b { color:var(--ink); font-weight:550; }
+  .plan a { display:flex; align-items:center; justify-content:center; height:36px; text-decoration:none;
+            font-weight:550; font-size:14px; border-radius:10px; transition:all var(--fast) var(--out); }
+  .plan a:active { transform:scale(.985); }
+  .plan a.solid { background:var(--accent); color:var(--paper-raised); }
+  .plan a.solid:hover { background:var(--accent-hover); }
+  .plan a.lined { border:1px solid var(--line); color:var(--ink); }
+  .plan a.lined:hover { background:var(--accent-tint); }
+  .pricenote { margin-top:20px; font-size:12.5px; color:var(--ink-faint); max-width:72ch; }
+
+  /* final */
+  .final { text-align:center; }
+  .final h2 { max-width:24ch; margin:0 auto 26px; }
+
+  footer { border-top:1px solid var(--line); padding:32px 0 44px; font-size:12.5px; color:var(--ink-soft); }
+  footer .wrap { display:flex; gap:28px; flex-wrap:wrap; justify-content:space-between; align-items:baseline; }
+  footer .fbrand { font-family:var(--font-display); font-size:16px; font-weight:500; color:var(--ink); }
+  .upl { max-width:64ch; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="navin">
+    <div class="brand">Served</div>
+    <div class="navlinks">
+      <a href="#problem">The problem</a>
+      <a href="#product">Product</a>
+      <a href="#pricing">Pricing</a>
+      <a class="navcta" href="mock-ui.html">Try the demo</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero wrap">
+  <div class="eyebrow reveal in">For small-business owners who just got scary legal mail</div>
+  <h1 class="reveal in" style="animation-delay:35ms">That envelope says <span class="q">"you have been served."</span><br>Now you're served — by us.</h1>
+  <p class="herosub reveal in" style="animation-delay:70ms">Find out if it's real in 30 seconds. Photograph any legal-looking document — Served checks it against real court records, tells you whether it's <b>real, unverifiable, or a scam</b>, and explains what to do in plain language. Ten dollars — not $500 an hour. No account. No legal jargon.</p>
+  <div class="reveal in" style="animation-delay:105ms">
+    <a class="bigcta" href="mock-ui.html">Try our demo today</a>
+    <div class="ctasub">no sign-up · sample documents included</div>
+  </div>
+  <p class="trust reveal in" style="animation-delay:140ms">Every verdict shows its evidence — <b>you can open the court record yourself.</b> When we can't verify, we say so and route you to a human attorney.</p>
+
+  <div class="strip">
+    <div class="vchip ok reveal"><div class="vl">Verified</div><div class="vt">It's real. Here's the docket.</div>You're not being sued — here is exactly what to send, and by when.</div>
+    <div class="vchip hold reveal"><div class="vl">Cannot confirm</div><div class="vt">We won't guess.</div>Not in the public record — could be a database gap or a clerical typo, not fraud. Only an attorney can tell which, so a human takes over.</div>
+    <div class="vchip bad reveal"><div class="vl">Scam indicators</div><div class="vt">Don't pay.</div>Matches known fraud patterns — each signal cited so you can see why.</div>
+  </div>
+
+  <div style="margin:28px auto 0; max-width:940px; text-align:left; border:2px dashed var(--danger); border-radius:10px; padding:14px 16px; font-size:13px; background:var(--paper-raised); color:var(--ink-soft);">
+    <div style="color:var(--danger); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px;">Engineering note (B) — not part of the page, delete before shipping</div>
+    The CANNOT_CONFIRM <b>explanation must be scenario-aware</b>: the verdict stays rule-based (P0-SPEC §2), but the model (GPT-5.6 API) generates the explanation from whatever the lookup actually found. At minimum three sub-scenarios:
+    <div style="margin-top:8px;"><span style="font-family:var(--font-mono); color:var(--danger)">S1</span> — No docket match at all → plain honest-refusal copy.</div>
+    <div style="margin-top:4px;"><span style="font-family:var(--font-mono); color:var(--danger)">S2</span> — Exact number misses, but a <b>party-name search finds a near-match</b> (same parties, number differs by a digit or two) → say so explicitly: <i>"I couldn't find case 5:25-cv-92108, but a case with these exact parties exists under 5:25-cv-02108 — the number on your document may be a typo."</i> Show the candidate docket as evidence. Verdict stays CANNOT_CONFIRM — the candidate is a lead for the attorney, never auto-confirmed.</div>
+    <div style="margin-top:4px;"><span style="font-family:var(--font-mono); color:var(--danger)">S3</span> — The number <b>exists but belongs to a different case</b> (parties don't match) → state that plainly; strong reason for attorney review.</div>
+    <div style="margin-top:8px;">All three end in the same CTA (route to human). Note: demo document D2 is exactly the S2 case — its true sibling (5:25-cv-02108, <i>Barnes v. Maximus Consulting Services</i>) is live in RECAP, so the demo's refusal shot can show the near-match recovery.</div>
+  </div>
+</header>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="wrap">
+    <div class="seceyebrow">The problem</div>
+    <h2>The scariest envelope a business owner ever opens.</h2>
+    <p class="secsub">Millions of subpoenas, garnishment orders, and records demands land on US small businesses every year — most on businesses that aren't even being sued. For immigrant owners, one envelope is three problems at once.</p>
+    <div class="grid3">
+      <div class="card reveal"><div class="k">Language</div><h3>Can't read it</h3><p>Legal English is a third language even for fluent speakers. <b>"Subpoena duces tecum"</b> says nothing about what to actually do before the deadline.</p></div>
+      <div class="card reveal"><div class="k">Trust</div><h3>Can't tell if it's real</h3><p>Fake "final legal notice" letters are built to look exactly like real process. The FTC logs thousands of impersonation-scam complaints; immigrant merchants are prime targets.</p></div>
+      <div class="card reveal"><div class="k">Stakes</div><h3>Wrong is catastrophic — both ways</h3><p>Ignore a real garnishment order and the business can owe the employee's <b>entire debt</b>. Pay a fake notice and the money is gone. A lawyer at $300–500/hr to find out? Thousands.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT -->
+<section id="product">
+  <div class="wrap">
+    <div class="seceyebrow">Our product</div>
+    <h2>AI reads. Rules check. Humans confirm.</h2>
+    <p class="secsub">Served is not a chatbot guessing about your document. It's a verification pipeline: every claim is checked against the actual court record before you see it, and high-stakes steps go through a human attorney.</p>
+    <div class="steps">
+      <div class="step reveal"><div class="n">01</div><h3>Snap a photo</h3><p>Crumpled paper, bad lighting, phone camera — that's what real mail looks like. No login, no upload forms.</p></div>
+      <div class="step reveal"><div class="n">02</div><h3>We check the record</h3><p>Case number, court, and parties are verified against the <b>public federal docket</b> (CourtListener/RECAP) — deterministic lookups, not guesses.</p></div>
+      <div class="step reveal"><div class="n">03</div><h3>Plain-language answer</h3><p>What this is, what it is not ("you are not being sued"), what to do, and the exact deadline — in your language.</p></div>
+      <div class="step reveal"><div class="n">04</div><h3>Human when it matters</h3><p>One tap shares the case with an attorney — what we found and how we found it, on a single link.</p></div>
+    </div>
+    <div class="receipt reveal">
+      <div class="big">Every step is recorded, automatically.</div>
+      <div class="small">Upload, classification, docket query, verdict, attorney review — each becomes a timestamped entry in your case log. Share one link and a lawyer can see what arrived, what was checked, and what was found — in order, in one place.</div>
+    </div>
+    <p class="prodlink">See it on the three sample documents — a real subpoena, a forged one, and a scam letter: <a href="mock-ui.html">open the interactive demo</a></p>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="seceyebrow">Our pricing</div>
+    <h2>A $40,000 mistake becomes a ten-dollar answer.</h2>
+    <p class="secsub">Finding out whether that letter is real should cost less than parking at a law office. Checking a document is $10. When a human needs to look, attorney review is a flat fee based on page count — never an hourly bill.</p>
+    <div class="plans">
+      <div class="plan hot reveal">
+        <div class="k">For owners</div>
+        <h3>Check any document</h3><div class="who">Small-business owners · individuals</div>
+        <div class="price">$10</div><div class="per">per document check · no account needed</div>
+        <ul>
+          <li><b>Your documents are never used for AI training</b></li>
+          <li><b>Real / unverifiable / scam</b> verdict with evidence</li>
+          <li>Plain-language explanation and deadline</li>
+          <li>Multilingual support</li>
+          <li>Shareable case link with the full activity history</li>
+        </ul>
+        <a class="solid" href="mock-ui.html">Try the demo</a>
+      </div>
+      <div class="plan reveal">
+        <div class="k">Attorney review</div>
+        <h3>When a human looks</h3><div class="who">One of our partner attorneys reads your letter and case file</div>
+        <div class="price">from $50</div><div class="per">flat fee · price varies by page count</div>
+        <ul>
+          <li>Your full letter on one link — no intake calls</li>
+          <li><b>Human accountability</b> — the final call is never left to AI</li>
+          <li>No hallucinated legal conclusions: a licensed attorney signs off</li>
+          <li>Approve or send back with notes · recorded in the audit log</li>
+        </ul>
+        <a class="lined" href="mock-ui.html">See the review room</a>
+      </div>
+      <div class="plan reveal">
+        <div class="k">Enterprise</div>
+        <h3>At scale</h3><div class="who">Banks · hospitals · law firms · HR platforms</div>
+        <div class="price">Custom</div><div class="per">per tracked request</div>
+        <ul>
+          <li>Track every incoming request across matters</li>
+          <li>Audit-grade chain of custody</li>
+          <li>API access to the verification engine</li>
+          <li>Volume pricing</li>
+        </ul>
+        <a class="lined" href="#pricing">Talk to us</a>
+      </div>
+    </div>
+    <p class="pricenote">Demo build — pricing shown is the intended model, not a live offer. Attorney review in the demo illustrates the workflow; a production attorney network is a future phase.</p>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final">
+  <div class="wrap">
+    <div class="seceyebrow">30 seconds from panic to a plan</div>
+    <h2>Next time the scary envelope arrives, you'll know exactly what it is.</h2>
+    <a class="bigcta" href="mock-ui.html">Try our demo today</a>
+    <div class="ctasub">three sample documents · real / forged / scam</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fbrand">Served</div>
+    <div class="upl">Served provides document information and logistics, not legal advice. Verdicts cite public court records; unverifiable claims are withheld, not guessed. High-stakes decisions are routed to licensed attorneys. Hackathon demo build.</div>
+  </div>
+</footer>
+
+<script>
+  // Scroll entrances — fade + rise, base/reveal, staggered 35ms within a group (motion rule 3)
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const parent = e.target.parentElement;
+      const siblings = [...parent.querySelectorAll(':scope > .reveal')];
+      const idx = Math.min(siblings.indexOf(e.target), 9);
+      e.target.style.animationDelay = (idx > 0 ? idx * 35 : 0) + 'ms';
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal:not(.in)').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

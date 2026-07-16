@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Served — Mock UI (visual spec for the 3 routes)</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Design tokens — mirror these 1:1 into theme.ts
+     color.paper #FAF8F4 · paperRaised #FFFEFB · ink #1A1C18
+     inkSoft #5C6058 · inkFaint #9A9E94 · line #E6E2D8
+     accent #1F3D2B · accentHover #2A5039 · accentTint #EDF1EC
+     danger #8C3B2E · warning #8A6D2F · success #2F6B4A
+     font.display 'Source Serif 4' · font.ui 'Inter Tight' (Söhne unlicensed)
+     font.mono 'JetBrains Mono'
+     motion: fast 120ms / base 220ms / slow 420ms
+     out cubic-bezier(.22,1,.36,1) · reveal cubic-bezier(.16,1,.3,1)
+     ============================================================ */
+  :root {
+    --paper:#FAF8F4; --paper-raised:#FFFEFB;
+    --ink:#1A1C18; --ink-soft:#5C6058; --ink-faint:#9A9E94; --line:#E6E2D8;
+    --accent:#1F3D2B; --accent-hover:#2A5039; --accent-tint:#EDF1EC;
+    --danger:#8C3B2E; --warning:#8A6D2F; --success:#2F6B4A;
+    --font-display:'Source Serif 4', Georgia, serif;
+    --font-ui:'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+    --fast:120ms; --base:220ms; --slow:420ms;
+    --out:cubic-bezier(.22,1,.36,1); --reveal:cubic-bezier(.16,1,.3,1);
+    --shadow-raise:0 1px 2px rgba(26,28,24,.05), 0 0 0 1px rgba(26,28,24,.04);
+    --shadow-float:0 8px 24px rgba(26,28,24,.08), 0 0 0 1px rgba(26,28,24,.05);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#F1EEE7; color:var(--ink); font-family:var(--font-ui); font-size:15px; line-height:1.55;
+         -webkit-font-smoothing:antialiased; padding-bottom:80px; }
+  ::selection { background:var(--accent-tint); }
+
+  @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @keyframes pulse-soft { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+    .rise, .stagger > * { transform:none !important; }
+  }
+
+  /* ===== mock chrome (meta — not part of the product) ===== */
+  .mockbar { position:sticky; top:0; z-index:50; background:var(--ink); padding:10px 16px;
+             display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .mockbar .lbl { color:var(--ink-faint); font-size:12px; font-weight:500; letter-spacing:.06em;
+                  text-transform:uppercase; margin-right:6px; }
+  .mockbar button { font-family:var(--font-ui); font-size:13px; font-weight:500; border:none; border-radius:6px;
+                    padding:7px 13px; cursor:pointer; background:#33362F; color:#D9D6CC;
+                    transition:all var(--fast) var(--out); }
+  .mockbar button:hover { background:#41443C; }
+  .mockbar button:active { transform:scale(.985); }
+  .mockbar button.on { background:var(--paper); color:var(--ink); }
+  .note { max-width:560px; margin:20px auto 0; background:var(--paper-raised); border:1px solid var(--line);
+          border-radius:10px; padding:14px 18px; font-size:13px; color:var(--ink-soft); box-shadow:var(--shadow-raise); }
+  .note b { color:var(--ink); font-weight:600; }
+  .note code { font-family:var(--font-mono); font-size:11.5px; }
+  .route { max-width:560px; margin:22px auto 8px; font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); }
+  .route code { background:var(--accent-tint); color:var(--accent); padding:2px 8px; border-radius:6px; font-size:11.5px; }
+
+  /* ===== phone frame ===== */
+  .phone { max-width:560px; margin:8px auto; background:var(--paper); border-radius:14px;
+           border:1px solid var(--line); box-shadow:var(--shadow-float); padding:32px 28px 34px; }
+  .view { display:none; }
+  .view.on { display:block; }
+  .view.on .phone-inner { animation:rise var(--base) var(--reveal) both; }
+
+  /* ===== product styles — Quiet Counsel ===== */
+  .brand { display:flex; align-items:baseline; gap:10px; margin-bottom:2px; }
+  .brand .name { font-family:var(--font-display); font-weight:500; font-size:20px; letter-spacing:-.01em; }
+  .brand .rule { flex:1; height:1px; background:var(--line); }
+  .tag { font-size:13px; color:var(--ink-soft); margin-bottom:26px; }
+
+  .eyebrow { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--ink-soft); margin:26px 0 10px; }
+  h2.pt { font-family:var(--font-display); font-size:32px; font-weight:500; line-height:1.15;
+          letter-spacing:-.015em; margin:4px 0 10px; text-wrap:pretty; }
+  h3.vt { font-family:var(--font-display); font-size:24px; font-weight:500; line-height:1.2;
+          letter-spacing:-.01em; margin:4px 0 8px; text-wrap:pretty; }
+  .sub { font-size:15px; color:var(--ink-soft); margin-bottom:22px; max-width:60ch; }
+  .disclaimer { margin-top:26px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:12px; }
+  .mono { font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); }
+
+  .btn { display:block; width:100%; text-align:center; font-family:var(--font-ui); font-size:15px; font-weight:550;
+         border:none; border-radius:10px; padding:12px 16px; cursor:pointer;
+         transition:all var(--fast) var(--out); }
+  .btn:active { transform:scale(.985); }
+  .btn.primary { background:var(--accent); color:var(--paper-raised); }
+  .btn.primary:hover { background:var(--accent-hover); }
+  .btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--line); margin-top:10px; }
+  .btn.secondary:hover { background:var(--accent-tint); }
+
+  /* upload */
+  .drop { border:1px dashed var(--ink-faint); background:var(--paper-raised); border-radius:14px;
+          padding:40px 20px; text-align:center; margin-bottom:18px; cursor:pointer;
+          transition:all var(--fast) var(--out); }
+  .drop:hover { border-color:var(--accent); background:var(--accent-tint); }
+  .drop .big { font-family:var(--font-display); font-weight:500; font-size:19px; }
+  .drop .small { font-size:13px; color:var(--ink-soft); margin-top:4px; }
+  .langrow { display:flex; gap:8px; margin:10px 0 22px; }
+  .langbtn { flex:1; font-family:var(--font-ui); font-size:14px; font-weight:500; padding:9px 0;
+             border-radius:10px; border:1px solid var(--line); background:var(--paper-raised);
+             cursor:pointer; color:var(--ink-soft); transition:all var(--fast) var(--out); }
+  .langbtn:active { transform:scale(.985); }
+  .langbtn.on { border-color:var(--accent); background:var(--accent-tint); color:var(--accent); font-weight:550; }
+
+  /* progress trace */
+  .trace { margin:18px 0 6px; }
+  .stagger > * { animation:rise var(--base) var(--reveal) both; }
+  .stagger > *:nth-child(1) { animation-delay:0ms; }   .stagger > *:nth-child(2) { animation-delay:35ms; }
+  .stagger > *:nth-child(3) { animation-delay:70ms; }  .stagger > *:nth-child(4) { animation-delay:105ms; }
+  .stagger > *:nth-child(5) { animation-delay:140ms; } .stagger > *:nth-child(6) { animation-delay:175ms; }
+  .tstep { display:flex; gap:12px; align-items:flex-start; padding:11px 0; border-bottom:1px solid var(--line); font-size:15px; }
+  .tstep:last-child { border-bottom:none; }
+  .tstep .ic { width:20px; text-align:center; font-family:var(--font-mono); font-size:13px; padding-top:2px; }
+  .tstep.done .ic { color:var(--success); }
+  .tstep.now { animation:pulse-soft 1.6s ease-in-out infinite; }
+  .tstep.now .ic { color:var(--warning); }
+  .tstep.wait { color:var(--ink-faint); }
+  .tstep .d { font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); margin-top:1px; }
+  .workingcard { background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+                 padding:18px 20px; box-shadow:var(--shadow-raise); }
+
+  /* verdict cards */
+  .vcard { background:var(--paper-raised); border:1px solid var(--line); border-left:3px solid var(--line);
+           border-radius:14px; padding:20px 22px; margin-bottom:18px; box-shadow:var(--shadow-raise); }
+  .vcard.ok   { border-left-color:var(--success); }
+  .vcard.hold { border-left-color:var(--warning); }
+  .vcard.bad  { border-left-color:var(--danger); }
+  .vlabel { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; }
+  .vcard.ok .vlabel { color:var(--success); } .vcard.hold .vlabel { color:var(--warning); } .vcard.bad .vlabel { color:var(--danger); }
+  .vbody { font-size:15px; max-width:62ch; }
+  .vbody b { font-weight:550; }
+  .conf { display:inline-block; margin-top:12px; margin-right:8px; font-family:var(--font-mono); font-size:11.5px;
+          letter-spacing:.04em; padding:3px 12px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); }
+  .conf.high { border-color:var(--success); color:var(--success); }
+  .badge { display:inline-block; margin-top:12px; font-size:12.5px; font-weight:550; color:var(--success);
+           border:1px solid var(--success); border-radius:999px; padding:3px 12px; background:var(--paper-raised); }
+
+  .ecard { background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
+           padding:13px 16px; margin-bottom:8px; font-size:14px; }
+  .ecard .k { font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px; }
+  .ecard .mono { display:block; margin-top:2px; }
+  .ecard a { color:var(--accent); text-decoration:none; font-weight:550; }
+  .ecard a:hover { text-decoration:underline; }
+
+  .sig { display:flex; gap:12px; background:var(--paper-raised); border:1px solid var(--line);
+         border-left:3px solid var(--danger); border-radius:10px; padding:12px 15px; margin-bottom:8px; font-size:14px; }
+  .sig .n { font-family:var(--font-mono); font-weight:500; color:var(--danger); white-space:nowrap; font-size:13px; padding-top:1px; }
+
+  .fields { width:100%; border-collapse:collapse; font-size:14px; background:var(--paper-raised);
+            border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  .fields td { padding:10px 14px; border-bottom:1px solid var(--line); }
+  .fields tr:last-child td { border-bottom:none; }
+  .fields td:first-child { color:var(--ink-soft); font-size:12px; font-weight:500; letter-spacing:.06em;
+                           text-transform:uppercase; width:38%; padding-top:12px; }
+  .fields tr:hover td { background:rgba(237,241,236,.5); }
+  .cite { font-family:var(--font-mono); font-size:11px; background:var(--accent-tint); color:var(--accent);
+          border-radius:6px; padding:1px 7px; white-space:nowrap; }
+
+  .explain { background:var(--paper-raised); border:1px solid var(--line); border-radius:10px; padding:6px 18px; margin-bottom:10px; }
+  .check { display:flex; gap:12px; padding:11px 0; font-size:14.5px; border-bottom:1px solid var(--line); }
+  .check:last-child { border-bottom:none; }
+  .check .num { font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); padding-top:1px; }
+
+  /* review */
+  .rhead { border-bottom:1px solid var(--line); margin:-32px -28px 24px; padding:20px 28px 16px; }
+  .rhead .rt { font-family:var(--font-display); font-size:20px; font-weight:500; letter-spacing:-.01em; }
+  .rhead .rs { font-size:13px; color:var(--ink-soft); margin-top:2px; }
+  .timeline { border-left:1px solid var(--line); margin-left:6px; padding-left:18px; }
+  .tev { position:relative; padding-bottom:14px; font-size:14px; }
+  .tev::before { content:""; position:absolute; left:-21.5px; top:6px; width:7px; height:7px; border-radius:50%;
+                 background:var(--accent); }
+  .tev .t { font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft); }
+  textarea.notebox { width:100%; font-family:var(--font-ui); font-size:14px; background:var(--paper-raised);
+                     border:1px solid var(--line); border-radius:10px; padding:11px 13px; min-height:64px;
+                     margin:8px 0 12px; resize:vertical; color:var(--ink); transition:all var(--fast) var(--out); }
+  textarea.notebox:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); }
+  textarea.notebox::placeholder { color:var(--ink-faint); }
+  .btnrow { display:flex; gap:10px; }
+  .btnrow .btn { flex:1; margin-top:0; }
+</style>
+</head>
+<body>
+
+<div class="mockbar">
+  <span class="lbl">Mock UI</span>
+  <button data-v="upload" class="on">1 Upload /</button>
+  <button data-v="progress">2 Processing</button>
+  <button data-v="verified">3 Verified</button>
+  <button data-v="cannot">4 Cannot confirm</button>
+  <button data-v="scam">5 Scam</button>
+  <button data-v="review">6 Attorney review</button>
+</div>
+
+<div class="note"><b>For engineering.</b> Static visual spec for the 3 routes (6 states) — the design-token block at the top of this file mirrors <code>theme.ts</code> 1:1 (colors, fonts, motion durations/easings). Serif (<code>Source Serif 4</code>) for headings only; UI in <code>Inter Tight</code>; citations, IDs and timestamps in <code>JetBrains Mono</code>. One accent (evergreen); verdict states use the semantic colors as a 3px left border, never full-bleed backgrounds. No emoji in product copy. Motion: entrances fade+rise 220ms, list rows stagger 35ms, streaming state is an opacity pulse, nothing bounces. Every field maps to the engine output in P0-SPEC §2 (<b>verdict · confidence · evidence[] · parse · steps[]</b>). Where this file and P0-SPEC disagree, P0-SPEC wins.</div>
+
+<!-- ============ 1 · UPLOAD ============ -->
+<div class="route" data-r="upload">route <code>/</code> — no login, camera-first</div>
+<div class="phone view on" id="v-upload"><div class="phone-inner">
+  <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
+  <div class="tag">Know what that legal letter really is.</div>
+  <h2 class="pt">Photograph the document you received</h2>
+  <p class="sub">Served checks it against real court records and explains what it means in plain language. Ten dollars per check — no account needed.</p>
+  <div class="drop">
+    <div class="big">Snap a photo or upload</div>
+    <div class="small">JPG, PNG, or PDF · up to 4 pages</div>
+  </div>
+  <div class="eyebrow">Explain it in</div>
+  <!-- 📌 TODO (B): confirm demo language — Spanish / Chinese / Amharic / other? P0-SPEC v1 says en/es. -->
+  <div class="langrow">
+    <button class="langbtn on">English</button>
+    <button class="langbtn">Español</button>
+  </div>
+  <button class="btn primary">Check this document</button>
+  <div class="disclaimer">Served provides document information, not legal advice. High-stakes steps are routed to a human attorney for review.</div>
+</div></div>
+
+<!-- ============ 2 · PROGRESS ============ -->
+<div class="route" data-r="progress" style="display:none">route <code>/case/{token}</code> while status &lt; verdict_ready — poll a server route every 1.5 s, render new <code>events</code> rows (NOT Supabase Realtime — P0-SPEC §5)</div>
+<div class="phone view" id="v-progress"><div class="phone-inner">
+  <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
+  <div class="tag">Checking your document — usually 10 to 30 seconds.</div>
+  <div class="workingcard">
+    <div class="eyebrow" style="margin-top:0">Working</div>
+    <h3 class="vt" style="font-size:20px">Verifying against real court records</h3>
+  </div>
+  <div class="trace stagger">
+    <div class="tstep done"><div class="ic">✓</div><div>Document received<div class="d">1 page · photo</div></div></div>
+    <div class="tstep done"><div class="ic">✓</div><div>Classified: <b>federal subpoena</b> (AO 88B)<div class="d">parties, case number, deadline extracted</div></div></div>
+    <div class="tstep now"><div class="ic">…</div><div>Querying the federal court docket<div class="d">CourtListener / RECAP</div></div></div>
+    <div class="tstep wait"><div class="ic">·</div><div>Cross-checking case title and parties</div></div>
+    <div class="tstep wait"><div class="ic">·</div><div>Preparing your explanation</div></div>
+  </div>
+  <div class="disclaimer">Each step above is recorded as a timestamped entry in your case log.</div>
+</div></div>
+
+<!-- ============ 3 · VERIFIED ============ -->
+<div class="route" data-r="verified" style="display:none">route <code>/case/{token}</code> · verdict = VERIFIED · confidence High · the D1 demo shot</div>
+<div class="phone view" id="v-verified"><div class="phone-inner">
+  <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
+  <div class="tag mono">case link · checked moments ago</div>
+  <div class="vcard ok">
+    <div class="vlabel">Verified</div>
+    <h3 class="vt">This is a real federal subpoena</h3>
+    <div class="vbody">The case exists in the federal court record and the parties match your document. You are <b>not being sued</b> — this is a demand for records.</div>
+    <div>
+      <span class="conf high">confidence · high</span>
+      <span class="badge">Reviewed via attorney link</span>
+    </div>
+  </div>
+  <div class="eyebrow">Evidence — verify it yourself</div>
+  <div class="ecard">
+    <div class="k">Docket match · RECAP</div>
+    <b>Acme Logistics LLC v. Nova Freight Inc.</b>
+    <span class="mono">No. 2:26-cv-01234 · C.D. Cal. · filed 2026-03-03</span>
+    <a href="#">View the public docket</a>
+  </div>
+  <div class="ecard"><div class="k">Cross-check</div>Issuing attorney appears on the docket · court address matches the official directory</div>
+  <div class="eyebrow">What your document says</div>
+  <table class="fields">
+    <tr><td>Type</td><td>Subpoena to produce documents (AO 88B) <span class="cite">¶1</span></td></tr>
+    <tr><td>You must provide</td><td>Payroll records for one former employee <span class="cite">¶3</span></td></tr>
+    <tr><td>Deadline</td><td><b>July 24, 2026</b> <span class="cite">¶2</span></td></tr>
+    <tr><td>Deliver to</td><td>Counsel address listed on the form <span class="cite">¶4</span></td></tr>
+  </table>
+  <div class="eyebrow">What to do</div>
+  <div class="explain">
+    <div class="check"><span class="num">1</span><span>Stay calm — you hold records; you are not a party to this lawsuit.</span></div>
+    <div class="check"><span class="num">2</span><span>Gather only the records listed — nothing more, nothing less.</span></div>
+    <div class="check"><span class="num">3</span><span>Share this page with an attorney before sending anything.</span></div>
+  </div>
+  <button class="btn primary">Send to an attorney for review</button>
+  <button class="btn secondary">Copy my case link</button>
+  <div class="disclaimer">This is document information with cited sources, not legal advice. Every quote above is machine-verified against your document before display; unverifiable claims are withheld.</div>
+</div></div>
+
+<!-- ============ 4 · CANNOT CONFIRM ============ -->
+<div class="route" data-r="cannot" style="display:none">route <code>/case/{token}</code> · verdict = CANNOT_CONFIRM · the refusal shot (D2) — honest uncertainty, NOT a scam call</div>
+<div class="phone view" id="v-cannot"><div class="phone-inner">
+  <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
+  <div class="tag mono">case link · checked moments ago</div>
+  <div class="vcard hold">
+    <div class="vlabel">Cannot confirm</div>
+    <h3 class="vt">We couldn't find this case in the court record</h3>
+    <div class="vbody">The document is formatted like a real federal subpoena, but case <span class="mono" style="color:var(--ink)">2:26-cv-91234</span> doesn't appear in the public docket mirror. <b>That does not mean it's fake</b> — the public mirror is incomplete, and case numbers are sometimes mistyped by a law office or clerk. Only an attorney can tell which it is. A human should look at this one.</div>
+    <div><span class="conf">confidence · routed to human</span></div>
+  </div>
+  <div class="eyebrow">What was checked</div>
+  <div class="ecard"><div class="k">Docket lookup · RECAP</div>No match for the case number on the document · searched moments ago</div>
+  <div class="ecard"><div class="k">Format check</div>Passed — official AO 88B layout, required fields present</div>
+  <div class="eyebrow">What to do</div>
+  <div class="explain">
+    <div class="check"><span class="num">1</span><span><b>Don't pay anything, and don't ignore it.</b> Both are risky until a human confirms.</span></div>
+    <div class="check"><span class="num">2</span><span>Don't recognize the people or companies named in the document? Note it — that is important information for the attorney.</span></div>
+    <div class="check"><span class="num">3</span><span>Send this case to an attorney — one tap below; they see everything we found.</span></div>
+    <div class="check"><span class="num">4</span><span>The deadline on the document is July 24 — an attorney should see this within days.</span></div>
+  </div>
+  <button class="btn primary">Route to a human attorney</button>
+  <button class="btn secondary">Copy my case link</button>
+  <div class="disclaimer">Honest refusal is a feature. When the record can't confirm a document, Served says so instead of guessing.</div>
+
+  <div style="margin-top:22px; border:2px dashed var(--danger); border-radius:10px; padding:14px 16px; font-size:13px; background:var(--paper-raised); color:var(--ink-soft);">
+    <div style="color:var(--danger); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px;">Engineering note (B) — not part of the UI, delete before shipping</div>
+    The CANNOT_CONFIRM <b>explanation must be scenario-aware</b>: the verdict stays rule-based (P0-SPEC §2), but the model (GPT-5.6 API) generates the explanation from whatever the lookup actually found. At minimum three sub-scenarios:
+    <div style="margin-top:8px;"><span class="mono" style="color:var(--danger)">S1</span> — No docket match at all → the copy shown above.</div>
+    <div style="margin-top:4px;"><span class="mono" style="color:var(--danger)">S2</span> — Exact number misses, but a <b>party-name search finds a near-match</b> (same parties, number differs by a digit or two) → say so explicitly: <i>"I couldn't find case 5:25-cv-92108, but a case with these exact parties exists under 5:25-cv-02108 — the number on your document may be a typo."</i> Show the candidate docket as evidence. Verdict stays CANNOT_CONFIRM — the candidate is a lead for the attorney, never auto-confirmed.</div>
+    <div style="margin-top:4px;"><span class="mono" style="color:var(--danger)">S3</span> — The number <b>exists but belongs to a different case</b> (parties don't match) → state that plainly; strong reason for attorney review.</div>
+    <div style="margin-top:8px;">All three end in the same CTA (route to human). Note: demo document D2 is exactly the S2 case — its true sibling (5:25-cv-02108, <i>Barnes v. Maximus Consulting Services</i>) is live in RECAP, so the demo's refusal shot can show the near-match recovery.</div>
+  </div>
+</div></div>
+
+<!-- ============ 5 · SCAM ============ -->
+<div class="route" data-r="scam" style="display:none">route <code>/case/{token}</code> · verdict = SCAM_INDICATORS · tier = none · requires 2+ affirmative signals (D3: #1 + #2 + #6)</div>
+<div class="phone view" id="v-scam"><div class="phone-inner">
+  <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
+  <div class="tag mono">case link · checked moments ago</div>
+  <div class="vcard bad">
+    <div class="vlabel">Scam indicators</div>
+    <h3 class="vt">This matches known scam patterns</h3>
+    <div class="vbody">This letter is <b>not from any real court</b>. It matches three known patterns of impersonation scams that target business owners. <b>Do not pay. Do not call the number on the letter.</b></div>
+  </div>
+  <div class="eyebrow">The three signals found</div>
+  <div class="stagger">
+    <div class="sig"><span class="n">#1</span><span>"Federal Legal Processing Bureau" is <b>not a real court</b> — no such body exists in the federal directory</span></div>
+    <div class="sig"><span class="n">#2</span><span>Demands payment in <b>gift cards</b> ("$2,400 in Google Play cards") — no court or agency ever does this</span></div>
+    <div class="sig"><span class="n">#6</span><span><b>48-hour threat deadline</b> — real legal process gives statutory notice periods, not countdowns</span></div>
+  </div>
+  <div class="eyebrow">What to do</div>
+  <div class="explain">
+    <div class="check"><span class="num">1</span><span>Keep the letter — it's evidence.</span></div>
+    <div class="check"><span class="num">2</span><span>Report it at <a href="https://reportfraud.ftc.gov" target="_blank" rel="noopener" style="color:var(--accent); font-weight:550;">reportfraud.ftc.gov</a> — it takes two minutes.</span></div>
+    <div class="check"><span class="num">3</span><span>If you already paid, contact your bank immediately.</span></div>
+  </div>
+  <button class="btn primary">Send to an attorney anyway</button>
+  <button class="btn secondary">Copy my case link</button>
+  <div class="disclaimer">A scam verdict requires two or more affirmative fraud signals, each cited above. Absence from the court record alone is never called a scam.</div>
+</div></div>
+
+<!-- ============ 6 · REVIEW ============ -->
+<div class="route" data-r="review" style="display:none">route <code>/review/{attorney_token}</code> · magic link, 14-day validity, no account · every open / approve / send-back appends an event</div>
+<div class="phone view" id="v-review"><div class="phone-inner">
+  <div class="rhead">
+    <div class="rt">Attorney review</div>
+    <div class="rs">You were sent this case by its owner. This link is private to you and valid for 14 days.</div>
+  </div>
+  <div class="vcard ok" style="margin-top:0">
+    <div class="vlabel">Verified</div>
+    <h3 class="vt" style="font-size:19px">Federal subpoena — records demand</h3>
+    <div class="vbody"><span class="mono" style="color:var(--ink)">Acme Logistics LLC v. Nova Freight Inc. · No. 2:26-cv-01234 · C.D. Cal.</span><br><a href="#" style="color:var(--accent); font-weight:550; text-decoration:none">View the public docket</a></div>
+    <div><span class="conf high">confidence · high</span></div>
+  </div>
+  <div class="eyebrow">Original document</div>
+  <div class="ecard"><span class="mono" style="color:var(--ink)">subpoena-photo.jpg</span> · 1 page · <a href="#">open — signed URL, valid 5 min</a></div>
+  <div class="eyebrow">Parsed fields</div>
+  <table class="fields">
+    <tr><td>Type</td><td>Subpoena duces tecum (AO 88B)</td></tr>
+    <tr><td>Demand</td><td>Payroll records, one former employee</td></tr>
+    <tr><td>Deadline</td><td>July 24, 2026</td></tr>
+  </table>
+  <div class="eyebrow">Event timeline · append-only</div>
+  <div class="timeline stagger">
+    <div class="tev"><div class="t">10:02:14</div>Document uploaded · photo, 1 page</div>
+    <div class="tev"><div class="t">10:02:19</div>Classified: federal subpoena (AO 88B)</div>
+    <div class="tev"><div class="t">10:02:26</div>Docket queried · match found (RECAP)</div>
+    <div class="tev"><div class="t">10:02:31</div>Verdict: VERIFIED · confidence high</div>
+    <div class="tev"><div class="t">10:04:02</div>Owner opened attorney handoff</div>
+    <div class="tev"><div class="t">now</div><b>You opened this review link</b> — this row was just appended</div>
+  </div>
+  <div class="eyebrow">Your action</div>
+  <textarea class="notebox" placeholder="Optional note to the owner (required if sending back)"></textarea>
+  <div class="btnrow">
+    <button class="btn primary">Approve</button>
+    <button class="btn secondary">Send back with note</button>
+  </div>
+  <div class="disclaimer">Approve adds a visible "Reviewed via attorney link" badge to the owner's page and an <span class="mono">approved</span> event to the audit log.</div>
+</div></div>
+
+<script>
+  const btns = document.querySelectorAll('.mockbar button');
+  btns.forEach(b => b.addEventListener('click', () => {
+    btns.forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    const v = b.dataset.v;
+    document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+    document.querySelectorAll('.route').forEach(x => x.style.display = (x.dataset.r === v) ? '' : 'none');
+    // re-trigger entrance animation
+    const view = document.getElementById('v-' + v);
+    const inner = view.querySelector('.phone-inner');
+    inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
+  }));
+</script>
+</body>
+</html>
