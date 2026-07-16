@@ -3,13 +3,15 @@ import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { type Analysis, analyzeDocument, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
 const verdictCopy = {
-  verified: { label: "Evidence supports it", className: "bg-pine/10 text-pine" },
-  cannot_confirm: { label: "Cannot confirm authenticity", className: "bg-amber-100 text-amber-800" },
-  scam_indicators: { label: "Scam warning signs found", className: "bg-coral/10 text-coral" },
+  verified: { label: "Evidence supports it", variant: "default" as const },
+  cannot_confirm: { label: "Cannot confirm authenticity", variant: "warning" as const },
+  scam_indicators: { label: "Scam warning signs found", variant: "destructive" as const },
 }
 
 function formatFileSize(bytes: number): string {
@@ -75,7 +77,7 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
     ].filter((item) => item.value)
     return <Card className="overflow-hidden p-2">
       <div className="rounded-[22px] bg-white/70 p-6 sm:p-8">
-        <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${verdict.className}`}>{verdict.label}</div>
+        <Badge variant={verdict.variant}>{verdict.label}</Badge>
         <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
         <h2 className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">What this letter says</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
@@ -86,7 +88,7 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
 
         {breakdown.requested_actions.length > 0 && <section className="mt-6 rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={15} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-6 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
 
-        {(analysis.checks?.length ?? 0) > 0 && <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Checks performed</p><div className="mt-3 space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div></section>}
+        {(analysis.checks?.length ?? 0) > 0 && <><Separator className="my-6" /><section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Checks performed</p><div className="mt-3 space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div></section></>}
 
         <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-3">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p></div>)}</div></section>
 
@@ -113,14 +115,14 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
       <div className="mt-6 flex justify-center gap-2">
         <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Agents are checking…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
-      {import.meta.env.DEV && <div className="mt-6 border-t border-black/5 pt-5">
+      {import.meta.env.DEV && <><Separator className="mt-6" /><div className="pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Try a demo document</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D1")}>D1 · real case</Button>
           <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D2")}>D2 · altered number</Button>
           <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D3")}>D3 · scam letter</Button>
         </div>
-      </div>}
+      </div></>}
       <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck size={15} /> File bytes are processed; result metadata is saved to your workspace</div>
     </div>
   </Card>

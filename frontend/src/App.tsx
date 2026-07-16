@@ -1,5 +1,5 @@
 import { GoogleOAuthProvider } from "@react-oauth/google"
-import { RefreshCw, X } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -8,6 +8,7 @@ import { Hero } from "@/components/Hero"
 import { LoginPage } from "@/components/LoginPage"
 import { Navbar } from "@/components/Navbar"
 import { LandingDetails } from "@/components/LandingDetails"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { fetchGoogleClientId } from "@/lib/api"
 
 export function App() {
@@ -31,10 +32,7 @@ export function App() {
   const landing = <div className="min-h-screen bg-bg-base selection:bg-brand-green selection:text-black"><Navbar onGetStarted={startAuth} /><main><Hero onGetStarted={startAuth} /><LandingDetails onGetStarted={startAuth} /></main></div>
 
   if (clientIdLoading) return landing
-  if (!clientId) return <>{landing}{showAuth && <div className="fixed inset-0 z-[60] grid place-items-center bg-black/20 p-5 backdrop-blur-sm"><div className="relative w-full max-w-md rounded-2xl bg-bg-base p-8 text-center shadow-2xl"><button aria-label="Close" onClick={() => setShowAuth(false)} className="absolute top-4 right-4"><X size={18} /></button><RefreshCw className="mx-auto mb-4" size={22} /><p className="text-sm">{error || "Google sign-in is not configured."}</p></div></div>}</>
+  if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader></DialogContent></Dialog>
 
-  return <GoogleOAuthProvider clientId={clientId}>
-    {landing}
-    {showAuth && <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/20 backdrop-blur-sm"><button aria-label="Close sign in" onClick={() => setShowAuth(false)} className="fixed top-5 right-5 z-[70] rounded-full bg-white/80 p-2"><X size={18} /></button><LoginPage /></div>}
-  </GoogleOAuthProvider>
+  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Sign in with Google to open your evidence workspace.</DialogDescription><LoginPage /></DialogContent></Dialog></GoogleOAuthProvider>
 }

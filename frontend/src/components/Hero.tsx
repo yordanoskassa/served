@@ -1,12 +1,11 @@
 import { motion } from "motion/react"
 
-const videoUrl = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260603_132049_036591b8-6e92-4760-b94c-a7ea6eef315c.mp4"
-
 export function Hero({ onGetStarted }: { onGetStarted: () => void }) {
   return <section id="top" className="relative flex min-h-[110vh] w-full flex-col items-center justify-start overflow-hidden bg-bg-base sm:min-h-[140vh]">
     <div className="pointer-events-none absolute top-[15vh] left-0 z-0 h-[95vh] w-full sm:top-[20vh] sm:h-[120vh]">
-      <video autoPlay loop muted playsInline className="h-full w-full object-cover opacity-100" src={videoUrl} />
+      <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-center" />
       <div className="absolute top-0 left-0 h-24 w-full bg-gradient-to-b from-bg-base to-transparent sm:h-32" />
+      <div className="absolute inset-0 bg-bg-base/5" />
     </div>
     <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-12 gap-x-4 px-8 pt-[23vh] md:gap-x-8 md:px-16 md:pt-[27vh] lg:px-20">
       <div className="col-span-12 md:col-span-10 md:col-start-2">
