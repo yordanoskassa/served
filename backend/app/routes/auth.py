@@ -74,12 +74,17 @@ async def verify_google_auth(authorization: str = Header(default="")) -> UserPro
 
 async def _save_login(profile: UserProfile) -> None:
     """Upsert by Google's immutable subject, retaining email changes safely."""
-    await get_db().users.update_one(
-        {"google_subject": profile.subject},
-        {"$set": {
-            "google_subject": profile.subject,
-            **profile.model_dump(),
-            "last_login_at": datetime.now(UTC),
-        }},
-        upsert=True,
-    )
+    try:
+        await get_db().users.update_one(
+            {"google_subject": profile.subject},
+            {"$set": {
+                "google_subject": profile.subject,
+                **profile.model_dump(),
+                "last_login_at": datetime.now(UTC),
+            }},
+            upsert=True,
+        )
+    except Exception:
+        # Authentication must still complete when Mongo is temporarily unavailable.
+        # The dashboard will show an empty state until persistence is restored.
+        return
