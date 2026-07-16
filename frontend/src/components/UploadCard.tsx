@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, FileImage, LoaderCircle, RotateCcw, ShieldCheck } from "lucide-react"
+import { AlertTriangle, Building2, CalendarDays, Camera, FileImage, Hash, ListChecks, LoaderCircle, RotateCcw, ShieldCheck, Users } from "lucide-react"
 import { useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -66,18 +66,32 @@ export function UploadCard({ onAnalysisComplete }: { onAnalysisComplete?: (analy
 
   if (analysis) {
     const verdict = verdictCopy[analysis.verdict]
+    const breakdown = analysis.breakdown ?? { court: null, case_number: null, parties: [], document_date: null, deadline: analysis.deadline, requested_actions: [] }
+    const detailItems = [
+      { label: "Court or issuer", value: breakdown.court, icon: Building2 },
+      { label: "Case or reference", value: breakdown.case_number, icon: Hash },
+      { label: "Document date", value: breakdown.document_date, icon: CalendarDays },
+      { label: "Deadline shown", value: breakdown.deadline, icon: CalendarDays },
+    ].filter((item) => item.value)
     return <Card className="overflow-hidden p-2">
       <div className="rounded-[22px] bg-white/70 p-6 sm:p-8">
         <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${verdict.className}`}>{verdict.label}</div>
         <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
         <h2 className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">What this letter says</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
-        {analysis.deadline && <div className="mt-4 rounded-xl bg-coral/5 p-3 text-sm"><strong>Deadline shown:</strong> {analysis.deadline}</div>}
-        <div className="mt-5 space-y-3">
-          {analysis.evidence.map((item, index) => <div className="border-l-2 border-pine/30 pl-3" key={`${item.label}-${index}`}>
-            <p className="text-sm font-semibold">{item.label}</p><p className="text-sm text-muted-foreground">{item.detail}</p>
-          </div>)}
-        </div>
+
+        {detailItems.length > 0 && <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Key details</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{detailItems.map(({ label, value, icon: Icon }) => <div className="rounded-2xl border border-black/5 bg-white/80 p-4" key={label}><div className="flex items-center gap-2 text-zinc-400"><Icon size={14} /><span className="text-[11px]">{label}</span></div><p className="mt-2 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
+
+        {breakdown.parties.length > 0 && <section className="mt-6 rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><Users size={15} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-3 flex flex-wrap gap-2">{breakdown.parties.map((party) => <span className="rounded-full bg-black/5 px-3 py-1.5 text-xs" key={party}>{party}</span>)}</div></section>}
+
+        {breakdown.requested_actions.length > 0 && <section className="mt-6 rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={15} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-6 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+
+        {(analysis.checks?.length ?? 0) > 0 && <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Checks performed</p><div className="mt-3 space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-bg-base px-3 py-2.5" key={check.key}><span className="size-2 rounded-full bg-brand-soft" /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div></section>}
+
+        <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p><div className="mt-3 space-y-3">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p></div>)}</div></section>
+
+        {(analysis.limitations?.length ?? 0) > 0 && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4"><div className="flex items-center gap-2 text-amber-900"><AlertTriangle size={15} /><p className="text-sm font-semibold">What could not be confirmed</p></div><ul className="mt-2 space-y-1">{analysis.limitations.map((limitation) => <li className="text-sm leading-6 text-amber-900/70" key={limitation}>{limitation}</li>)}</ul></section>}
+
         <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
         <Button className="mt-5" variant="outline" onClick={reset}><RotateCcw size={16} /> Check another letter</Button>
       </div>

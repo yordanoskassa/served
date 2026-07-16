@@ -6,6 +6,16 @@ export interface Analysis {
   verdict: Verdict
   confidence: "low" | "medium" | "high"
   deadline: string | null
+  breakdown: {
+    court: string | null
+    case_number: string | null
+    parties: string[]
+    document_date: string | null
+    deadline: string | null
+    requested_actions: string[]
+  }
+  checks: { key: string; label: string; status: string }[]
+  limitations: string[]
   evidence: { label: string; detail: string; source: string }[]
   next_step: string
 }

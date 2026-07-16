@@ -9,7 +9,7 @@ from app.config import settings
 from app.engine.models import DocumentParse
 from app.engine.fraud_patterns import load_fraud_patterns
 from app.engine.verdict import decide_verdict
-from app.schemas.analysis import AnalysisResponse, EvidenceItem
+from app.schemas.analysis import AnalysisCheck, AnalysisResponse, EvidenceItem, LetterBreakdown
 from app.services.courtlistener import lookup_docket
 from app.services.agent_system import coordinator, register_runner
 
@@ -95,12 +95,29 @@ async def analyze_document(file: UploadFile) -> AnalysisResponse:
             detail=f"The entered number was not found, but the same parties appear in {result.near_match.case_number_normalized}: {result.near_match.case_title}.",
             source="CourtListener RECAP candidate",
         ))
+    limitations: list[str] = []
+    if not parsed.readable:
+        limitations.append("The document could not be read reliably, so extracted details may be incomplete.")
+    if not parsed.case_number:
+        limitations.append("No case or reference number was clearly identified.")
+    if parsed.case_number and not cross_check_passed:
+        limitations.append("The referenced case could not be independently matched to the extracted party details.")
     return AnalysisResponse(
         document_type=parsed.doc_type,
         summary=summary,
         verdict=result.verdict,
         confidence=result.confidence,
         deadline=parsed.deadline,
+        breakdown=LetterBreakdown(
+            court=parsed.court,
+            case_number=parsed.case_number,
+            parties=parsed.parties,
+            document_date=parsed.document_date,
+            deadline=parsed.deadline,
+            requested_actions=parsed.demands,
+        ),
+        checks=[AnalysisCheck(key=step.key, label=step.label, status=step.status) for step in result.steps],
+        limitations=limitations,
         evidence=indicator_items or docket_items or [EvidenceItem(
             label="Document parsed",
             detail=parsed.case_number or parsed.court or file.filename or "Uploaded document",
