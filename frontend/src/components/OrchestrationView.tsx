@@ -3,7 +3,6 @@ import {
   ArrowDown,
   Bot,
   Braces,
-  CheckCircle2,
   Clock3,
   Database,
   FileCheck2,
@@ -20,18 +19,20 @@ import {
 import { motion, useReducedMotion } from "motion/react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import type { AgentStatus, Analysis } from "@/lib/api"
+import type { AgentStatus, Analysis, TraceEvent } from "@/lib/api"
 
 type OrchestrationViewProps = {
   agents: AgentStatus[]
   loadState: "loading" | "ready" | "error"
   latestAnalysis?: Analysis | null
   analysisRunState?: "idle" | "running" | "complete" | "error"
+  traceEvents?: TraceEvent[]
   onRefresh?: () => void
 }
 
@@ -126,6 +127,9 @@ function formatLastCheck(value: string | null | undefined): string {
 
 function traceStatus(value: string | undefined): { label: string; dotClass: string; badgeVariant: "default" | "warning" | "destructive" | "outline" } {
   const normalized = value?.toLowerCase().replaceAll("-", "_")
+  if (normalized === "started") {
+    return { label: "Running", dotClass: "bg-[#812d29] animate-pulse motion-reduce:animate-none", badgeVariant: "warning" }
+  }
   if (["complete", "completed", "success", "passed", "ready"].includes(normalized || "")) {
     return { label: value || "Complete", dotClass: "bg-brand-green", badgeVariant: "default" }
   }
@@ -224,7 +228,223 @@ function StepShell({
   )
 }
 
-export function OrchestrationView({ agents, loadState, latestAnalysis = null, analysisRunState = "idle", onRefresh }: OrchestrationViewProps) {
+function formatDuration(duration: number | null | undefined): string {
+  if (duration == null) return "—"
+  if (duration < 1000) return `${duration} ms`
+  return `${(duration / 1000).toFixed(duration < 10_000 ? 1 : 0)} s`
+}
+
+function DetailedRunTrace({ events, analysis, terminal = false }: { events: TraceEvent[]; analysis?: Analysis | null; terminal?: boolean }) {
+  const latest = new Map<TraceEvent["key"], TraceEvent>()
+  for (const event of events) latest.set(event.key, event)
+  const metrics = analysis?.trace?.metrics
+  const newestEvent = events.at(-1)
+  const usage = analysis?.trace?.model_usage ?? []
+  const completeTokenTotal = metrics
+    && usage.length === metrics.model_calls
+    && usage.every((item) => item.total_tokens != null)
+    ? usage.reduce((total, item) => total + (item.total_tokens ?? 0), 0)
+    : null
+  const completedAgents = ["reader", "checker", "explainer"].filter((key) => {
+    const status = latest.get(key as TraceEvent["key"])?.status
+    return status && status !== "started"
+  }).length
+  const attemptedTools = new Set(
+    events.filter((event) => event.kind === "tool").map((event) => event.key),
+  ).size
+
+  function RunNode({
+    eventKey,
+    title,
+    icon: Icon,
+    dark = false,
+  }: {
+    eventKey: TraceEvent["key"]
+    title: string
+    icon: typeof Activity
+    dark?: boolean
+  }) {
+    const event = latest.get(eventKey)
+    const status = traceStatus(event?.status)
+    return (
+      <div className={`rounded-[22px] border p-4 ${dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "border-black/[.07] bg-white/65"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span className={`grid size-8 place-items-center rounded-full ${dark ? "bg-[#812d29] text-brand-green" : "bg-[#812d29]/10 text-[#812d29]"}`}>
+            <Icon size={15} aria-hidden="true" />
+          </span>
+          <div className="flex items-center gap-2">
+            <span className={`size-2 rounded-full ${status.dotClass}`} aria-hidden="true" />
+            <Badge variant={dark ? "outline" : status.badgeVariant} className={dark ? "border-white/15 bg-white/[.06] text-white/70" : undefined}>
+              {displayStatus(status.label)}
+            </Badge>
+          </div>
+        </div>
+        <p className="mt-4 text-sm font-semibold">{title}</p>
+        <p className={`mt-1 min-h-10 text-xs leading-5 ${dark ? "text-white/50" : "text-zinc-500"}`}>
+          {event?.output_summary || event?.detail || (event?.status === "started" ? "This step is running." : event ? "No additional detail was reported." : terminal ? "No backend event was returned for this step." : "Waiting for the backend event.")}
+        </p>
+        <div className={`mt-3 flex items-center justify-between text-[10px] ${dark ? "text-white/35" : "text-zinc-400"}`}>
+          <span>{event?.kind ? displayStatus(event.kind) : "Not started"}</span>
+          <span>{formatDuration(event?.duration_ms)}</span>
+        </div>
+        {event?.decision && (
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/[.06] p-3 text-[11px] leading-5 text-white/60">
+            <p className="font-medium text-white">{ruleLabel(event.decision.rule)}</p>
+            <p>{event.decision.counted_signal_ids.length} countable signal(s) · case {event.decision.case_found ? "found" : "not found"} · parties {event.decision.parties_match ? "matched" : "not matched"}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const courtEvent = latest.get("courtlistener")
+  const patternEvent = latest.get("scam_patterns")
+  const checkerEvent = latest.get("checker")
+  const checkerSettled = Boolean(checkerEvent && checkerEvent.status !== "started")
+  const checkerSkipped = checkerEvent?.status === "skipped"
+  const missingBranchStatus: TraceEvent["status"] | undefined = checkerSkipped
+    ? "skipped"
+    : checkerSettled
+      ? "unavailable"
+      : undefined
+  const courtStatus = traceStatus(courtEvent?.status ?? missingBranchStatus)
+  const patternStatus = traceStatus(patternEvent?.status ?? missingBranchStatus)
+  const fanOutLabel = checkerSkipped
+    ? "evidence paths skipped"
+    : courtEvent && patternEvent
+      ? "fan out concurrently"
+      : checkerSettled
+        ? "evidence path trace incomplete"
+        : "prepare concurrent evidence paths"
+  const missingBranchCopy = (waitingCopy: string) => checkerSkipped
+    ? "Not run because READER could not provide readable facts."
+    : checkerSettled
+      ? "No backend tool event was returned for this completed CHECKER run."
+      : waitingCopy
+  const courtEvidence = analysis?.evidence.filter((item) => item.tool_key === "courtlistener") ?? []
+  const patternEvidence = analysis?.evidence.filter((item) => item.tool_key === "scam_patterns") ?? []
+  const signalReviews = analysis?.trace?.signal_reviews ?? []
+
+  return (
+    <div>
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {newestEvent ? `${newestEvent.label}: ${displayStatus(newestEvent.status)}` : "Waiting for analysis events"}
+      </p>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Badge variant="outline">{completedAgents} / 3 agents settled</Badge>
+        <Badge variant="outline">{metrics ? `${metrics.tool_calls} tool invocation${metrics.tool_calls === 1 ? "" : "s"}` : `${attemptedTools} tool branch${attemptedTools === 1 ? "" : "es"} seen`}</Badge>
+        <Badge variant="outline">{metrics ? `Analysis ${formatDuration(metrics.total_duration_ms)}` : "Run in progress"}</Badge>
+        {completeTokenTotal != null && <Badge variant="outline">{completeTokenTotal.toLocaleString()} reported tokens</Badge>}
+        {analysis?.trace?.run_id && <Badge variant="secondary">Run {analysis.trace.run_id.slice(0, 8)}</Badge>}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <RunNode eventKey="intake" title="Authenticated document intake" icon={FileInput} />
+        <RunNode eventKey="reader" title="READER · visible facts" icon={FileCheck2} />
+        <RunNode eventKey="court_directory" title="Court directory · exact route" icon={Gavel} />
+      </div>
+
+      <div className="my-3 flex items-center gap-3 px-4" aria-hidden="true">
+        <div className="h-px flex-1 bg-black/[.07]" />
+        <span className="text-[9px] font-semibold uppercase tracking-[.18em] text-zinc-400">{fanOutLabel}</span>
+        <GitBranch size={14} className="text-[#812d29]" />
+        <div className="h-px flex-1 bg-black/[.07]" />
+      </div>
+
+      <Card className="overflow-hidden border-[#812d29]/20 bg-white/60">
+        <div className="flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Agent two</p>
+            <h3 className="mt-2 font-display text-xl tracking-[-.035em]">CHECKER · two independent evidence paths</h3>
+          </div>
+          {(() => {
+            const status = traceStatus(checkerEvent?.status)
+            return <Badge variant={status.badgeVariant}>{displayStatus(status.label)}</Badge>
+          })()}
+        </div>
+        <Separator className="bg-black/[.06]" />
+        <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+          <div className={`rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+            <div className="flex items-center justify-between gap-2">
+              <Gavel size={17} className="text-[#812d29]" aria-hidden="true" />
+              <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${courtStatus.dotClass}`} aria-hidden="true" /><Badge variant={courtStatus.badgeVariant}>{displayStatus(courtStatus.label)}</Badge></div>
+            </div>
+            <h4 className="mt-3 text-sm font-semibold">CourtListener</h4>
+            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">{courtEvent?.output_summary || courtEvent?.detail || missingBranchCopy("Waiting for READER facts.")}</p>
+            <p className="mt-3 text-[10px] text-zinc-400">{formatDuration(courtEvent?.duration_ms)}</p>
+            {courtEvent && courtEvent.status !== "started" && (
+              <Accordion type="single" collapsible className="mt-2">
+                <AccordionItem value="court-evidence" className="border-black/[.07]">
+                  <AccordionTrigger className="py-3 text-xs">Inspect returned evidence</AccordionTrigger>
+                  <AccordionContent>
+                    <dl className="space-y-2 text-xs text-zinc-500">
+                      <div><dt className="font-medium text-zinc-800">Lookup input</dt><dd className="mt-0.5 break-words">{courtEvent.input_summary || "Not reported"}</dd></div>
+                      <div><dt className="font-medium text-zinc-800">Provider result</dt><dd className="mt-0.5">{courtEvent.output_summary || "No result summary"}</dd></div>
+                    </dl>
+                    {courtEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-[#812d29]/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.detail}</span></a>)}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
+          </div>
+
+          <div className={`rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4 ${patternEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+            <div className="flex items-center justify-between gap-2">
+              <Database size={17} className="text-[#812d29]" aria-hidden="true" />
+              <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${patternStatus.dotClass}`} aria-hidden="true" /><Badge variant={patternStatus.badgeVariant}>{displayStatus(patternStatus.label)}</Badge></div>
+            </div>
+            <h4 className="mt-3 text-sm font-semibold">Approved scam corpus</h4>
+            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">{patternEvent?.output_summary || patternEvent?.detail || missingBranchCopy("Waiting for the model-assisted READER transcription.")}</p>
+            <p className="mt-3 text-[10px] text-zinc-400">{formatDuration(patternEvent?.duration_ms)}</p>
+            {patternEvent && patternEvent.status !== "started" && (
+              <Accordion type="single" collapsible className="mt-2">
+                <AccordionItem value="pattern-evidence" className="border-black/[.07]">
+                  <AccordionTrigger className="py-3 text-xs">Inspect validation audit</AccordionTrigger>
+                  <AccordionContent>
+                    {analysis?.trace?.corpus_version && <p className="mb-3 text-[10px] text-zinc-400">Corpus {analysis.trace.corpus_version}</p>}
+                    <div className="space-y-2">
+                      {signalReviews.map((review, index) => <div key={`${review.pattern_id}-${index}`} className="rounded-xl border border-black/[.06] bg-white p-3 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium">Pattern {review.pattern_id}</span><Badge variant={review.accepted && review.counts_toward_verdict ? "default" : "outline"}>{review.accepted ? review.counts_toward_verdict ? "Accepted · countable" : "Accepted · context" : "Rejected"}</Badge></div><p className="mt-1 text-zinc-500">{displayStatus(review.reason)}</p>{review.document_excerpt && <p className="mt-2 border-l-2 border-[#812d29]/25 pl-2 text-zinc-600">“{review.document_excerpt}”</p>}</div>)}
+                      {!signalReviews.length && <p className="text-xs text-zinc-400">No model proposals required validation.</p>}
+                    </div>
+                    {patternEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-[#812d29]/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.source}</span></a>)}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <div className="my-3 flex items-center gap-3 px-4" aria-hidden="true">
+        <div className="h-px flex-1 bg-black/[.07]" />
+        <span className="text-[9px] font-semibold uppercase tracking-[.18em] text-zinc-400">merge validated findings</span>
+        <ArrowDown size={14} className="text-[#812d29]" />
+        <div className="h-px flex-1 bg-black/[.07]" />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <RunNode eventKey="rules" title="Fixed rules · not AI" icon={Braces} dark />
+        <RunNode eventKey="legal_passages" title="Grounding Guard · legal sources" icon={ShieldCheck} />
+        <RunNode eventKey="explainer" title="EXPLAINER · plain language" icon={Bot} />
+        <RunNode eventKey="result" title="Result assembled" icon={Save} />
+      </div>
+
+      {analysis?.trace && (
+        <div className="mt-4 grid gap-2 rounded-[22px] border border-black/[.07] bg-black/[.025] p-4 text-xs text-zinc-500 sm:grid-cols-2 lg:grid-cols-3">
+          <p><span className="font-medium text-zinc-800">Configured model:</span> {analysis.trace.model_alias}</p>
+          <p><span className="font-medium text-zinc-800">Corpora:</span> {Object.keys(analysis.trace.corpus_versions ?? {}).length || 1} versioned source set(s)</p>
+          <p><span className="font-medium text-zinc-800">Policy:</span> {analysis.trace.policy_version}</p>
+          <p><span className="font-medium text-zinc-800">Evidence:</span> {analysis.trace.metrics.evidence_items} item(s)</p>
+          <p><span className="font-medium text-zinc-800">Verdict authority:</span> fixed code</p>
+          <p><span className="font-medium text-zinc-800">Document facts:</span> model-assisted · human review required</p>
+          <p><span className="font-medium text-zinc-800">Pattern text:</span> {analysis.trace.pattern_text_basis === "native_pdf_text" ? "native PDF text" : "model-assisted transcription"}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function OrchestrationView({ agents, loadState, latestAnalysis = null, analysisRunState = "idle", traceEvents = [], onRefresh }: OrchestrationViewProps) {
   const reduceMotion = useReducedMotion()
   const expectedAgents = AGENTS.map((definition) => ({
     ...definition,
@@ -235,14 +455,14 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
 
   return (
     <TooltipProvider delayDuration={180}>
-      <section aria-labelledby="orchestration-title" className="space-y-6">
+      <section aria-labelledby="orchestration-title" className="flex flex-col gap-6">
         <Card className="relative overflow-hidden border-[#812d29]/25 bg-[#782b29] text-white shadow-[0_24px_80px_rgba(75,24,23,.2)]">
           <div className="absolute -right-20 -top-28 size-72 rounded-full border border-white/10" aria-hidden="true" />
           <div className="absolute -right-6 -top-16 size-48 rounded-full border border-white/10" aria-hidden="true" />
           <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <Badge variant="outline" className="border-white/20 bg-white/[.08] text-white">Multi-agent system</Badge>
-              <h1 id="orchestration-title" className="mt-5 max-w-3xl font-display text-3xl font-medium tracking-[-.055em] sm:text-5xl">
+              <h1 id="orchestration-title" tabIndex={-1} className="mt-5 max-w-3xl rounded font-display text-3xl font-medium tracking-[-.055em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#782b29] sm:text-5xl">
                 One orchestrator. Three specialist agents.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
@@ -262,7 +482,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6" aria-labelledby="readiness-title">
+        <Card className="order-2 p-5 sm:p-6" aria-labelledby="readiness-title">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -326,7 +546,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
           </ul>
         </Card>
 
-        <div className="grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)] lg:items-start">
+        <div className="order-3 grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)] lg:items-start">
           <Card className="overflow-hidden border-black/10 bg-[#1a1a1a] text-white lg:sticky lg:top-24">
             <div className="p-5">
               <div className="flex items-start justify-between gap-3">
@@ -335,7 +555,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </div>
               <p className="mt-5 text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Code orchestrator</p>
               <h2 className="mt-2 font-display text-2xl tracking-[-.04em]">Controls the route, not the facts.</h2>
-              <p className="mt-3 text-xs leading-5 text-white/50">It authenticates the request, dispatches each agent in order, applies the verdict policy, and saves the final record.</p>
+              <p className="mt-3 text-xs leading-5 text-white/50">It authenticates the request, runs the fixed agent graph, applies the verdict policy, and saves a sanitized run record.</p>
             </div>
             <Separator className="bg-white/10" />
             <div className="space-y-3 p-5 text-xs text-white/55">
@@ -367,9 +587,10 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </StepShell>
               <Connector label="dispatch" />
 
-              <StepShell number="01" eyebrow="Agent one" title="READER extracts visible facts" copy="Document type, court, case number, parties, dates, deadlines, and requested actions are transcribed without a verdict." icon={FileInput} badge="AI AGENT" index={1} reduceMotion={reduceMotion}>
-                <div className="mt-4 rounded-2xl bg-black/[.035] p-4 text-xs leading-5 text-zinc-500 sm:ml-13">
-                  Output: structured facts + exact visible text excerpts
+              <StepShell number="01" eyebrow="Agent one" title="READER extracts visible facts" copy="A model transcribes the document type, court, case number, parties, dates, deadlines, and requested actions without a verdict. Critical fields still require review against the original." icon={FileInput} badge="AI AGENT" index={1} reduceMotion={reduceMotion}>
+                <div className="mt-4 grid gap-2 sm:ml-13 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-black/[.035] p-4 text-xs leading-5 text-zinc-500">Output: structured facts + exact visible text excerpts</div>
+                  <div className="rounded-2xl border border-black/[.07] bg-white/70 p-4 text-xs leading-5 text-zinc-500"><strong className="text-zinc-800">Court-directory tool:</strong> exact seeded aliases choose the route; unknown names remain annotation-only.</div>
                 </div>
               </StepShell>
               <Connector label="facts only" />
@@ -380,12 +601,12 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
                   <div className="rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4">
                     <div className="flex items-center justify-between gap-2"><Gavel size={16} className="text-[#812d29]" aria-hidden="true" /><Badge variant="secondary">External</Badge></div>
                     <h4 className="mt-3 text-sm font-semibold">CourtListener</h4>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">Looks for the case number, then checks whether the named parties match the public record.</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">After an exact eligible court route, looks for the case number and checks whether the named parties match the public record.</p>
                   </div>
                   <div className="rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4">
                     <div className="flex items-center justify-between gap-2"><Database size={16} className="text-[#812d29]" aria-hidden="true" /><Badge variant="secondary">Versioned</Badge></div>
                     <h4 className="mt-3 text-sm font-semibold">Approved scam corpus</h4>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">Compares exact excerpts against countable patterns backed by approved official sources.</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">Validates exact excerpts within the selected document text against countable patterns backed by approved official sources.</p>
                   </div>
                 </div>
               </StepShell>
@@ -400,31 +621,32 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </StepShell>
               <Connector label="decision + evidence" />
 
-              <StepShell number="04" eyebrow="Agent three" title="EXPLAINER makes the result understandable" copy="It receives the code-decided verdict and supporting evidence, then writes a plain-language explanation with approved legal quotations." icon={Bot} badge="AI AGENT" index={4} reduceMotion={reduceMotion}>
+              <StepShell number="04" eyebrow="Agent three" title="EXPLAINER makes the result understandable" copy="It receives the code-decided verdict and supporting evidence, then writes a plain-language explanation. Approved source excerpts are attached by code without being rewritten." icon={Bot} badge="AI AGENT" index={4} reduceMotion={reduceMotion}>
                 <div className="mt-4 flex flex-wrap gap-2 sm:ml-13">
                   <Badge variant="outline">Plain language</Badge>
                   <Badge variant="outline">Source-linked evidence</Badge>
+                  <Badge variant="outline">Grounding Guard quotes</Badge>
                   <Badge variant="outline">No verdict authority</Badge>
                 </div>
               </StepShell>
               <Connector label="complete record" />
 
-              <StepShell number="05" eyebrow="Workspace" title="Save and show the dashboard result" copy="The final explanation, evidence, limitations, decision trace, and policy version are stored together for review." icon={Save} badge="ORCHESTRATOR" index={5} reduceMotion={reduceMotion}>
+              <StepShell number="05" eyebrow="Workspace" title="Save and show the dashboard result" copy="The dashboard receives the full result while the backend keeps only sanitized run metadata, the code decision, and execution trace—not the uploaded file." icon={Save} badge="ORCHESTRATOR" index={5} reduceMotion={reduceMotion}>
                 <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#812d29]/15 bg-[#812d29]/[.05] p-3 text-xs text-zinc-600 sm:ml-13">
                   <FileCheck2 size={15} className="shrink-0 text-[#812d29]" aria-hidden="true" />
-                  The result remains traceable back to the findings and rule that produced it.
+                  The in-session result links each displayed finding to the tool and rule that produced it.
                 </div>
               </StepShell>
             </ol>
           </div>
         </div>
 
-        <Card className="overflow-hidden" aria-labelledby="latest-run-title">
+        <Card className="order-1 overflow-hidden" aria-labelledby="latest-run-title">
           <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Returned analysis trace</p>
               <h2 id="latest-run-title" className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">Latest document run</h2>
-              <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-500">This section reflects the most recent response received in this session. It is separate from system setup above.</p>
+              <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-500">This section reflects the backend events for the most recent run in this session. It is separate from system setup below.</p>
             </div>
             {analysisRunState === "complete" && latestAnalysis && (
               <Badge variant={verdictVariant(latestAnalysis.verdict)}>{verdictLabel(latestAnalysis.verdict)}</Badge>
@@ -441,20 +663,27 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </div>
             )}
 
-            {analysisRunState === "running" && (
+            {analysisRunState === "running" && traceEvents.length === 0 && (
               <Alert className="rounded-[22px] border-[#812d29]/15 bg-[#812d29]/[.04]">
-                <Activity size={16} aria-hidden="true" />
-                <AlertTitle>Analysis request submitted</AlertTitle>
-                <AlertDescription className="text-zinc-500">Live stage events are not available from the current API. The completed agent checks and decision trace will appear here only after the final response returns.</AlertDescription>
+                <Activity size={16} className="animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+                <AlertTitle>Connecting to the analysis trace</AlertTitle>
+                <AlertDescription className="text-zinc-500">Waiting for the first verified event from the backend.</AlertDescription>
               </Alert>
             )}
 
+            {analysisRunState === "running" && traceEvents.length > 0 && (
+              <DetailedRunTrace events={traceEvents} analysis={latestAnalysis} />
+            )}
+
             {analysisRunState === "error" && (
-              <Alert className="rounded-[22px] border-orange-200 bg-orange-50/70">
-                <TriangleAlert size={16} aria-hidden="true" />
-                <AlertTitle>The latest analysis did not complete</AlertTitle>
-                <AlertDescription>No completed agent trace or code decision was returned for this attempt.</AlertDescription>
-              </Alert>
+              <div className="space-y-4">
+                {traceEvents.length > 0 && <DetailedRunTrace events={traceEvents} analysis={latestAnalysis} terminal />}
+                <Alert className="rounded-[22px] border-orange-200 bg-orange-50/70">
+                  <TriangleAlert size={16} aria-hidden="true" />
+                  <AlertTitle>The latest analysis did not complete</AlertTitle>
+                  <AlertDescription>{traceEvents.length > 0 ? "The verified events above show how far the run reached before it stopped." : "No backend trace event was returned for this attempt."}</AlertDescription>
+                </Alert>
+              </div>
             )}
 
             {analysisRunState === "complete" && !latestAnalysis && (
@@ -465,95 +694,9 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </Alert>
             )}
 
-            {analysisRunState === "complete" && latestAnalysis && (() => {
-              const returnedChecks = ["reader", "checker", "explainer"].map((key) => ({
-                key,
-                check: latestAnalysis.checks.find((candidate) => candidate.key.toLowerCase() === key),
-              }))
-              const orderedTrace = [
-                { kind: "intake" as const, key: "intake", check: undefined },
-                { kind: "agent" as const, ...returnedChecks[0] },
-                { kind: "agent" as const, ...returnedChecks[1] },
-                { kind: "decision" as const, key: "decision", check: undefined },
-                { kind: "agent" as const, ...returnedChecks[2] },
-                { kind: "result" as const, key: "result", check: undefined },
-              ]
-
-              return (
-                <div>
-                  <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" aria-label="Latest completed analysis trace">
-                    {orderedTrace.map((item, index) => {
-                      if (item.kind === "intake") {
-                        return (
-                          <li key={item.key} className="relative rounded-[22px] border border-black/[.07] bg-white/60 p-4">
-                            <div className="flex items-center justify-between gap-2"><span className="grid size-7 place-items-center rounded-full bg-[#812d29]/10 text-[10px] font-semibold text-[#812d29]">{index + 1}</span><span className="size-2 rounded-full bg-brand-green" aria-hidden="true" /></div>
-                            <FileInput className="mt-5 text-[#812d29]" size={17} aria-hidden="true" />
-                            <p className="mt-2 text-sm font-semibold">Upload received</p>
-                            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">The authenticated request reached the analysis workflow.</p>
-                            <Badge variant="default" className="mt-3">Received</Badge>
-                          </li>
-                        )
-                      }
-
-                      if (item.kind === "decision") {
-                        return (
-                          <li key={item.key} className="relative rounded-[22px] border border-[#812d29] bg-[#1a1a1a] p-4 text-white">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="grid size-7 place-items-center rounded-full bg-[#812d29] text-[10px] font-semibold">{index + 1}</span>
-                              <Badge variant="outline" className="border-white/15 bg-white/[.06] text-[9px] text-white/70">CODE · NOT AI</Badge>
-                            </div>
-                            <Braces className="mt-5 text-brand-green" size={17} aria-hidden="true" />
-                            <p className="mt-2 text-sm font-semibold">Verdict checkpoint</p>
-                            {latestAnalysis.decision ? (
-                              <>
-                                <p className="mt-2 text-xs leading-5 text-white/50">{ruleLabel(latestAnalysis.decision.rule)}</p>
-                                <p className="mt-3 text-[10px] text-white/35">Policy {latestAnalysis.decision.policy_version}</p>
-                              </>
-                            ) : (
-                              <p className="mt-2 text-xs leading-5 text-white/50">No decision trace was returned.</p>
-                            )}
-                          </li>
-                        )
-                      }
-
-                      if (item.kind === "result") {
-                        return (
-                          <li key={item.key} className="relative rounded-[22px] border border-black/[.07] bg-white/60 p-4">
-                            <div className="flex items-center justify-between gap-2"><span className="grid size-7 place-items-center rounded-full bg-[#812d29]/10 text-[10px] font-semibold text-[#812d29]">{index + 1}</span><span className="size-2 rounded-full bg-brand-green" aria-hidden="true" /></div>
-                            <FileCheck2 className="mt-5 text-[#812d29]" size={17} aria-hidden="true" />
-                            <p className="mt-2 text-sm font-semibold">Result delivered</p>
-                            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">The completed explanation and decision trace returned to this workspace.</p>
-                            <Badge variant={verdictVariant(latestAnalysis.verdict)} className="mt-3">{verdictLabel(latestAnalysis.verdict)}</Badge>
-                          </li>
-                        )
-                      }
-
-                      const status = traceStatus(item.check?.status)
-                      return (
-                        <li key={item.key} className="relative rounded-[22px] border border-black/[.07] bg-white/60 p-4">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="grid size-7 place-items-center rounded-full bg-[#812d29]/10 text-[10px] font-semibold text-[#812d29]">{index + 1}</span>
-                            <span className={`size-2 rounded-full ${status.dotClass}`} aria-hidden="true" />
-                          </div>
-                          <CheckCircle2 className="mt-5 text-[#812d29]" size={17} aria-hidden="true" />
-                          <p className="mt-2 text-sm font-semibold">{item.key.toUpperCase()}</p>
-                          <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">{item.check?.label || "No check was returned for this agent."}</p>
-                          <Badge variant={status.badgeVariant} className="mt-3">{displayStatus(status.label)}</Badge>
-                        </li>
-                      )
-                    })}
-                  </ol>
-
-                  {latestAnalysis.decision && (
-                    <div className="mt-4 grid gap-2 rounded-[22px] border border-black/[.07] bg-black/[.025] p-4 text-xs text-zinc-500 sm:grid-cols-3">
-                      <p><span className="font-medium text-zinc-800">Counted signals:</span> {latestAnalysis.decision.counted_signal_ids.length}</p>
-                      <p><span className="font-medium text-zinc-800">Case found:</span> {latestAnalysis.decision.case_found ? "Yes" : "No"}</p>
-                      <p><span className="font-medium text-zinc-800">Parties match:</span> {latestAnalysis.decision.parties_match ? "Yes" : "No"}</p>
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
+            {analysisRunState === "complete" && latestAnalysis && (
+              <DetailedRunTrace events={latestAnalysis.trace?.steps ?? traceEvents} analysis={latestAnalysis} terminal />
+            )}
           </div>
         </Card>
       </section>

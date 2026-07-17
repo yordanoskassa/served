@@ -6,7 +6,7 @@ The guard does not ask another model whether an answer looks correct. It validat
 
 ## Implementation status
 
-The current runtime already validates allowlisted fraud IDs, exact document excerpts, duplicate IDs, and countability before applying the verdict policy. Court-directory enforcement, legal-passage selection, exact legal-quote validation, the full audit object, and automation of all 12 test vectors remain release gates. The tables below describe the complete acceptance contract, not a claim that every guard is already active.
+The runtime enforces the complete contract below: exact court-directory routing, allowlisted and affirmatively supported fraud IDs, deduplication and explicit countability, legal-passage ID/source/quote validation, a machine-readable audit, and all 12 release vectors in pytest and CI. The guard contains no model call and runs before the code-owned verdict and again before legal evidence renders.
 
 ## What it protects
 

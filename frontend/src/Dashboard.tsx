@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchAgentStatus, fetchDashboardSummary, type AgentStatus, type Analysis, type DashboardSummary } from "@/lib/api"
+import { fetchAgentStatus, fetchDashboardSummary, type AgentStatus, type Analysis, type DashboardSummary, type TraceEvent } from "@/lib/api"
 import type { EntryIntent } from "@/lib/entry"
 
 type LoadState = "loading" | "ready" | "error"
@@ -45,8 +45,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const [agentState, setAgentState] = useState<LoadState>("loading")
   const [latestAnalysis, setLatestAnalysis] = useState<Analysis | null>(null)
   const [analysisRunState, setAnalysisRunState] = useState<AnalysisRunState>("idle")
+  const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([])
   const [activeTab, setActiveTab] = useState("overview")
   const intentConsumed = useRef(false)
+  const pipelineFocusPending = useRef(false)
 
   useEffect(() => {
     if (!launchIntent || intentConsumed.current) return
@@ -66,6 +68,23 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
       .catch(() => setAgentState("error"))
   }, [credential, refreshKey])
 
+  useEffect(() => {
+    if (activeTab !== "agents" || !pipelineFocusPending.current) return
+    const startedAt = performance.now()
+    let frame = 0
+    const focusPipelineHeading = () => {
+      const heading = document.getElementById("orchestration-title")
+      if (heading instanceof HTMLElement) {
+        heading.focus()
+        pipelineFocusPending.current = false
+        return
+      }
+      if (performance.now() - startedAt < 2_000) frame = requestAnimationFrame(focusPipelineHeading)
+    }
+    frame = requestAnimationFrame(focusPipelineHeading)
+    return () => cancelAnimationFrame(frame)
+  }, [activeTab])
+
   if (!user) return null
 
   const counts = summary?.counts
@@ -78,6 +97,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const orderedAgents = AGENT_ORDER
     .map((name) => agents.find((agent) => agent.name === name))
     .filter((agent): agent is AgentStatus => Boolean(agent))
+  const openPipeline = () => {
+    pipelineFocusPending.current = true
+    setActiveTab("agents")
+  }
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="min-h-screen bg-bg-base text-[#1a1a1a] selection:bg-brand-green selection:text-black">
@@ -113,7 +136,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         </TabsList>
 
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-12">
-          <TabsContent value="overview" className="mt-0 space-y-8">
+          <TabsContent forceMount value="overview" className="mt-0 space-y-8 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
             <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Your workspace</p><h1 className="font-display text-4xl font-medium tracking-[-.055em] sm:text-5xl">Understand before you act.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">One code orchestrator routes each letter through READER, CHECKER, and EXPLAINER. Between CHECKER and EXPLAINER, fixed rules—not an AI agent—set the verdict.</p></div>
             <Button onClick={() => setShowUpload(true)}><Plus size={17} /> Analyze a document</Button>
@@ -128,9 +151,20 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
               }}
               onAnalysisStateChange={(state) => {
                 setAnalysisRunState(state)
-                if (state === "running") setLatestAnalysis(null)
+                if (state === "running") {
+                  setLatestAnalysis(null)
+                  setTraceEvents([])
+                }
               }}
-              onViewPipeline={() => setActiveTab("agents")}
+              onTraceEvent={(event) => {
+                setTraceEvents((current) => {
+                  const sameRun = current.length === 0 || current[0].run_id === event.run_id
+                  const base = sameRun ? current : []
+                  return [...base.filter((item) => item.seq !== event.seq), event]
+                    .sort((left, right) => left.seq - right.seq)
+                })
+              }}
+              onViewPipeline={openPipeline}
             />
             <div className="flex flex-col rounded-[28px] border border-black/10 bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
               <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Orchestrated route</p><h2 className="mt-3 font-display text-2xl tracking-[-.04em]">One controller. Three bounded agents.</h2></div><span className="rounded-full border border-white/10 bg-white/[.06] px-3 py-1 text-[10px] uppercase tracking-[.16em] text-white/55">application code</span></div>
@@ -143,7 +177,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                   </div>
                 })}
               </div>
-              <Button variant="outline" onClick={() => setActiveTab("agents")} className="mt-5 w-full border-white/15 bg-white/[.08] text-white hover:bg-white/[.14]">Open the full system map <ArrowRight size={15} /></Button>
+              <Button variant="outline" onClick={openPipeline} className="mt-5 w-full border-white/15 bg-white/[.08] text-white hover:bg-white/[.14]">Open the full system map <ArrowRight size={15} /></Button>
             </div>
           </section>}
 
@@ -163,9 +197,9 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             </div>
           </section></TabsContent>
 
-          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-4"><Skeleton className="h-52 w-full rounded-[28px] bg-black/5" /><Skeleton className="h-80 w-full rounded-[28px] bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={latestAnalysis} analysisRunState={analysisRunState} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
+          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-4"><Skeleton className="h-52 w-full rounded-[28px] bg-black/5" /><Skeleton className="h-80 w-full rounded-[28px] bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={latestAnalysis} analysisRunState={analysisRunState} traceEvents={traceEvents} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
 
-          <TabsContent value="privacy" className="mt-0"><section className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-white/55 p-5 text-sm backdrop-blur-xl"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={17} /></span><p className="pt-1.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis; the dashboard stores analysis metadata and results tied to your account.</p></section></TabsContent>
+          <TabsContent value="privacy" className="mt-0"><section className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-white/55 p-5 text-sm backdrop-blur-xl"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={17} /></span><p className="pt-1.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis. The workspace stores document metadata plus a sanitized decision and execution trace tied to your account—not the uploaded file bytes.</p></section></TabsContent>
         </div>
       </main>
     </Tabs>

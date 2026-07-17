@@ -20,6 +20,10 @@ class Agent:
     last_run: str | None = None
 
 
+class AgentUnavailableError(RuntimeError):
+    """A configured runner could not produce an agent result."""
+
+
 class AgentCoordinator:
     def __init__(self) -> None:
         self._agents: dict[str, Agent] = {}
@@ -35,11 +39,15 @@ class AgentCoordinator:
             for a in self._agents.values()
         ]
 
-    async def run(self, name: str, **kwargs: Any) -> Any:
+    async def run(self, name: str, *, raise_on_error: bool = False, **kwargs: Any) -> Any:
         agent = self._agents.get(name)
         if agent is None:
+            if raise_on_error:
+                raise AgentUnavailableError(f"Agent {name!r} is not registered")
             return None
         if not agent.enabled or agent.runner is None:
+            if raise_on_error:
+                raise AgentUnavailableError(f"Agent {name!r} is not available")
             return None
         try:
             result = await agent.runner(**kwargs)
@@ -56,6 +64,8 @@ class AgentCoordinator:
             return result
         except Exception as exc:  # fail safe; callers can continue with other evidence
             agent.last_error = str(exc)
+            if raise_on_error:
+                raise AgentUnavailableError(f"Agent {name!r} failed") from exc
             return None
 
 

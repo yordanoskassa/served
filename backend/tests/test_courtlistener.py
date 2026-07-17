@@ -41,6 +41,8 @@ def test_claimed_federal_district_filters_wrong_court() -> None:
     assert not _court_matches_claim(claimed, "nysd")
     # A generic district-court claim is not specific enough to filter safely.
     assert _court_matches_claim("United States District Court", "nysd")
+    assert not _court_matches_claim(None, "nysd", "cacd")
+    assert _court_matches_claim(None, "cacd", "cacd")
 
 
 def _docket(number: str, *, court_id: str = "cacd") -> DocketEvidence:

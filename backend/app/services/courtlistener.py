@@ -148,8 +148,12 @@ def _expected_court_id(claimed_court: str | None) -> str | None:
     return None
 
 
-def _court_matches_claim(claimed_court: str | None, candidate_court_id: str) -> bool:
-    expected = _expected_court_id(claimed_court)
+def _court_matches_claim(
+    claimed_court: str | None,
+    candidate_court_id: str,
+    expected_court_id: str | None = None,
+) -> bool:
+    expected = expected_court_id or _expected_court_id(claimed_court)
     return expected is None or candidate_court_id.strip().lower() == expected
 
 
@@ -224,6 +228,7 @@ def _edit_distance(left: str, right: str) -> int:
 def _nearest_party_match(
     parsed: DocumentParse,
     candidates: list[DocketEvidence],
+    expected_court_id: str | None = None,
 ) -> DocketEvidence | None:
     target = normalize_case_number(parsed.case_number or "")
     near_candidates: list[tuple[int, str, DocketEvidence]] = []
@@ -234,7 +239,7 @@ def _nearest_party_match(
             target
             and candidate_number
             and distance <= 2
-            and _court_matches_claim(parsed.court, candidate.court_id)
+            and _court_matches_claim(parsed.court, candidate.court_id, expected_court_id)
             and _party_overlap(parsed.parties, candidate.case_title, candidate.parties)
         ):
             near_candidates.append((distance, candidate_number, candidate))
@@ -265,14 +270,24 @@ def _evidence(item: dict) -> DocketEvidence | None:
     )
 
 
-async def lookup_docket(parsed: DocumentParse) -> tuple[list[DocketEvidence], bool, DocketEvidence | None]:
+async def lookup_docket(
+    parsed: DocumentParse,
+    *,
+    expected_court_id: str | None = None,
+) -> tuple[list[DocketEvidence], bool, DocketEvidence | None]:
     if not settings.courtlistener_api_token or not parsed.case_number:
         return [], False, None
     headers = {"Authorization": f"Token {settings.courtlistener_api_token}"}
     async with httpx.AsyncClient(timeout=12) as client:
+        exact_params = {
+            "type": "d",
+            "docket_number": courtlistener_case_number(parsed.case_number),
+        }
+        if expected_court_id:
+            exact_params["court"] = expected_court_id
         response = await client.get(
             SEARCH_URL,
-            params={"type": "d", "docket_number": courtlistener_case_number(parsed.case_number)},
+            params=exact_params,
             headers=headers,
         )
         response.raise_for_status()
@@ -280,7 +295,7 @@ async def lookup_docket(parsed: DocumentParse) -> tuple[list[DocketEvidence], bo
             evidence
             for item in response.json().get("results", [])
             if (evidence := _evidence(item))
-            and _court_matches_claim(parsed.court, evidence.court_id)
+            and _court_matches_claim(parsed.court, evidence.court_id, expected_court_id)
         ]
         target = normalize_case_number(parsed.case_number)
         exact = [e for e in exact_candidates if normalize_case_number(e.case_number_normalized) == target]
@@ -295,9 +310,12 @@ async def lookup_docket(parsed: DocumentParse) -> tuple[list[DocketEvidence], bo
         party_query = next((party for party in parsed.parties if len(_tokens(party)) >= 1), None)
         if not party_query:
             return [], False, None
+        near_params = {"type": "d", "case_name": party_query}
+        if expected_court_id:
+            near_params["court"] = expected_court_id
         near_response = await client.get(
             SEARCH_URL,
-            params={"type": "d", "case_name": party_query},
+            params=near_params,
             headers=headers,
         )
         near_response.raise_for_status()
@@ -306,6 +324,6 @@ async def lookup_docket(parsed: DocumentParse) -> tuple[list[DocketEvidence], bo
             for item in near_response.json().get("results", [])
             if (evidence := _evidence(item))
         ]
-        if near_match := _nearest_party_match(parsed, candidates):
+        if near_match := _nearest_party_match(parsed, candidates, expected_court_id):
             return [], False, near_match
     return [], False, None

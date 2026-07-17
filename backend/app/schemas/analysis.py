@@ -1,12 +1,21 @@
 from typing import Literal
 
 from pydantic import BaseModel, Field
-from app.engine.models import Confidence, VerdictState
+from app.engine.grounding_guard import GroundingAudit
+from app.engine.models import Confidence, ScamSignalReview, VerdictState
 
 Verdict = VerdictState
 
 
 class EvidenceItem(BaseModel):
+    id: str = ""
+    tool_key: Literal[
+        "reader",
+        "court_directory",
+        "courtlistener",
+        "scam_patterns",
+        "legal_passages",
+    ] = "reader"
     label: str
     detail: str
     source: str
@@ -16,6 +25,13 @@ class EvidenceItem(BaseModel):
 
 class LetterBreakdown(BaseModel):
     court: str | None = None
+    claimed_authority: str | None = None
+    court_directory_status: Literal[
+        "OFFICIAL_COURT",
+        "NAME_MISMATCH",
+        "UNKNOWN_AUTHORITY",
+    ] | None = None
+    court_route: Literal["federal", "federal_appellate", "state", "none"] = "none"
     case_number: str | None = None
     parties: list[str] = Field(default_factory=list)
     document_date: str | None = None
@@ -37,6 +53,86 @@ class DecisionTrace(BaseModel):
     parties_match: bool
 
 
+TraceKind = Literal["run", "agent", "tool", "decision", "result"]
+TraceStatus = Literal[
+    "started",
+    "complete",
+    "degraded",
+    "skipped",
+    "failed",
+    "unavailable",
+]
+
+
+class TraceEvent(BaseModel):
+    run_id: str
+    seq: int
+    at: str
+    key: Literal[
+        "intake",
+        "reader",
+        "court_directory",
+        "checker",
+        "courtlistener",
+        "scam_patterns",
+        "rules",
+        "explainer",
+        "legal_passages",
+        "result",
+    ]
+    kind: TraceKind
+    status: TraceStatus
+    label: str
+    parent_key: str | None = None
+    parallel_group: str | None = None
+    duration_ms: int | None = None
+    detail: str | None = None
+    input_summary: str | None = None
+    output_summary: str | None = None
+    evidence_count: int = 0
+    evidence_ids: list[str] = Field(default_factory=list)
+    decision: DecisionTrace | None = None
+
+
+class ModelUsage(BaseModel):
+    stage: Literal["reader", "checker", "explainer"]
+    model: str
+    response_id: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+
+
+class RunMetrics(BaseModel):
+    total_duration_ms: int
+    model_calls: int
+    tool_calls: int
+    evidence_items: int
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+
+
+class AnalysisRunTrace(BaseModel):
+    run_id: str
+    started_at: str
+    completed_at: str
+    model_alias: str
+    prompt_versions: dict[str, str]
+    corpus_version: str
+    corpus_versions: dict[str, str] = Field(default_factory=dict)
+    policy_version: str
+    verdict_authority: Literal["deterministic_policy"] = "deterministic_policy"
+    fact_extraction_basis: Literal["model_assisted_document_read"] = "model_assisted_document_read"
+    pattern_text_basis: Literal["native_pdf_text", "model_assisted_transcription"] = "model_assisted_transcription"
+    scope: Literal["analysis_execution"] = "analysis_execution"
+    human_review_required: bool = True
+    steps: list[TraceEvent] = Field(default_factory=list)
+    model_usage: list[ModelUsage] = Field(default_factory=list)
+    signal_reviews: list[ScamSignalReview] = Field(default_factory=list)
+    metrics: RunMetrics
+
+
 class AnalysisResponse(BaseModel):
     document_type: str
     summary: str
@@ -46,6 +142,8 @@ class AnalysisResponse(BaseModel):
     breakdown: LetterBreakdown = Field(default_factory=LetterBreakdown)
     checks: list[AnalysisCheck] = Field(default_factory=list)
     decision: DecisionTrace | None = None
+    guard: GroundingAudit | None = None
+    trace: AnalysisRunTrace | None = None
     limitations: list[str] = Field(default_factory=list)
     evidence: list[EvidenceItem]
     next_step: str

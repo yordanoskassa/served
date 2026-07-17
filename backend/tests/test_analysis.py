@@ -43,7 +43,7 @@ def test_analyze_returns_service_result() -> None:
     ):
         response = TestClient(app).post(
             "/api/documents/analyze",
-            files={"file": ("letter.png", b"image", "image/png")},
+            files={"file": ("letter.png", b"\x89PNG\r\n\x1a\nimage", "image/png")},
             headers={"Authorization": "Bearer test-token"},
         )
     assert response.status_code == 200
@@ -56,7 +56,7 @@ def test_analyze_requires_sign_in_before_provider_work() -> None:
     with patch("app.routes.analysis.analyze_document", new=analyzer):
         response = TestClient(app).post(
             "/api/documents/analyze",
-            files={"file": ("letter.png", b"image", "image/png")},
+            files={"file": ("letter.png", b"\x89PNG\r\n\x1a\nimage", "image/png")},
         )
     assert response.status_code == 401
     assert response.json()["detail"] == "Sign in before analyzing a document."

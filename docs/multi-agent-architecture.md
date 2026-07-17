@@ -18,17 +18,33 @@ The product promise is:
 
 This wording is intentionally narrower than “AI cannot hallucinate.” READER and CHECKER still use model-assisted extraction and comparison, so their findings must be cited, validated, and shown with limitations.
 
+## Official OpenAI showcase patterns adopted
+
+Served follows the parts of recent OpenAI customer and internal systems that are useful for a high-stakes document product:
+
+- **Current Agents SDK guidance:** define specialists with clear ownership, add guardrails around risky work, and inspect complete traces of model calls, tool calls, and handoffs. Served makes those ideas visible while keeping the verdict outside model control. ([Agents SDK guide](https://developers.openai.com/api/docs/guides/agents#choose-your-starting-point), [trace evaluation](https://developers.openai.com/api/docs/guides/agent-evals#start-with-traces-when-you-are-still-debugging-behavior))
+- **Clio and Legora:** structured legal work, efficient multi-step document analysis, and cautious legal conclusions—not extra agents for presentation. ([GPT-5.6 launch](https://openai.com/index/gpt-5-6/))
+- **OpenAI Contract Data Agent:** heterogeneous PDFs/scans become referenced structured data, then remain reviewable by experts. Served retains typed facts, evidence links, a versioned corpus, and an explicit human-review boundary. ([Contract Data Agent](https://openai.com/index/openai-contract-data-agent/))
+- **Thrive/OpenAI Tax AI:** trace each source-derived field through corrections and turn failures into focused evals. Served keeps event order, provider metadata, signal dispositions, and D1/D2/D3 golden regressions. ([Self-improving tax agents](https://openai.com/index/building-self-improving-tax-agents-with-codex/))
+- **Oscar Health:** long, consequential records need bounded workflow state rather than a single opaque answer. Served exposes READER, both CHECKER branches, the code rule, and EXPLAINER as separate run events. ([Agents SDK evolution](https://openai.com/index/the-next-evolution-of-the-agents-sdk/))
+- **Box:** permission-aware private documents can be combined with public evidence tools without confusing the two sources. Served keeps uploaded-document evidence distinct from CourtListener and the approved official-source corpus. ([New agent tools](https://openai.com/index/new-tools-for-building-agents/))
+- **OpenAI’s in-house data agent:** consolidate tools, preserve raw-result links, and continuously evaluate traces. Served uses two explicit evidence tools, stable evidence IDs, response/usage provenance, and deterministic fixture tests. ([Inside the data agent](https://openai.com/index/inside-our-in-house-data-agent/))
+
+Ada and TRUSTBANK showcase dynamic planners/routers for open-ended support and search. Served deliberately does **not** copy that pattern into the verdict path: this product has a fixed three-stage graph and a fixed decision table, so an LLM router would add variability without adding a legitimate product capability. ([Ada](https://openai.com/index/ada/), [TRUSTBANK](https://openai.com/index/trustbank/))
+
 ## Authoritative flow
 
 ```text
 Authenticated upload
   -> file safety and ownership checks                 [infrastructure, not an agent]
   -> READER: visible facts and faithful text
-  -> CHECKER:
+       `-> court-directory-seed.json exact routing    [deterministic tool]
+  -> CHECKER (concurrent fan-out):
        |-> CourtListener lookup                       [tool]
        `-> ftc-patterns.json comparison               [tool]
   -> deterministic verdict policy                     [plain code, not an agent]
   -> EXPLAINER: plain-language result
+       `-> legal-passages.json Grounding Guard        [deterministic tool]
   -> canonical source quotations inserted by server  [plain code]
   -> persist result and update the dashboard          [infrastructure]
 ```
@@ -39,7 +55,7 @@ There are no additional product agents. Intake validation, orchestration, persis
 
 | Agent | Receives | Produces | Must never do |
 |---|---|---|---|
-| `reader` | Uploaded JPEG, PNG, or PDF | Document type, claimed court, case number, parties, document date, deadline, requested actions, faithful visible text, readability limitations | Receive the pattern corpus, query CourtListener, label scam signals, assess authenticity, or emit a verdict |
+| `reader` | Uploaded JPEG, PNG, or PDF | Document type, claimed court or authority, case number, parties, document date, deadline, requested actions, faithful visible text, readability limitations | Receive the pattern corpus, query CourtListener, label scam signals, assess authenticity, or emit a verdict |
 | `checker` | Validated READER output, the approved pattern corpus, and configured CourtListener access | Typed CourtListener status and evidence; typed pattern findings with exact document excerpts; provider limitations | Decide `SCAM`, `VERIFIED`, or `CANNOT_CONFIRM`; treat no-match as fraud; invent excerpts or source records |
 | `explainer` | READER facts, CHECKER findings, immutable code verdict, and permitted source identifiers | Plain-language summary and safe next step | Change the verdict, add unsupported facts, generate a legal quotation, or claim that a docket match authenticates the paper |
 
@@ -65,13 +81,15 @@ For production evidence, each material field should include a page number and ex
 
 The uploaded document is untrusted data. Instructions printed in the document that address the model are ignored.
 
+After READER returns, ordinary code normalizes the claimed authority and compares it with `court-directory-seed.json`. Only an exact canonical-name or alias match may produce `OFFICIAL_COURT` and a federal, federal-appellate, or state route. Unknown names and the intentionally fictitious D3 authority remain annotation-only; they contribute zero scam signals. State and unknown routes never reach the automated CourtListener lookup in the current release.
+
 ## CHECKER contract
 
 CHECKER owns two investigation tools. These tools are not separate agents.
 
 ### CourtListener tool
 
-The tool searches the extracted case number and compares returned party data with the extracted parties using deterministic normalization. It returns one explicit state:
+For an eligible exact federal route, the tool searches the extracted case number using the directory's CourtListener court ID and compares returned party data with the extracted parties using deterministic normalization. Results from another court ID are rejected. It returns one explicit state:
 
 - `match`
 - `party_mismatch`
@@ -86,13 +104,13 @@ Every returned record retains its CourtListener URL, docket number, court identi
 
 ### Scam-pattern tool
 
-The approved corpus is `backend/app/corpus/ftc-patterns.json`. CHECKER may report a pattern only when it returns:
+The approved corpus is `backend/app/corpus/ftc-patterns.json`. For text PDFs, CHECKER receives independently extracted embedded PDF text; scanned PDFs and images fall back to READER's model-assisted transcription and are labeled accordingly. CHECKER may report a pattern only when it returns:
 
 - A known pattern ID
-- A short, exact, contiguous excerpt from READER's visible text
+- A short, exact, contiguous excerpt from the selected document-text basis
 - The corresponding document text span or page when available
 
-Server code validates that the pattern exists, the excerpt occurs in the captured document text, and the same pattern ID is counted only once. Invalid, unknown, duplicate, or uncited findings do not enter the verdict policy.
+Server code validates that the pattern exists, the excerpt occurs in the captured document text, the pattern's full coded predicate is supported, and the same pattern ID is counted only once. Invalid, unknown, duplicate, uncited, or context-only findings do not enter the verdict policy. Every accepted/rejected proposal keeps an audit disposition; rejected text is never passed to EXPLAINER.
 
 Pattern findings retain the corpus title, official source name, source URL, corpus version, and source quotation ID. A docket miss is never converted into a pattern match.
 
@@ -134,7 +152,9 @@ Official quotations are never copied from free-form model text. The server perfo
 3. Omit entries whose canonical quote is missing.
 4. Insert the stored text byte-for-byte with its official source name and URL.
 
-If EXPLAINER selects quote IDs, the server treats them only as references and replaces them with canonical stored text. It never trusts the model to reproduce quotation wording. When the provided law file is added separately from `ftc-patterns.json`, it follows the same ID-based contract and is versioned by content hash.
+`legal-passages.json` is now wired through a deterministic Grounding Guard. Code first selects only passages whose `use_when` requirements are supported by extracted facts, rejects unknown and duplicate IDs, and then sends canonical plain-language guidance—not writable verdict fields—to EXPLAINER. The final UI loads the source, locator, and `official_quote` directly from the corpus. Empty canonical quotes remain empty; the server never reconstructs them.
+
+Every run records separate content hashes for the court directory, FTC patterns, and legal passages. These hashes identify the exact source sets used without exposing hidden reasoning.
 
 EXPLAINER must distinguish these statements:
 
@@ -207,7 +227,7 @@ Each evidence item stores:
 
 ## Durable orchestration without extra agents
 
-The current in-request coordinator is a migration scaffold: it is process-local, sequential, and has no durable run history. Production orchestration may use separate API, worker, and scheduler processes, but the product agent catalog remains exactly READER, CHECKER, and EXPLAINER.
+The current in-request coordinator is a migration scaffold: it is process-local and has no durable retry queue, but its two CHECKER evidence branches run concurrently and emit a request-specific NDJSON trace. Production orchestration may use separate API, worker, and scheduler processes, but the product agent catalog remains exactly READER, CHECKER, and EXPLAINER.
 
 MongoDB is the workflow source of truth. Redis/Celery may deliver work; task-result storage is not authoritative. Encrypted originals and sanitized derivatives live in S3-compatible object storage.
 
@@ -235,7 +255,7 @@ Required worker mechanics include input-hash idempotency, expiring leases, late 
 
 ## API and synchronized UI
 
-The durable API target is:
+The current compatibility API keeps `POST /api/documents/analyze`, while `POST /api/documents/analyze/stream` emits monotonic NDJSON trace events followed by the same final response. The durable job API target is:
 
 - `POST /api/analyses` — authenticated multipart upload with `Idempotency-Key`; returns `202`
 - `GET /api/analyses/{id}` — owner-scoped result and pipeline projection
@@ -268,7 +288,7 @@ The UI distinguishes queued, running, completed, degraded, failed, skipped, empt
 - Exchange Google credentials once, then use a short-lived Served session in an `HttpOnly`, `Secure` cookie.
 - Prefer a same-origin Netlify `/api/*` proxy and CSRF protection for mutations.
 - Enforce owner scope on every analysis, evidence item, event, and deletion route.
-- Validate magic bytes as well as MIME; enforce byte, page, and decompressed-size limits.
+- JPEG, PNG, and PDF magic bytes and actual byte length are validated before provider work. Production hardening still needs page and decompressed-size limits.
 - Sanitize PDFs, reject embedded scripts/files, and scan uploads.
 - Encrypt object storage, MongoDB sensitive fields/backups, and all transport.
 - Redact PII from logs and traces; store no raw model reasoning.

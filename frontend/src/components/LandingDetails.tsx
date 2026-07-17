@@ -18,8 +18,33 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
       <div><p className="max-w-lg text-sm leading-7 text-zinc-500">Served separates extracted facts, external checks, warning signals, and limitations. If a source is unavailable or evidence conflicts, the result should say so plainly.</p><Button onClick={onGetStarted} className="mt-6">Start an analysis <ArrowUpRight size={15} /></Button></div>
     </section>
 
-    <section id="privacy" className="mx-auto max-w-7xl rounded-[32px] border border-black/5 bg-white/55 p-8 backdrop-blur-xl sm:p-12"><span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-[.2em]">Privacy</span><h2 className="mt-5 max-w-2xl font-display text-4xl tracking-[-.05em]">Clear handling, clear limits.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">Uploaded file bytes are processed to produce the analysis. The workspace saves analysis metadata and results to your signed-in account. Served is an evidence tool, not a substitute for a lawyer or an official court notice.</p></section>
+    <section id="privacy" className="mx-auto max-w-7xl rounded-[32px] border border-black/5 bg-white/55 p-8 backdrop-blur-xl sm:p-12"><span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-[.2em]">Privacy</span><h2 className="mt-5 max-w-2xl font-display text-4xl tracking-[-.05em]">Clear handling, clear limits.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">Uploaded file bytes are processed to produce the analysis. The workspace stores document metadata plus a sanitized code decision and execution trace—not the uploaded file bytes. Served is an evidence tool, not a substitute for a lawyer or an official court notice.</p></section>
 
-    <section id="resources" className="mx-auto grid max-w-7xl gap-10 border-b border-black/10 py-20 md:grid-cols-2"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Need human help?</p><h2 className="mt-4 font-display text-4xl tracking-[-.05em]">Use independently sourced official channels.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">Contact the court using its official website or ask a qualified attorney to review urgent or high-stakes correspondence.</p><Button variant="outline" onClick={onGetStarted} className="mt-6">Open your workspace →</Button></div><Accordion type="single" collapsible className="rounded-[28px] border border-black/5 bg-white/55 px-6 backdrop-blur-xl"><AccordionItem value="record-match"><AccordionTrigger>Does a court-record match prove authenticity?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">No. It only shows that related case information exists in the checked source. The letter and its contact details still require independent review.</AccordionContent></AccordionItem><AccordionItem value="unavailable"><AccordionTrigger>What if a source is unavailable?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">Served reports the check as unavailable instead of treating it as a failed match or a warning signal.</AccordionContent></AccordionItem><AccordionItem value="legal-advice" className="border-b-0"><AccordionTrigger>Is this legal advice?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">No. Served organizes evidence and limitations. Urgent, ambiguous, or high-stakes letters should be reviewed by a qualified professional.</AccordionContent></AccordionItem></Accordion></section>
+    <section id="resources" className="mx-auto grid max-w-7xl gap-10 border-b border-black/10 py-20 md:grid-cols-2">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Need human help?</p>
+        <h2 className="mt-4 font-display text-4xl tracking-[-.05em]">Use independently sourced official channels.</h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">Contact the court using its official website or ask a qualified attorney to review urgent or high-stakes correspondence.</p>
+        <Button variant="outline" onClick={onGetStarted} className="mt-6">Open your workspace →</Button>
+      </div>
+      <Accordion type="single" collapsible className="rounded-[28px] border border-black/5 bg-white/55 px-6 backdrop-blur-xl">
+        <AccordionItem value="record-match">
+          <AccordionTrigger>Does a court-record match prove authenticity?</AccordionTrigger>
+          <AccordionContent className="leading-6 text-zinc-500">No. It only shows that related case information exists in the checked source. The letter and its contact details still require independent review.</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="ai-limits">
+          <AccordionTrigger>Can an AI agent still make a mistake?</AccordionTrigger>
+          <AccordionContent className="leading-6 text-zinc-500">Yes. Fixed code prevents an agent from choosing or overriding the verdict, but model-assisted document facts can still be misread. Served exposes that boundary and asks you to check critical details against the original.</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="unavailable">
+          <AccordionTrigger>What if a source is unavailable?</AccordionTrigger>
+          <AccordionContent className="leading-6 text-zinc-500">Served reports the check as unavailable instead of treating it as a failed match or a warning signal.</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="legal-advice" className="border-b-0">
+          <AccordionTrigger>Is this legal advice?</AccordionTrigger>
+          <AccordionContent className="leading-6 text-zinc-500">No. Served organizes evidence and limitations. Urgent, ambiguous, or high-stakes letters should be reviewed by a qualified professional.</AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </section>
   </div>
 }

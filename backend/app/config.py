@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,9 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:3000",
     ]
     openai_api_key: str = Field(
         default="",
@@ -64,6 +67,15 @@ class Settings(BaseSettings):
             "SERVED_COURTLISTENER_API_TOKEN", "COURTLISTENER_API_TOKEN"
         ),
     )
+
+    @field_validator("cors_origins")
+    @classmethod
+    def include_loopback_dev_origins(cls, origins: list[str]) -> list[str]:
+        expanded = list(origins)
+        for origin in origins:
+            if origin.startswith("http://localhost:"):
+                expanded.append(origin.replace("http://localhost:", "http://127.0.0.1:", 1))
+        return list(dict.fromkeys(expanded))
 
     # Reuse the local hack-week credentials, while allowing Served-specific
     # values to override them in backend/.env or the process environment.

@@ -21,7 +21,7 @@ from app.engine.models import (
 )
 from app.engine.verdict import decide_verdict
 from app.services.agent_system import agent_status
-from app.services.document_analyzer import _validated_signals, analyze_document
+from app.services.document_analyzer import _validate_signals, _validated_signals, analyze_document
 
 
 @pytest.mark.parametrize(
@@ -98,6 +98,10 @@ def test_analysis_emits_the_canonical_corpus_quote_without_rewriting() -> None:
     assert result.decision is not None
     assert result.decision.rule == "fallback"
     assert result.decision.counted_signal_ids == ["2"]
+    assert result.guard is not None
+    assert result.guard.verdict is VerdictState.CANNOT_CONFIRM
+    assert result.guard.accepted_pattern_ids == ["2"]
+    assert result.guard.rejected_pattern_ids == []
 
 
 def test_case_number_hit_without_party_match_is_not_labeled_as_verified() -> None:
@@ -199,6 +203,20 @@ def test_annotation_only_pattern_seven_plus_one_countable_signal_is_not_scam() -
 
     assert result.verdict is VerdictState.CANNOT_CONFIRM
     assert result.indicators == ["2"]
+
+
+def test_annotation_only_model_proposal_is_quarantined_before_evidence() -> None:
+    visible_text = "Reference number: FILE-123"
+    draft = ScamSignalDraft(signals=[
+        ScamSignal(pattern_id="7", document_excerpt=visible_text),
+    ])
+
+    accepted, reviews = _validate_signals(draft, visible_text)
+
+    assert accepted == []
+    assert len(reviews) == 1
+    assert reviews[0].reason == "annotation_only_pattern"
+    assert reviews[0].counts_toward_verdict is False
 
 
 def test_known_pattern_id_with_semantically_wrong_exact_excerpt_is_rejected() -> None:

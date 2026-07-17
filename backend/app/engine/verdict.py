@@ -1,5 +1,4 @@
-import re
-
+from app.engine.ground_truth import match_court_authority
 from app.engine.models import (
     Confidence,
     CheckerReport,
@@ -12,18 +11,13 @@ from app.engine.models import (
 from app.engine.fraud_patterns import load_fraud_patterns
 
 
-FEDERAL_COURT = re.compile(r"(?:united states|u\.?s\.?)\s+district\s+court", re.I)
-STATE_COURT = re.compile(r"(?:superior|supreme|district|circuit|county)\s+court", re.I)
 VERDICT_POLICY_VERSION = "three-agent-v1"
 
 
 def classify_tier(parsed: DocumentParse) -> Tier:
-    court = parsed.court or ""
-    if FEDERAL_COURT.search(court):
-        return Tier.FEDERAL
-    if STATE_COURT.search(court):
-        return Tier.STATE
-    return Tier.NONE
+    # Only an exact, normalized match in the limited seed receives a route.
+    # Similar or unlisted names remain annotation-only and cannot become proof.
+    return match_court_authority(parsed.court).tier
 
 
 def counted_pattern_ids(checker: CheckerReport) -> list[str]:

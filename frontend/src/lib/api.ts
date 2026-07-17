@@ -1,5 +1,69 @@
 export type Verdict = "scam" | "verified" | "cannot_confirm" | "scam_indicators"
 
+export type TraceStatus = "started" | "complete" | "degraded" | "skipped" | "failed" | "unavailable"
+
+export type TraceEvent = {
+  run_id: string
+  seq: number
+  at: string
+  key: "intake" | "reader" | "court_directory" | "checker" | "courtlistener" | "scam_patterns" | "rules" | "explainer" | "legal_passages" | "result"
+  kind: "run" | "agent" | "tool" | "decision" | "result"
+  status: TraceStatus
+  label: string
+  parent_key: string | null
+  parallel_group: string | null
+  duration_ms: number | null
+  detail: string | null
+  input_summary: string | null
+  output_summary: string | null
+  evidence_count: number
+  evidence_ids: string[]
+  decision?: Analysis["decision"]
+}
+
+export type RunMetrics = {
+  total_duration_ms: number
+  model_calls: number
+  tool_calls: number
+  evidence_items: number
+  input_tokens: number | null
+  output_tokens: number | null
+  total_tokens: number | null
+}
+
+export type AnalysisRunTrace = {
+  run_id: string
+  started_at: string
+  completed_at: string
+  model_alias: string
+  prompt_versions: Record<string, string>
+  corpus_version: string
+  corpus_versions: Record<string, string>
+  policy_version: string
+  verdict_authority: "deterministic_policy"
+  fact_extraction_basis: "model_assisted_document_read"
+  pattern_text_basis: "native_pdf_text" | "model_assisted_transcription"
+  scope: "analysis_execution"
+  human_review_required: boolean
+  steps: TraceEvent[]
+  model_usage: {
+    stage: "reader" | "checker" | "explainer"
+    model: string
+    response_id: string | null
+    input_tokens: number | null
+    output_tokens: number | null
+    total_tokens: number | null
+  }[]
+  signal_reviews: {
+    pattern_id: string
+    document_excerpt: string
+    accepted: boolean
+    counts_toward_verdict: boolean
+    reason: "accepted" | "unknown_pattern" | "duplicate_pattern" | "missing_excerpt" | "excerpt_not_found" | "excerpt_does_not_support_pattern" | "annotation_only_pattern"
+  }[]
+  metrics: RunMetrics
+}
+
 export interface Analysis {
   document_type: string
   summary: string
@@ -8,6 +72,9 @@ export interface Analysis {
   deadline: string | null
   breakdown: {
     court: string | null
+    claimed_authority: string | null
+    court_directory_status: "OFFICIAL_COURT" | "NAME_MISMATCH" | "UNKNOWN_AUTHORITY" | null
+    court_route: "federal" | "federal_appellate" | "state" | "none"
     case_number: string | null
     parties: string[]
     document_date: string | null
@@ -22,8 +89,23 @@ export interface Analysis {
     case_found: boolean
     parties_match: boolean
   } | null
+  guard?: {
+    accepted: boolean
+    verdict: "scam" | "verified" | "cannot_confirm"
+    accepted_pattern_ids: string[]
+    rejected_pattern_ids: string[]
+    accepted_passage_ids: string[]
+    quarantined_claims: {
+      reason: string
+      value: string
+      claim_type: string
+    }[]
+    human_review_required: boolean
+    corpus_versions: Record<string, string>
+  } | null
+  trace?: AnalysisRunTrace | null
   limitations: string[]
-  evidence: { label: string; detail: string; source: string; quote: string | null; source_url: string | null }[]
+  evidence: { id: string; tool_key: "reader" | "court_directory" | "courtlistener" | "scam_patterns" | "legal_passages"; label: string; detail: string; source: string; quote: string | null; source_url: string | null }[]
   next_step: string
 }
 
@@ -48,7 +130,9 @@ export type UserProfile = {
   picture: string | null
 }
 
-const API_URL = "https://anton-served.hrvnvm.easypanel.host/api"
+const API_URL = (
+  import.meta.env.VITE_API_URL || "https://anton-served.hrvnvm.easypanel.host/api"
+).replace(/\/$/, "")
 
 async function responseError(res: Response, fallback: string): Promise<Error> {
   const text = await res.text()
@@ -93,6 +177,59 @@ export async function analyzeDocument(file: File, credential: string): Promise<A
     throw new Error(payload?.detail ?? "We couldn’t analyze that photo. Please try again.")
   }
   return response.json()
+}
+
+export async function analyzeDocumentStream(
+  file: File,
+  credential: string,
+  onTrace?: (event: TraceEvent) => void,
+  signal?: AbortSignal,
+): Promise<Analysis> {
+  const body = new FormData()
+  body.append("file", file)
+  const response = await fetch(`${API_URL}/documents/analyze/stream`, {
+    method: "POST",
+    body,
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "We couldn’t analyze that photo. Please try again.")
+  if (!response.body) throw new Error("The analysis stream was not available.")
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let result: Analysis | undefined
+
+  function processLine(line: string) {
+    if (!line.trim()) return
+    const message = JSON.parse(line) as
+      | { type: "trace"; event: TraceEvent }
+      | { type: "result"; analysis: Analysis }
+      | { type: "error"; detail: string }
+    if (message.type === "trace") onTrace?.(message.event)
+    if (message.type === "result") result = message.analysis
+    if (message.type === "error") throw new Error(message.detail || "Analysis failed.")
+  }
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done })
+      const lines = buffer.split("\n")
+      buffer = lines.pop() ?? ""
+      for (const line of lines) processLine(line)
+      if (done) break
+    }
+    if (buffer.trim()) processLine(buffer)
+  } catch (error) {
+    await reader.cancel().catch(() => undefined)
+    throw error
+  } finally {
+    reader.releaseLock()
+  }
+  if (!result) throw new Error("The analysis ended before returning a result.")
+  return result
 }
 
 export async function fetchDashboardSummary(credential: string): Promise<DashboardSummary> {

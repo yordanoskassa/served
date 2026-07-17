@@ -57,9 +57,9 @@ Agents cannot promote free-form model text into accepted evidence. The repositor
 
 | Source of truth | Defines | Contract consumer | Current status |
 |---|---|---|---|
-| [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) | Recognized court identities, official domains, routing metadata, and the rule that absence is never fraud evidence | CHECKER routing and deterministic validation | Corpus present; runtime directory validation is a release gate |
+| [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) | Recognized court identities, official domains, routing metadata, and the rule that absence is never fraud evidence | CHECKER routing and deterministic validation | Enforced through exact normalized seed matching |
 | [`ftc-patterns.json`](backend/app/corpus/ftc-patterns.json) | Which affirmative warning signs may be reported, which ones count, and the official source behind each | CHECKER | Loaded and validated by the runtime |
-| [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | Corpus present; legal-passage selection and insertion are a release gate |
+| [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | IDs, sources, and verbatim quotes are guarded at runtime |
 | [`multi-agent-architecture.md`](docs/multi-agent-architecture.md) | Agent responsibilities, schemas, failure behavior, and the immutable verdict boundary | Engineering contract | Checked in |
 
 Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from.
@@ -76,17 +76,17 @@ The [Grounding Guard specification](backend/app/engine/grounding-guard/README.md
 - quarantine mismatched sources or reconstructed quotations; and
 - fall back to `CANNOT_CONFIRM` or human review when evidence is incomplete.
 
-The current runtime already validates allowlisted fraud IDs, exact document excerpts, duplicates, and countability before the verdict policy. The repository also includes [12 broader guardrail test vectors](backend/app/engine/grounding-guard/guardrail-test-cases.json). Wiring all 12 into automated pytest and GitHub checks—and implementing the remaining court and legal-quote guards—is a release gate. Checked-in test data alone is not claimed as an active test suite.
+The runtime enforces that full boundary and returns a machine-readable guard audit with every analysis. The repository’s [12 guardrail release vectors](backend/app/engine/grounding-guard/guardrail-test-cases.json) run through the real verdict code in pytest and in a dedicated GitHub Actions gate on every push and pull request.
 
 ## Current prototype lookup scope
 
-The runtime is not restricted to a two-court allowlist. When READER extracts a case number and CourtListener credentials are available, CHECKER searches CourtListener/RECAP for that number.
+The runtime first requires an exact normalized match in the reviewed court seed. When that route supports automated lookup, READER has extracted a case number, and CourtListener credentials are available, CHECKER searches CourtListener/RECAP for that number.
 
-For a claimed U.S. district court that the current parser can identify, the candidate record must match the derived CourtListener court ID, the normalized case number, and the extracted parties before code may return `VERIFIED`. The parser can derive district-court IDs across the United States; it is not limited to California.
+For a seeded federal route, the candidate record must match the configured CourtListener court ID, normalized case number, and extracted parties before code may return `VERIFIED`.
 
-The checked-in [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) currently documents the four U.S. District Courts in California, the Ninth Circuit, and a Los Angeles Superior Court stub. It is a source contract, not yet a runtime allowlist. The current prototype does not provide a separate automated Los Angeles Superior Court docket integration.
+The checked-in [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) currently covers the four U.S. District Courts in California, the Ninth Circuit, and a Los Angeles Superior Court stub. The state-court stub has no automated docket integration in this release.
 
-Strict directory enforcement for ambiguous, state, appellate, or otherwise unsupported claimed authorities remains a release gate. A missing record, unavailable provider, or out-of-scope authority must never become a scam signal; without the required record-and-party match, the safe outcome is `CANNOT_CONFIRM`.
+Ambiguous, inexact, or unsupported claimed authorities remain `UNKNOWN_AUTHORITY` and receive no automated route. A missing record, unavailable provider, or out-of-scope authority never becomes a scam signal; without the required record-and-party match, the safe outcome is `CANNOT_CONFIRM`.
 
 ## Versioned legal sources
 
@@ -140,7 +140,7 @@ npm install
 npm run dev
 ```
 
-The frontend defaults to `http://localhost:8001/api`. Set `VITE_API_URL` to use another backend. Copy `.env.example` to your local environment and keep OpenAI and CourtListener credentials out of Git.
+The frontend falls back to the deployed EasyPanel API. For local backend work, set `VITE_API_URL=http://localhost:8001/api` before starting Vite. Copy `.env.example` to your local environment and keep OpenAI and CourtListener credentials out of Git.
 
 ## Repository map
 
@@ -162,7 +162,6 @@ Served provides document information, evidence links, and review logistics—not
 The attorney handoff shown in the hackathon demo illustrates a future workflow. It is not a live legal service, and no attorney is retained through the demo.
 
 **Hackathon prototype. Bounded coverage. Evidence before action.**
-
 
 ## Deploying
 

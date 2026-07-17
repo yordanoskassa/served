@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type Analysis, analyzeDocument, loadSampleDocument } from "@/lib/api"
+import { type Analysis, type TraceEvent, analyzeDocumentStream, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
 const verdictCopy = {
@@ -35,18 +35,22 @@ function decisionExplanation(analysis: Analysis): string | null {
 
 export type AnalysisRunState = "idle" | "running" | "complete" | "error"
 
-export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onViewPipeline, initialSample }: {
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onViewPipeline, initialSample }: {
   onAnalysisComplete?: (analysis: Analysis) => void
   onAnalysisStateChange?: (state: AnalysisRunState) => void
+  onTraceEvent?: (event: TraceEvent) => void
   onViewPipeline?: () => void
   initialSample?: "D1" | "D2" | "D3"
 }) {
   const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
+  const analysisController = useRef<AbortController | null>(null)
   const [file, setFile] = useState<File>()
   const [analysis, setAnalysis] = useState<Analysis>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => () => analysisController.current?.abort(), [])
 
   useEffect(() => {
     if (!initialSample) return
@@ -78,17 +82,24 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onViewPi
     setLoading(true)
     setError(undefined)
     onAnalysisStateChange?.("running")
+    analysisController.current?.abort()
+    const controller = new AbortController()
+    analysisController.current = controller
     try {
-      const result = await analyzeDocument(file, credential)
+      const result = await analyzeDocumentStream(file, credential, onTraceEvent, controller.signal)
       setAnalysis(result)
       onAnalysisComplete?.(result)
       onAnalysisStateChange?.("complete")
     }
     catch (cause) {
+      if (controller.signal.aborted) return
       setError(cause instanceof Error ? cause.message : "Analysis failed.")
       onAnalysisStateChange?.("error")
     }
-    finally { setLoading(false) }
+    finally {
+      if (analysisController.current === controller) analysisController.current = null
+      if (!controller.signal.aborted) setLoading(false)
+    }
   }
 
   async function useSample(sample: "D1" | "D2" | "D3") {
@@ -100,18 +111,23 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onViewPi
     setLoading(true)
     setError(undefined)
     onAnalysisStateChange?.("running")
+    analysisController.current?.abort()
+    const controller = new AbortController()
+    analysisController.current = controller
     try {
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
-      const result = await analyzeDocument(sampleFile, credential)
+      const result = await analyzeDocumentStream(sampleFile, credential, onTraceEvent, controller.signal)
       setAnalysis(result)
       onAnalysisComplete?.(result)
       onAnalysisStateChange?.("complete")
     } catch (cause) {
+      if (controller.signal.aborted) return
       setError(cause instanceof Error ? cause.message : "Sample analysis failed.")
       onAnalysisStateChange?.("error")
     } finally {
-      setLoading(false)
+      if (analysisController.current === controller) analysisController.current = null
+      if (!controller.signal.aborted) setLoading(false)
     }
   }
 
@@ -128,9 +144,25 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onViewPi
   if (analysis) {
     const verdict = verdictCopy[analysis.verdict]
     const decision = decisionExplanation(analysis)
-    const breakdown = analysis.breakdown ?? { court: null, case_number: null, parties: [], document_date: null, deadline: analysis.deadline, requested_actions: [] }
+    const breakdown = analysis.breakdown ?? { court: null, claimed_authority: null, court_directory_status: null, court_route: "none" as const, case_number: null, parties: [], document_date: null, deadline: analysis.deadline, requested_actions: [] }
+    const courtStatus = breakdown.court_directory_status === "OFFICIAL_COURT"
+      ? "Exact official-court match"
+      : breakdown.court_directory_status === "NAME_MISMATCH"
+        ? "Name needs review"
+        : breakdown.court_directory_status === "UNKNOWN_AUTHORITY"
+          ? "Not covered by the limited court seed"
+          : null
+    const courtRoute = breakdown.court_route === "federal_appellate"
+      ? "Federal appellate lookup"
+      : breakdown.court_route === "federal"
+        ? "Federal docket lookup"
+        : breakdown.court_route === "state"
+          ? "State court · manual verification"
+          : null
     const detailItems = [
-      { label: "Court or issuer", value: breakdown.court, icon: Building2 },
+      { label: "Court or issuer", value: breakdown.court || breakdown.claimed_authority, icon: Building2 },
+      { label: "Court directory", value: courtStatus, icon: Building2 },
+      { label: "Verification route", value: courtRoute, icon: ListChecks },
       { label: "Case or reference", value: breakdown.case_number, icon: Hash },
       { label: "Document date", value: breakdown.document_date, icon: CalendarDays },
       { label: "Deadline shown", value: breakdown.deadline, icon: CalendarDays },

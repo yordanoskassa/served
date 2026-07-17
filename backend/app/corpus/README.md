@@ -6,7 +6,7 @@ The three-state code verdict — `VERIFIED`, `CANNOT_CONFIRM`, or `SCAM` — is 
 
 | File | Agent | Purpose |
 |---|---|---|
-| `court-directory-seed.json` | CHECKER / routing contract | Define reviewed court identities, official domains, and intended routing metadata. It is not yet enforced as a runtime allowlist. |
+| `court-directory-seed.json` | CHECKER / routing contract | Define the reviewed court identities, official domains, and exact-match routes enforced by the runtime. |
 | `ftc-patterns.json` | CHECKER | Match extracted facts against 10 officially sourced impersonation-scam patterns and report the supporting evidence. |
 | `legal-passages.json` | EXPLAINER | Explain the completed result using controlled legal passages, exact quotations, and official source URLs instead of generating legal claims from memory. |
 | Grounding Guard | Application boundary | Validate agent outputs against the corpus, quarantine unsupported claims, and enforce deterministic fallback behavior before anything renders. |
@@ -30,7 +30,7 @@ Served places deterministic, source-backed checks between model extraction and t
 3. Allowlisted fraud signals. The CHECKER can report only stable IDs from the sourced fraud-pattern corpus. Unknown IDs are discarded, and annotation-only patterns 1 and 7 cannot increase the scam count.
 4. Deterministic verdict code. Application code — not an agent response — applies the same three-state precedence rules to every document.
 5. Safe refusal by default. Missing courts, docket misses, unreadable documents, incomplete evidence, and failed cross-checks return `CANNOT_CONFIRM` or human review instead of a guessed conclusion.
-6. Grounded explanation contract. `legal-passages.json` defines the permitted passages and quotations. Runtime legal-passage selection and insertion remain a release gate.
+6. Grounded explanation contract. `legal-passages.json` defines the permitted passages and quotations. The runtime validates each selected ID, source, and any verbatim quote before it can render.
 
 These controls make the final state constrained, source-backed, and reviewable even when model extraction is uncertain. They reduce hallucination risk without claiming that any AI extraction system is error-free.
 
@@ -62,7 +62,7 @@ If a reviewer asks, "How do you know the AI did not make this up?" the precise a
 
 ### Corpus coverage
 
-- Court-directory data: the four U.S. District Courts in California, the U.S. Court of Appeals for the Ninth Circuit, and a Los Angeles Superior Court stub. This describes the seed file, not an enforced runtime allowlist.
+- Court-directory data: the four U.S. District Courts in California, the U.S. Court of Appeals for the Ninth Circuit, and a Los Angeles Superior Court stub. Only exact normalized seed matches receive an automated route.
 - Fraud detection: 10 officially sourced impersonation-scam patterns.
 - Legal explanation: selected Federal Rule of Civil Procedure 45 topics and federal wage-garnishment basics.
 
@@ -75,4 +75,4 @@ If a reviewer asks, "How do you know the AI did not make this up?" the precise a
 - A legal determination that a document is valid, enforceable, or fraudulent
 - Legal advice or a replacement for a court or qualified attorney
 
-The current CourtListener parser can derive U.S. district-court IDs beyond the directory seed, but strict directory enforcement is not yet wired. Regardless of provider or corpus coverage, lack of a record is never treated as evidence of fraud.
+The runtime enforces this intentionally limited directory before CourtListener routing. Unlisted or inexact court names remain `UNKNOWN_AUTHORITY`; regardless of provider or corpus coverage, lack of a record is never treated as evidence of fraud.
