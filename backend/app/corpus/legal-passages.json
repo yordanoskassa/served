@@ -1,0 +1,224 @@
+{
+  "schema_version": "1.0.0",
+  "verified_on": "2026-07-16",
+  "jurisdiction": "United States federal law",
+  "purpose": "Grounded source corpus for the Served EXPLAINER. These passages explain extracted facts after the deterministic verdict has been calculated; they never determine the verdict.",
+  "coverage_and_boundary": {
+    "notice": "Read before extending. This seed is intentionally limited to the July demo scope.",
+    "july_demo_scope": {
+      "federal": [
+        "United States District Court for the Central District of California",
+        "United States District Court for the Eastern District of California",
+        "United States District Court for the Northern District of California",
+        "United States District Court for the Southern District of California",
+        "United States Court of Appeals for the Ninth Circuit"
+      ],
+      "fake_authority_fixture": "D3's fictional Federal Legal Processing Bureau"
+    },
+    "not_in_directory_behavior": {
+      "result": "UNKNOWN_AUTHORITY",
+      "action": "Route to human review.",
+      "scam_threshold_contribution": 0,
+      "rule": "Absence from the limited directory is not evidence of fraud, just as a RECAP docket miss is not evidence of fraud. P0-SPEC section 2 indicator 4 remains annotation-only.",
+      "only_positive_fraud_matches_count": true
+    },
+    "out_of_scope_for_july": [
+      "Federal districts outside California",
+      "State courts beyond a possible Los Angeles Superior Court stub",
+      "Tribal courts",
+      "Administrative bodies"
+    ],
+    "planned_extension_window": "August"
+  },
+  "global_guardrails": [
+    "Do not use this corpus to decide SCAM, VERIFIED, or CANNOT_CONFIRM.",
+    "Quote only the official_quote field verbatim. Never reconstruct missing statutory or rule text.",
+    "Do not tell a user that a subpoena is valid, invalid, enforceable, or unenforceable based only on these passages.",
+    "Do not calculate a deadline unless the service date and applicable rule are known.",
+    "Do not calculate a garnishment amount without current pay data, deduction data, debt type, and applicable state law.",
+    "State law, local court rules, court orders, and case-specific facts may change the result.",
+    "Use neutral language and recommend confirmation with the issuing court or a qualified attorney for high-stakes decisions."
+  ],
+  "passages": [
+    {
+      "id": "frcp45-required-contents",
+      "topic": "subpoena",
+      "title": "What a federal subpoena should identify",
+      "authority": "Federal Rule of Civil Procedure 45(a)(1)(A)",
+      "source_name": "U.S. Courts — Federal Rules of Civil Procedure, amended through December 1, 2025",
+      "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf",
+      "source_locator": "Rule 45(a)(1)(A), PDF pages 87–88",
+      "official_quote": "",
+      "plain_language": "A federal subpoena should identify the issuing court, the case title and number, the person receiving the command, what is required, and when and where compliance is requested.",
+      "use_when": [
+        "The READER extracted a federal court name, case caption, case number, recipient, command, deadline, or compliance location.",
+        "The product needs to explain which identifying fields are normally expected on a federal subpoena."
+      ],
+      "do_not_infer": "A missing field is a reason to verify the document, not proof that it is fake or legally invalid.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "frcp45-place-of-compliance",
+      "topic": "subpoena",
+      "title": "The 100-mile place-of-compliance rule",
+      "authority": "Federal Rule of Civil Procedure 45(c)",
+      "source_name": "U.S. Courts — Official Form AO 88B",
+      "source_url": "https://www.uscourts.gov/sites/default/files/ao088b.pdf",
+      "source_locator": "Page 3, Rule 45(c)(1)(A) and 45(c)(2)(A)",
+      "official_quote": "within 100 miles of where the person resides, is employed, or regularly transacts business in person",
+      "plain_language": "For many federal subpoena commands, the permitted place of compliance is tied to a 100-mile radius. The exact rule differs for testimony, document production, and premises inspection.",
+      "use_when": [
+        "The document states an in-person appearance, production, or inspection location.",
+        "The READER extracted both the recipient's location and the requested place of compliance."
+      ],
+      "do_not_infer": "Do not declare the subpoena defective without checking the command type, the recipient's relationship to the case, and the complete text of Rule 45(c).",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "frcp45-written-objection-deadline",
+      "topic": "subpoena",
+      "title": "Deadline for written objections to document production",
+      "authority": "Federal Rule of Civil Procedure 45(d)(2)(B)",
+      "source_name": "U.S. Courts — Federal Rules of Civil Procedure, amended through December 1, 2025",
+      "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf",
+      "source_locator": "Rule 45(d)(2)(B), PDF page 89",
+      "official_quote": "The objection must be served before the earlier of the time specified for compliance or 14 days after the subpoena is served.",
+      "plain_language": "A person commanded to produce materials or permit inspection may be able to serve a written objection. The federal rule uses the earlier of the compliance time or 14 days after service.",
+      "use_when": [
+        "The document commands production of materials or inspection.",
+        "A reliable service date and compliance date were extracted."
+      ],
+      "do_not_infer": "Do not present a calculated last day unless service is confirmed. Do not imply that an objection automatically cancels the subpoena.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "frcp45-quash-or-modify",
+      "topic": "subpoena",
+      "title": "When a court must quash or modify a subpoena",
+      "authority": "Federal Rule of Civil Procedure 45(d)(3)(A)",
+      "source_name": "U.S. Courts — Federal Rules of Civil Procedure, amended through December 1, 2025",
+      "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf",
+      "source_locator": "Rule 45(d)(3)(A), PDF page 89",
+      "official_quote": "",
+      "plain_language": "On a timely motion, the court where compliance is required must quash or modify a subpoena that allows too little time, exceeds Rule 45's geographic limits, requires protected material without an applicable exception, or creates undue burden.",
+      "use_when": [
+        "The CHECKER found a possible timing, geographic, privilege, confidentiality, or burden issue.",
+        "The result screen needs to explain why attorney review may be appropriate."
+      ],
+      "do_not_infer": "Only a court can rule on a motion to quash or modify. Served must not announce that the subpoena has been quashed, is invalid, or may safely be ignored.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "frcp45-contempt-risk",
+      "topic": "subpoena",
+      "title": "Ignoring a served subpoena can have consequences",
+      "authority": "Federal Rule of Civil Procedure 45(g)",
+      "source_name": "U.S. Courts — Federal Rules of Civil Procedure, amended through December 1, 2025",
+      "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf",
+      "source_locator": "Rule 45(g), PDF page 91",
+      "official_quote": "",
+      "plain_language": "A court may hold a properly served person in contempt for failing, without adequate excuse, to obey a subpoena or a related court order.",
+      "use_when": [
+        "The document appears connected to a real case and commands action.",
+        "The user is considering ignoring the document."
+      ],
+      "do_not_infer": "Do not say contempt is automatic. Do not use this passage to pressure payment or to discourage a timely objection, motion, or request for legal help.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "ccpa-disposable-earnings-definition",
+      "topic": "wage_garnishment",
+      "title": "What 'disposable earnings' means",
+      "authority": "15 U.S.C. § 1672(b)",
+      "source_name": "U.S. House Office of the Law Revision Counsel — 15 U.S.C. § 1672",
+      "source_url": "https://uscode.house.gov/view.xhtml?edition=prelim&num=0&req=granuleid%3AUSC-prelim-title15-section1672",
+      "source_locator": "15 U.S.C. § 1672(b)",
+      "official_quote": "that part of the earnings of any individual remaining after the deduction from those earnings of any amounts required by law to be withheld",
+      "plain_language": "The federal calculation starts with earnings left after deductions that the law requires. Voluntary deductions are not automatically subtracted for this federal calculation.",
+      "use_when": [
+        "A document discusses withholding money from wages.",
+        "The EXPLAINER needs to define the base used for a federal garnishment limit."
+      ],
+      "do_not_infer": "Do not calculate disposable earnings from gross pay alone or assume every payroll deduction is legally required.",
+      "human_help_trigger": false,
+      "verdict_signal": false
+    },
+    {
+      "id": "ccpa-ordinary-garnishment-limit",
+      "topic": "wage_garnishment",
+      "title": "General federal limit for ordinary wage garnishment",
+      "authority": "15 U.S.C. § 1673(a)",
+      "source_name": "U.S. House Office of the Law Revision Counsel — 15 U.S.C. § 1673",
+      "source_url": "https://uscode.house.gov/view.xhtml?edition=prelim&num=0&req=granuleid%3AUSC-prelim-title15-section1673",
+      "source_locator": "15 U.S.C. § 1673(a)(1)–(2)",
+      "official_quote": "25 per centum of his disposable earnings for that week",
+      "plain_language": "For an ordinary garnishment, federal law generally caps withholding at the lesser of 25% of weekly disposable earnings or the amount above 30 times the applicable federal minimum hourly wage.",
+      "use_when": [
+        "The document concerns an ordinary consumer-debt wage garnishment.",
+        "The debt is not identified as support, bankruptcy, or a state or federal tax debt."
+      ],
+      "do_not_infer": "This is not a universal 25% allowance. The lesser federal test, exceptions, pay period, and more protective state law must be checked.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "ccpa-garnishment-exceptions",
+      "topic": "wage_garnishment",
+      "title": "Some debts use different garnishment rules",
+      "authority": "15 U.S.C. § 1673(b)",
+      "source_name": "U.S. House Office of the Law Revision Counsel — 15 U.S.C. § 1673",
+      "source_url": "https://uscode.house.gov/view.xhtml?edition=prelim&num=0&req=granuleid%3AUSC-prelim-title15-section1673",
+      "source_locator": "15 U.S.C. § 1673(b)",
+      "official_quote": "",
+      "plain_language": "The ordinary federal limit does not apply in the same way to support orders, certain bankruptcy orders, or state and federal tax debts. Support orders have separate percentage limits.",
+      "use_when": [
+        "The READER identifies child support, alimony, bankruptcy, or tax debt.",
+        "The debt type is unclear and the interface must explain why a simple percentage cannot be provided."
+      ],
+      "do_not_infer": "Do not apply the ordinary-debt formula to an excluded category and do not select a support percentage without the facts required by the statute.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "ccpa-protection-from-discharge",
+      "topic": "wage_garnishment",
+      "title": "Federal protection from firing for one garnished debt",
+      "authority": "15 U.S.C. § 1674(a)",
+      "source_name": "U.S. House Office of the Law Revision Counsel — 15 U.S.C. § 1674",
+      "source_url": "https://uscode.house.gov/view.xhtml?edition=prelim&num=0&req=granuleid%3AUSC-prelim-title15-section1674",
+      "source_locator": "15 U.S.C. § 1674(a)",
+      "official_quote": "No employer may discharge any employee by reason of the fact that his earnings have been subjected to garnishment for any one indebtedness.",
+      "plain_language": "Federal law generally protects an employee from being fired because earnings were garnished for one debt.",
+      "use_when": [
+        "The user asks whether a single wage garnishment automatically permits termination.",
+        "A document threatens job loss solely because of one garnished debt."
+      ],
+      "do_not_infer": "Do not promise protection for multiple debts or unrelated employment actions. State law may provide additional protection.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    },
+    {
+      "id": "ccpa-more-protective-state-law",
+      "topic": "wage_garnishment",
+      "title": "A state may protect more earnings",
+      "authority": "Consumer Credit Protection Act guidance",
+      "source_name": "U.S. Department of Labor — Fact Sheet #30",
+      "source_url": "https://www.dol.gov/agencies/whd/fact-sheets/30-cppa",
+      "source_locator": "Exceptions to Limitations on Wage Garnishments",
+      "official_quote": "the law resulting in the lower amount of earnings being garnished must be observed",
+      "plain_language": "The federal rule is a ceiling, not always the final answer. If applicable state law permits less to be taken, the more protective limit controls.",
+      "use_when": [
+        "The user's state is known.",
+        "The interface explains why Served cannot calculate a final amount from federal law alone."
+      ],
+      "do_not_infer": "Do not state a state limit unless it comes from a separately verified, current state-law corpus.",
+      "human_help_trigger": true,
+      "verdict_signal": false
+    }
+  ]
+}
