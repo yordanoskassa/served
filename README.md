@@ -4,7 +4,7 @@
 
 [Try the demo](https://servedai.netlify.app/) · [Architecture](docs/multi-agent-architecture.md) · [Safety corpus](backend/app/corpus/README.md) · [UPL boundary](docs/product-safety/UPL.md)
 
-**Anyone can get one of these in their lives.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land in the mailbox of a household or small business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour legal question.
+**Anyone can get one of these.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land in the mailbox of a household or small business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour question.
 
 Served gives the recipient an evidence-backed first answer in about 30 seconds.
 
