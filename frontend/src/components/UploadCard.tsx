@@ -132,31 +132,34 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     savedAnalysisId={analysis.saved_analysis_id ?? undefined}
   />
 
-  return <Card className="overflow-hidden p-2">
-    <div className="rounded-[22px] border border-dashed border-black/15 bg-white/65 px-6 py-10 text-center sm:px-10">
-      <div className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={26} /> : file ? <FileImage size={26} /> : <Camera size={26} />}</div>
-      <h2 className="font-display text-2xl font-medium tracking-[-.04em]">{file ? "Ready to analyze" : "Upload the letter"}</h2>
-      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{file ? "Your selected file is shown below." : "Use a clear, well-lit photo with the entire page visible."}</p>
+  return <Card className="h-fit self-start overflow-hidden">
+    <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">
+      <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={21} /> : file ? <FileImage size={21} /> : <Camera size={21} />}</div>
+      <h2 className="font-display text-xl font-medium tracking-[-.035em]">{file ? "Ready to analyze" : "Upload the letter"}</h2>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-muted-foreground">{file ? "Your selected file is shown below." : "Use a clear, well-lit photo with the entire page visible."}</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
-      {file && <div aria-live="polite" className="mx-auto mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-left">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={17} /></span>
+      {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-0.5 text-xs text-zinc-400">{formatFileSize(file.size)} · {file.type === "application/pdf" ? "PDF" : "Image"}</p></div>
         <button type="button" onClick={chooseFile} disabled={loading} className="shrink-0 text-xs font-medium text-zinc-500 hover:text-black">Change</button>
       </div>}
-      {error && <Alert variant="destructive" className="mt-4 rounded-2xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-      <div className="mt-6 flex justify-center gap-2">
-        <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Three-agent analysis…" : file ? "Analyze letter" : "Choose a file"}</Button>
+      {error && <Alert variant="destructive" className="mt-3 rounded-xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      <div className="mt-4 flex justify-center gap-2">
+        <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile} disabled={loading}><Camera size={17} /> {loading ? "Three-agent analysis…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
-      <Separator className="mt-6" /><div className="pt-5">
+    </div>
+    <div className="px-5 py-4 sm:px-6">
+      <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Run a real sample analysis</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D1")}>Analyze D1</Button>
-          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D2")}>Analyze D2</Button>
-          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D3")}>Analyze D3</Button>
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
+          <Button aria-label="Analyze sample letter D1" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D1")}><span className="sm:hidden">D1</span><span className="hidden sm:inline">Analyze D1</span></Button>
+          <Button aria-label="Analyze sample letter D2" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D2")}><span className="sm:hidden">D2</span><span className="hidden sm:inline">Analyze D2</span></Button>
+          <Button aria-label="Analyze sample letter D3" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D3")}><span className="sm:hidden">D3</span><span className="hidden sm:inline">Analyze D3</span></Button>
         </div>
         <p className="mt-2 text-[11px] text-zinc-400">Each sample uses the same live analysis path as an uploaded letter.</p>
       </div>
-      <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck size={15} /> The analysis is saved; uploaded file bytes are not</div>
+      <Separator className="my-3" />
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><ShieldCheck size={14} /> The analysis is saved; uploaded file bytes are not</div>
     </div>
   </Card>
 }

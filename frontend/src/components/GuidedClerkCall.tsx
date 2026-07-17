@@ -95,16 +95,16 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
 
   if (contact.status !== "reviewed_route" || !canDial) {
     const unavailable = contact.status === "not_available"
-    return <section className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50/70 p-5 sm:p-6" aria-labelledby="clerk-contact-title">
+    return <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4" aria-labelledby="clerk-contact-title">
       <div className="flex items-start gap-3">
         <FileWarning className="mt-0.5 shrink-0 text-amber-700" size={20} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <Badge variant="warning">{unavailable ? "NO REVIEWED ROUTE" : "HUMAN CHECK NEEDED"}</Badge>
-          <h3 id="clerk-contact-title" className="mt-3 font-display text-xl font-medium tracking-[-.03em]">{unavailable ? "Guided calling is not available for this route" : "Confirm the correct court office first"}</h3>
-          <p className="mt-2 text-sm leading-6 text-amber-950/70">{contact.reason || "The document did not provide enough reviewed routing information to select a clerk’s office safely."}</p>
+          <h3 id="clerk-contact-title" className="mt-2.5 font-display text-lg font-medium tracking-[-.03em]">{unavailable ? "Guided calling is not available for this route" : "Confirm the correct court office first"}</h3>
+          <p className="mt-1.5 text-sm leading-5 text-amber-950/70">{contact.reason || "The document did not provide enough reviewed routing information to select a clerk’s office safely."}</p>
           {contact.routing_note && <p className="mt-2 text-xs leading-5 text-amber-900/65">{contact.routing_note}</p>}
-          <p className="mt-3 text-xs font-medium leading-5 text-amber-950">No phone number was guessed. Never use a phone number or email address printed on the letter.</p>
-          {contact.official_contact_page && <a className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-900/20 bg-white/70 px-4 py-2.5 text-sm font-semibold text-amber-950 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700" href={contact.official_contact_page} target="_blank" rel="noreferrer">
+          <p className="mt-2.5 text-xs font-medium leading-5 text-amber-950">No phone number was guessed. Never use a phone number or email address printed on the letter.</p>
+          {contact.official_contact_page && <a className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-900/20 bg-white/70 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700" href={contact.official_contact_page} target="_blank" rel="noreferrer">
             Open the official contact page <ExternalLink size={15} aria-hidden="true" />
           </a>}
         </div>
@@ -112,17 +112,17 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
     </section>
   }
 
-  return <section className="mt-5 rounded-[22px] border border-black/10 bg-[#f7f8f3] p-5 sm:p-6" aria-labelledby="clerk-call-title">
+  return <section className="mt-4 rounded-2xl border border-black/10 bg-[#f7f8f3] p-4" aria-labelledby="clerk-call-title">
     <div className="flex items-start gap-3">
       <ShieldCheck className="mt-0.5 shrink-0 text-emerald-700" size={21} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <Badge variant={analysis.verdict === "cannot_confirm" ? "warning" : "outline"}>{guidance.badge}</Badge>
-        <h3 id="clerk-call-title" className="mt-3 font-display text-xl font-medium tracking-[-.03em]">{guidance.title}</h3>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">{guidance.description}</p>
+        <h3 id="clerk-call-title" className="mt-2.5 font-display text-lg font-medium tracking-[-.03em]">{guidance.title}</h3>
+        <p className="mt-1.5 max-w-2xl text-sm leading-5 text-zinc-600">{guidance.description}</p>
       </div>
     </div>
 
-    <div className="mt-5 grid gap-3 rounded-2xl border border-black/10 bg-white/70 p-4 sm:grid-cols-2">
+    <div className="mt-4 grid gap-3 rounded-xl border border-black/10 bg-white/70 p-3 sm:grid-cols-2">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Reviewed official route</p>
         <p className="mt-2 text-sm font-semibold text-zinc-900">{contact.office_name || contact.court_name}</p>
@@ -138,14 +138,14 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
     </div>
     {contact.routing_note && <p className="mt-2 text-xs leading-5 text-zinc-500">{contact.routing_note}</p>}
 
-    <div className="mt-3 flex gap-2 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm leading-6 text-red-950">
+    <div className="mt-3 flex gap-2 rounded-xl border border-red-200 bg-red-50/80 p-3 text-sm leading-5 text-red-950">
       <FileWarning className="mt-0.5 shrink-0" size={17} aria-hidden="true" />
       <p><strong>Use only this independently sourced route.</strong> Never call or email contact details printed on the uploaded letter.</p>
     </div>
 
-    <Accordion type="single" collapsible defaultValue={analysis.verdict === "cannot_confirm" ? "guide" : undefined} className="mt-3">
-      <AccordionItem value="guide" className="rounded-2xl border border-black/10 bg-white/70 px-4">
-        <AccordionTrigger className="gap-4 py-4 hover:no-underline">
+    <Accordion type="single" collapsible className="mt-3">
+      <AccordionItem value="guide" className="rounded-xl border border-black/10 bg-white/70 px-4">
+        <AccordionTrigger className="gap-4 py-3 hover:no-underline">
           <span className="flex items-center gap-2"><Phone size={16} aria-hidden="true" /> Review the guided call</span>
         </AccordionTrigger>
         <AccordionContent className="pb-5">

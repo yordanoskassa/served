@@ -158,11 +158,13 @@ export function AnalysisPipeline({
   events,
   runState,
   compact = false,
+  rail = false,
   className,
 }: {
   events: TraceEvent[]
   runState: RunState
   compact?: boolean
+  rail?: boolean
   className?: string
 }) {
   const reduceMotion = useReducedMotion()
@@ -187,7 +189,7 @@ export function AnalysisPipeline({
           : "The analysis route is ready"
 
   return (
-    <section className={cn("rounded-[22px] border border-black/[.07] bg-white/55", compact ? "p-4" : "p-5 sm:p-6", className)} aria-label="Document analysis pipeline">
+    <section className={cn("rounded-2xl border border-black/[.07] bg-white/55", compact ? "p-3.5" : "p-4 sm:p-5", className)} aria-label="Document analysis pipeline">
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{liveMessage}</p>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -199,7 +201,7 @@ export function AnalysisPipeline({
         </Badge>
       </div>
 
-      <div className="mt-4 h-1 overflow-hidden rounded-full bg-black/[.06]" aria-hidden="true">
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-black/[.06]" aria-hidden="true">
         <motion.div
           className={cn("h-full rounded-full", runState === "error" ? "bg-orange-500" : "bg-[#812d29]")}
           initial={false}
@@ -208,9 +210,9 @@ export function AnalysisPipeline({
         />
       </div>
 
-      <div className="relative mt-4">
-        <div className="pointer-events-none absolute left-[8%] right-[8%] top-[19px] hidden h-px bg-black/[.08] xl:block" aria-hidden="true" />
-        <ol className={cn("relative grid gap-2", compact ? "grid-cols-2 sm:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-6")}>
+      <div className="relative mt-3">
+        <div className={cn("pointer-events-none absolute left-[8%] right-[8%] top-[19px] h-px bg-black/[.08]", compact ? "hidden" : "hidden xl:block")} aria-hidden="true" />
+        <ol className={cn("relative grid items-start gap-2", compact ? rail ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6")}>
         {stages.map((stage) => {
           const Icon = stage.icon
           return (

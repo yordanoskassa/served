@@ -202,7 +202,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
     const event = latest.get(eventKey)
     const status = traceStatus(event?.status)
     return (
-      <div className={`rounded-[22px] border p-4 ${dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "border-black/[.07] bg-white/65"}`}>
+      <div className={`h-fit rounded-2xl border p-3.5 ${dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "border-black/[.07] bg-white/65"}`}>
         <div className="flex items-center justify-between gap-3">
           <span className={`grid size-8 place-items-center rounded-full ${dark ? "bg-[#812d29] text-brand-green" : "bg-[#812d29]/10 text-[#812d29]"}`}>
             <Icon size={15} aria-hidden="true" />
@@ -214,16 +214,16 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
             </Badge>
           </div>
         </div>
-        <p className="mt-4 text-sm font-semibold">{title}</p>
-        <p className={`mt-1 min-h-10 text-xs leading-5 ${dark ? "text-white/50" : "text-zinc-500"}`}>
+        <p className="mt-3 text-sm font-semibold">{title}</p>
+        <p className={`mt-1 text-xs leading-5 ${dark ? "text-white/70" : "text-zinc-500"}`}>
           {event?.output_summary || event?.detail || (event?.status === "started" ? "This step is running." : event ? "No additional detail was reported." : terminal ? "No backend event was returned for this step." : "Waiting for the backend event.")}
         </p>
-        <div className={`mt-3 flex items-center justify-between text-[10px] ${dark ? "text-white/35" : "text-zinc-400"}`}>
+        <div className={`mt-3 flex items-center justify-between text-[10px] ${dark ? "text-white/55" : "text-zinc-400"}`}>
           <span>{event?.kind ? displayStatus(event.kind) : "Not started"}</span>
           <span>{formatDuration(event?.duration_ms)}</span>
         </div>
         {event?.decision && (
-          <div className="mt-3 rounded-xl border border-white/10 bg-white/[.06] p-3 text-[11px] leading-5 text-white/60">
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/[.06] p-3 text-[11px] leading-5 text-white/70">
             <p className="font-medium text-white">{ruleLabel(event.decision.rule)}</p>
             <p>{event.decision.counted_signal_ids.length} countable signal(s) · case {event.decision.case_found ? "found" : "not found"} · parties {event.decision.parties_match ? "matched" : "not matched"}</p>
           </div>
@@ -273,7 +273,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
         {analysis?.trace?.run_id && <Badge variant="secondary">Run {analysis.trace.run_id.slice(0, 8)}</Badge>}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid items-start gap-3 md:grid-cols-3">
         <RunNode eventKey="intake" title="Authenticated document intake" icon={FileInput} />
         <RunNode eventKey="reader" title="READER · visible facts" icon={FileCheck2} />
         <RunNode eventKey="court_directory" title="Court directory · exact route" icon={Gavel} />
@@ -287,7 +287,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
       </div>
 
       <Card className="overflow-hidden border-[#812d29]/20 bg-white/60">
-        <div className="flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 p-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Agent two</p>
             <h3 className="mt-2 font-display text-xl tracking-[-.035em]">CHECKER · two independent evidence paths</h3>
@@ -298,14 +298,14 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
           })()}
         </div>
         <Separator className="bg-black/[.06]" />
-        <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">
+        <div className="grid items-start gap-3 p-4 sm:grid-cols-2">
           <div className={`rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
             <div className="flex items-center justify-between gap-2">
               <Gavel size={17} className="text-[#812d29]" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${courtStatus.dotClass}`} aria-hidden="true" /><Badge variant={courtStatus.badgeVariant}>{displayStatus(courtStatus.label)}</Badge></div>
             </div>
             <h4 className="mt-3 text-sm font-semibold">CourtListener</h4>
-            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">{courtEvent?.output_summary || courtEvent?.detail || missingBranchCopy("Waiting for READER facts.")}</p>
+            <p className="mt-1 text-xs leading-5 text-zinc-500">{courtEvent?.output_summary || courtEvent?.detail || missingBranchCopy("Waiting for READER facts.")}</p>
             <p className="mt-3 text-[10px] text-zinc-400">{formatDuration(courtEvent?.duration_ms)}</p>
             {courtEvent && courtEvent.status !== "started" && (
               <Accordion type="single" collapsible className="mt-2">
@@ -329,7 +329,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${patternStatus.dotClass}`} aria-hidden="true" /><Badge variant={patternStatus.badgeVariant}>{displayStatus(patternStatus.label)}</Badge></div>
             </div>
             <h4 className="mt-3 text-sm font-semibold">Approved scam corpus</h4>
-            <p className="mt-1 min-h-10 text-xs leading-5 text-zinc-500">{patternEvent?.output_summary || patternEvent?.detail || missingBranchCopy("Waiting for the model-assisted READER transcription.")}</p>
+            <p className="mt-1 text-xs leading-5 text-zinc-500">{patternEvent?.output_summary || patternEvent?.detail || missingBranchCopy("Waiting for the model-assisted READER transcription.")}</p>
             <p className="mt-3 text-[10px] text-zinc-400">{formatDuration(patternEvent?.duration_ms)}</p>
             {patternEvent && patternEvent.status !== "started" && (
               <Accordion type="single" collapsible className="mt-2">
@@ -357,7 +357,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
         <div className="h-px flex-1 bg-black/[.07]" />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-4">
         <RunNode eventKey="rules" title="Fixed rules · not AI" icon={Braces} dark />
         <RunNode eventKey="legal_passages" title="Grounding Guard · legal sources" icon={ShieldCheck} />
         <RunNode eventKey="explainer" title="EXPLAINER · plain language" icon={Bot} />
@@ -371,7 +371,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
               <span><span className="block text-left text-sm font-semibold">Inspect the stage outputs</span><span className="mt-1 block text-left text-[11px] font-normal text-zinc-400">Facts, decision inputs, and grounded explanation returned by this run</span></span>
             </AccordionTrigger>
             <AccordionContent>
-              <div className="grid gap-3 lg:grid-cols-3">
+              <div className="grid items-start gap-3 lg:grid-cols-3">
                 <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">READER output</p>
                   <h4 className="mt-2 text-sm font-semibold">Extracted facts</h4>
@@ -436,18 +436,20 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
 
   return (
     <TooltipProvider delayDuration={180}>
-      <section aria-labelledby="orchestration-title" className="flex flex-col gap-6">
-        <Card className="p-6 sm:p-8">
-          <Badge variant="secondary">3 agents · 1 code orchestrator</Badge>
-          <h1 id="orchestration-title" className="mt-4 font-display text-3xl font-medium tracking-[-.05em] sm:text-4xl">Analysis pipeline</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-500">Follow the real backend events, inspect the evidence each stage returned, and see the fixed-code decision boundary. The agents report facts; they cannot choose the verdict.</p>
-        </Card>
+      <section aria-labelledby="orchestration-title" className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <Badge variant="secondary">3 agents · 1 code orchestrator</Badge>
+            <h1 id="orchestration-title" className="mt-2.5 font-display text-2xl font-medium tracking-[-.045em] sm:text-3xl">Analysis pipeline</h1>
+            <p className="mt-1.5 max-w-3xl text-sm leading-5 text-zinc-500">Inspect real backend events, evidence, and the fixed-code decision boundary. The agents report facts; they cannot choose the verdict.</p>
+          </div>
+        </div>
 
         <Card className="overflow-hidden" aria-labelledby="latest-run-title">
-          <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">{sourceLabel}</p>
-              <h2 id="latest-run-title" tabIndex={-1} className="mt-2 break-words rounded font-display text-2xl font-medium tracking-[-.04em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30">{documentLabel}</h2>
+              <h2 id="latest-run-title" tabIndex={-1} className="mt-1.5 break-words rounded font-display text-xl font-medium tracking-[-.035em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30">{documentLabel}</h2>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-400">
                 <span>{runId ? `Run ${runId.slice(0, 8)}` : "Run ID appears when processing begins"}</span>
                 {latestAnalysis?.trace?.started_at && <span>Started {new Date(latestAnalysis.trace.started_at).toLocaleString()}</span>}
@@ -457,7 +459,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
           </div>
           <Separator className="bg-black/[.06]" />
 
-          <div className="space-y-5 p-5 sm:p-6">
+          <div className="space-y-4 p-4 sm:p-5">
             <AnalysisPipeline events={events} runState={analysisRunState} compact={analysisRunState !== "idle"} />
 
             {analysisRunState === "running" && events.length === 0 && (
@@ -495,7 +497,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               <>
                 <DetailedRunTrace events={events} analysis={latestAnalysis} terminal />
                 {latestAnalysis.official_contact && (
-                  <div className="rounded-[22px] border border-black/[.07] bg-white/70 p-5">
+                  <div className="rounded-2xl border border-black/[.07] bg-white/70 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-black/[.05]"><Gavel size={16} aria-hidden="true" /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Deterministic next action · not an agent</p><h3 className="mt-1 text-sm font-semibold">Official contact route</h3></div></div>
                       <Badge variant={latestAnalysis.official_contact.status === "reviewed_route" ? "default" : latestAnalysis.official_contact.status === "manual_confirmation_required" ? "warning" : "outline"}>{displayStatus(latestAnalysis.official_contact.status)}</Badge>
@@ -509,7 +511,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
           </div>
         </Card>
 
-        <Card className="px-5 sm:px-6">
+        <Card className="px-4 sm:px-5">
           <Accordion type="single" collapsible>
             <AccordionItem value="diagnostics" className="border-black/[.07]">
               <AccordionTrigger className="hover:no-underline">
@@ -518,10 +520,10 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               <AccordionContent>
                 <div className="flex justify-end pb-3">{onRefresh && <Tooltip><TooltipTrigger asChild><Button type="button" variant="outline" className="h-9" onClick={onRefresh}><RefreshCw size={14} aria-hidden="true" /> Refresh</Button></TooltipTrigger><TooltipContent>Refresh system setup</TooltipContent></Tooltip>}</div>
                 {loadState === "error" && <Alert className="mb-4 rounded-2xl border-orange-200 bg-orange-50/70"><TriangleAlert size={16} aria-hidden="true" /><AlertTitle>Setup status could not be checked</AlertTitle><AlertDescription>The run trace remains the source of truth for document progress.</AlertDescription></Alert>}
-                <ul className="grid gap-3 md:grid-cols-3" aria-label="Agent system configuration">
+                <ul className="grid items-start gap-3 md:grid-cols-3" aria-label="Agent system configuration">
                   {expectedAgents.map(({ name, number, fallback, icon: Icon, status }) => {
                     const readiness = readinessFor(status, loadState)
-                    return <li key={name} className="rounded-[22px] border border-black/[.07] bg-white/55 p-4"><div className="flex items-center justify-between gap-3"><span className="grid size-8 place-items-center rounded-full bg-black/[.04] text-[10px] font-semibold">{number}</span><Badge variant={readiness.badgeVariant}>{readiness.label}</Badge></div><div className="mt-4 flex items-center gap-2"><Icon size={16} className="text-[#812d29]" aria-hidden="true" /><h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3></div><p className="mt-2 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p><Separator className="my-3 bg-black/[.06]" /><p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p></li>
+                    return <li key={name} className="rounded-2xl border border-black/[.07] bg-white/55 p-3.5"><div className="flex items-center justify-between gap-3"><span className="grid size-8 place-items-center rounded-full bg-black/[.04] text-[10px] font-semibold">{number}</span><Badge variant={readiness.badgeVariant}>{readiness.label}</Badge></div><div className="mt-3 flex items-center gap-2"><Icon size={16} className="text-[#812d29]" aria-hidden="true" /><h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3></div><p className="mt-1.5 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p><Separator className="my-2.5 bg-black/[.06]" /><p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p></li>
                   })}
                 </ul>
               </AccordionContent>
@@ -532,7 +534,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
                 <div className="pr-3 text-left"><p className="font-display text-xl tracking-[-.035em]">Published verdict boundary</p><p className="mt-1 text-xs font-normal text-zinc-500">Same decision graph; external branches can fail closed.</p></div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid items-start gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4"><p className="text-xs font-semibold text-orange-800">SCAM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Two or more accepted, countable scam signals.</p></div>
                   <div className="rounded-2xl border border-brand-soft bg-brand-soft/30 p-4"><p className="text-xs font-semibold">VERIFIED</p><p className="mt-2 text-xs leading-5 text-zinc-500">The case is found and the caption parties match.</p></div>
                   <div className="rounded-2xl border border-black/[.07] bg-white/60 p-4"><p className="text-xs font-semibold">CANNOT_CONFIRM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Anything else, including an unavailable evidence branch.</p></div>

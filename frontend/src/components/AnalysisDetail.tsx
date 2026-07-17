@@ -97,20 +97,20 @@ export function AnalysisDetail({
     { label: "Deadline shown", value: breakdown.deadline, icon: CalendarDays },
   ].filter((item) => item.value)
 
-  return <Card className="overflow-hidden p-2">
-    <div className="rounded-[22px] bg-white/70 p-6 sm:p-8">
-      {(documentName || createdAt) && <div className="mb-5 border-b border-black/5 pb-5">
+  return <Card className="overflow-hidden">
+    <div className="p-5 sm:p-6">
+      {(documentName || createdAt) && <div className="mb-4 border-b border-black/5 pb-4">
         {documentName && <p className="break-words text-sm font-semibold">{documentName}</p>}
         {createdAt && <p className="mt-1 text-xs text-zinc-400">{savedAt(createdAt)}</p>}
       </div>}
       <Badge variant={verdict.variant}>{verdict.label}</Badge>
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
-      <h2 className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">What this letter says</h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
+      <h2 className="mt-1.5 font-display text-xl font-medium tracking-[-.035em]">What this letter says</h2>
+      <p className="mt-2 text-sm leading-5 text-muted-foreground">{analysis.summary}</p>
 
-      {analysis.trace && <AnalysisPipeline className="mt-6" events={analysis.trace.steps} runState="complete" compact />}
+      {analysis.trace && <AnalysisPipeline className="mt-4" events={analysis.trace.steps} runState="complete" compact />}
 
-      <Tabs defaultValue="breakdown" className="mt-6">
+      <Tabs defaultValue="breakdown" className="mt-4">
         <TabsList className={`grid h-auto w-full rounded-[22px] bg-black/5 p-1 ${analysis.trace ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="breakdown">Breakdown</TabsTrigger>
           <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="evidence">Evidence</TabsTrigger>
@@ -119,9 +119,11 @@ export function AnalysisDetail({
         </TabsList>
 
         <TabsContent value="breakdown" className="mt-4 space-y-4">
-          {detailItems.length > 0 && <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Key details</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{detailItems.map(({ label, value, icon: Icon }) => <div className="rounded-2xl border border-black/5 bg-white/80 p-4" key={label}><div className="flex items-center gap-2 text-zinc-400"><Icon size={14} /><span className="text-[11px]">{label}</span></div><p className="mt-2 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
-          {breakdown.parties.length > 0 && <section className="rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><Users size={15} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-3 flex flex-wrap gap-2">{breakdown.parties.map((party) => <Badge variant="secondary" key={party}>{party}</Badge>)}</div></section>}
-          {breakdown.requested_actions.length > 0 && <section className="rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={15} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-6 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+          {detailItems.length > 0 && <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Key details</p><div className="mt-3 grid items-start gap-2 sm:grid-cols-2 xl:grid-cols-3">{detailItems.map(({ label, value, icon: Icon }) => <div className="h-fit rounded-xl border border-black/5 bg-white/80 p-3" key={label}><div className="flex items-center gap-2 text-zinc-500"><Icon size={13} /><span className="text-[11px]">{label}</span></div><p className="mt-1.5 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
+          {(breakdown.parties.length > 0 || breakdown.requested_actions.length > 0) && <div className={`grid items-start gap-3 ${breakdown.parties.length > 0 && breakdown.requested_actions.length > 0 ? "lg:grid-cols-2" : ""}`}>
+            {breakdown.parties.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-3"><div className="flex items-center gap-2"><Users size={14} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-2.5 flex flex-wrap gap-2">{breakdown.parties.map((party) => <Badge variant="secondary" key={party}>{party}</Badge>)}</div></section>}
+            {breakdown.requested_actions.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-3"><div className="flex items-center gap-2"><ListChecks size={14} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-2.5 space-y-1.5">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-5 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+          </div>}
           {!detailItems.length && !breakdown.parties.length && !breakdown.requested_actions.length && <p className="py-6 text-center text-sm text-zinc-400">No additional details were extracted.</p>}
         </TabsContent>
 
