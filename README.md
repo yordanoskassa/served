@@ -1,35 +1,169 @@
-# Served
+ Served
 
-Hack-week scaffold for a trustworthy legal-mail triage experience.
+> **That envelope says you have been served. Now you are served by us.**
 
-## Structure
+[Try the demo](https://servedai.netlify.app/) · [Architecture](docs/multi-agent-architecture.md) · [Safety corpus](backend/app/corpus/README.md) · [UPL boundary](docs/product-safety/UPL.md)
 
-- `backend/app/main.py` — FastAPI application entrypoint
-- `backend/app/routes/` — small HTTP route modules
-- `backend/app/schemas/` — request and response contracts
-- `backend/app/services/` — business logic and integrations
-- `frontend/` — Vite, React, TypeScript, Tailwind, and shadcn-style UI
+**Anyone can get one of these in their lives.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land in the mailbox of a household or small business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour legal question.
+
+Served gives the recipient an evidence-backed first answer in about 30 seconds.
+
+In our demo, a small-restaurant owner receives an official-looking federal subpoena demanding payroll records for a former employee’s wage lawsuit. **He is not being sued—but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
+
+Three narrowly scoped AI agents gather and explain the evidence. A small deterministic code policy—not an AI model—selects the final outcome.
+
+```text
+Upload -> READER -> CHECKER -> code-decided verdict -> EXPLAINER
+```
+
+## Three agents · one code-decided verdict
+
+| Agent | Job | Hard boundary |
+|---|---|---|
+| **1 · READER** | Extracts the document type, claimed court, case number, parties, dates, deadline, requested actions, and visible text | Does not investigate, label scams, or choose a verdict |
+| **2 · CHECKER** | Searches CourtListener/RECAP and compares exact document excerpts with the approved fraud-pattern corpus | Does not treat a missing record as fraud or choose a verdict |
+| **3 · EXPLAINER** | Turns the immutable code result into plain language; any legal quotation must be inserted from an allowlisted corpus entry | Cannot change the verdict or generate an official quotation |
+
+CourtListener and the corpus are CHECKER tools, not additional agents. The verdict policy and Grounding Guard are ordinary application code.
+
+## Three honest outcomes
+
+| User-facing outcome | What it means |
+|---|---|
+| **VERIFIED** | A matching public federal docket record was found and the extracted parties matched. This verifies the referenced record—not the physical paper. A forged document could copy a real case number. |
+| **CANNOT CONFIRM** | Served could not establish the required match. This does **not** mean the document is fake: the public archive may be incomplete, a number may contain a typo, the provider may be unavailable, or the document may be outside demo coverage. |
+| **SCAM INDICATORS** | At least two unique, countable warning signs were supported by exact document excerpts and matched to officially sourced corpus entries. This is a safety warning, not a legal finding that someone committed fraud. |
+
+The hardest product decision is also the simplest: **when we do not know, we say we do not know.** A directory miss or docket miss contributes zero scam signals.
+
+## LLMs gather evidence; code decides
+
+The complete verdict policy is deliberately small and reviewable:
+
+```python
+if countable_positive_fraud_signals >= 2:
+    verdict = SCAM
+elif federal_case_found and parties_match:
+    verdict = VERIFIED
+else:
+    verdict = CANNOT_CONFIRM
+```
+
+The scam rule takes precedence even if a real docket exists, because a scam letter may copy a real case. Unknown pattern IDs, duplicate IDs, unsupported excerpts, annotation-only patterns, and record misses do not count.
+
+## What counts as ground truth
+
+Agents cannot promote free-form model text into accepted evidence. The repository defines the permitted sources:
+
+| Source of truth | Defines | Contract consumer | Current status |
+|---|---|---|---|
+| [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) | Recognized court identities, official domains, routing metadata, and the rule that absence is never fraud evidence | CHECKER routing and deterministic validation | Corpus present; runtime directory validation is a release gate |
+| [`ftc-patterns.json`](backend/app/corpus/ftc-patterns.json) | Which affirmative warning signs may be reported, which ones count, and the official source behind each | CHECKER | Loaded and validated by the runtime |
+| [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | Corpus present; legal-passage selection and insertion are a release gate |
+| [`multi-agent-architecture.md`](docs/multi-agent-architecture.md) | Agent responsibilities, schemas, failure behavior, and the immutable verdict boundary | Engineering contract | Checked in |
+
+Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from.
+
+## Grounding Guard safety contract
+
+The [Grounding Guard specification](backend/app/engine/grounding-guard/README.md) defines the deterministic boundary between model output and anything shown to the user. Its acceptance criteria require the application to:
+
+- rejects unknown or unsupported fraud-pattern IDs;
+- deduplicates repeated findings and prevents annotation-only patterns from counting;
+- requires exact document excerpts for fraud findings;
+- keeps record and directory misses out of the scam threshold;
+- allows a legal quote only when it exactly matches a non-empty corpus value;
+- quarantines mismatched sources or reconstructed quotations; and
+- falls back to `CANNOT_CONFIRM` or human review when evidence is incomplete.
+
+The current runtime already validates allowlisted fraud IDs, exact document excerpts, duplicates, and countability before the verdict policy. The repository also includes [12 broader guardrail test vectors](backend/app/engine/grounding-guard/guardrail-test-cases.json). Wiring all 12 into automated pytest and GitHub checks—and implementing the remaining court and legal-quote guards—is a release gate. Checked-in test data alone is not claimed as an active test suite.
+
+## Demo coverage—not a universal court checker
+
+The hackathon's declared P0 scope is intentionally narrow:
+
+| Court route | Demo behavior |
+|---|---|
+| **U.S. District Court, Central District of California** | CourtListener/RECAP record lookup and deterministic party matching may produce `VERIFIED` |
+| **Los Angeles Superior Court** | Seeded for authority recognition and human-review routing only; the demo does not claim automated state-court docket verification or a production-ready directory integration |
+
+Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated P0 paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
+
+## Versioned legal sources
+
+The legal corpus is a dated source snapshot, not model memory:
+
+- The selected federal passages were verified on **July 16, 2026** against the Federal Rules of Civil Procedure amended through **December 1, 2025**.
+- The 2025 Civil Rules package amended Rules 16 and 26 and added Rule 16.1; it did not amend Rule 45.
+- Proposed Rule 45 changes are excluded unless they complete the rules process, take effect, and are re-verified.
+- Empty `official_quote` fields stay empty. The model may not reconstruct missing rule text.
+
+Legal passages explain an already-computed outcome. They never decide authenticity, fraud, validity, enforceability, strategy, or a user's actual legal deadline.
+
+## Demo fixtures
+
+The release fixtures make the three branches easy to inspect:
+
+| Fixture | Scenario | Expected outcome |
+|---|---|---|
+| `D1.pdf` | Referenced federal case is found and parties match | `VERIFIED` |
+| `D2.pdf` | The case number is altered, so the required match is not established | `CANNOT_CONFIRM` |
+| `D3.pdf` | Two or more countable, sourced warning signs are supported by the letter text | `SCAM` |
+
+The specimens are training fixtures, not valid legal documents. Personal, attorney, and contact details are fictionalized. Expected outcomes and golden agent outputs live in [`backend/fixtures/`](backend/fixtures/), so the demo contract does not depend on a live API response remaining unchanged.
+
+## Built with OpenAI + Codex
+
+The runtime is configured for [**GPT-5.6 through the OpenAI Responses API**](https://developers.openai.com/api/docs/models/gpt-5.6-sol). Structured outputs keep each agent inside a strict schema; image input supports document reading, while external lookup results and corpus entries remain separately validated.
+
+Codex was used as the build partner to:
+
+- turn the product contract into the three-agent architecture and deterministic safety boundary;
+- prepare and audit the sourced corpora, D1/D2/D3 fixtures, expected outcomes, and 12-case Grounding Guard contract; and
+- inspect the frontend/backend integration, reproduce failures, and keep implementation notes aligned with the repository.
+
+The visual direction and early interaction mocks were developed with Claude. The final verdict is never delegated to either model.
 
 ## Run locally
 
 Backend:
 
 ```bash
-cd served/backend
-../../.venv/bin/python -m uvicorn app.main:app --reload --port 8001
+cd backend
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
 Frontend:
 
 ```bash
-cd served/frontend
-export PATH="/opt/homebrew/opt/node/bin:$PATH"
+cd frontend
 npm install
 npm run dev
 ```
 
-The frontend defaults to `http://localhost:8001/api`. Override it with
-`VITE_API_URL` when needed.
+The frontend defaults to `http://localhost:8001/api`. Set `VITE_API_URL` to use another backend. Copy `.env.example` to your local environment and keep OpenAI and CourtListener credentials out of Git.
+
+## Repository map
+
+```text
+backend/app/corpus/                  sourced, versioned ground truth
+backend/app/engine/                  schemas, Grounding Guard, verdict policy
+backend/app/services/                agents and external integrations
+backend/fixtures/                    D1/D2/D3 and golden expected results
+backend/tests/                       deterministic backend tests
+docs/multi-agent-architecture.md     full engineering contract
+docs/product-safety/UPL.md           legal-information boundary copy
+frontend/                            React/Vite product UI
+```
+
+## What Served is not
+
+Served provides document information, evidence links, and review logistics—not legal advice. It does not determine that a document is legally valid, properly served, enforceable, or fraudulent; calculate a case-specific legal deadline; or create an attorney-client relationship.
+
+The attorney handoff shown in the hackathon demo illustrates a future workflow. It is not a live legal service, and no attorney is retained through the demo.
+
+**Hackathon prototype. Bounded coverage. Evidence before action.**
+
 
 ## Deploying
 
