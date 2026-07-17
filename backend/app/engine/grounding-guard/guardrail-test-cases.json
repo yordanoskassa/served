@@ -1,0 +1,167 @@
+{
+  "schema_version": "1.0.0",
+  "purpose": "Regression vectors for the Served Grounding Guard. These cases test deterministic filtering and fallback behavior; they do not test model quality.",
+  "cases": [
+    {
+      "id": "G01-two-countable-signals",
+      "input": {
+        "candidate_pattern_ids": ["2", "4"],
+        "affirmatively_supported_ids": ["2", "4"],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": ["2", "4"],
+        "verdict": "SCAM_INDICATORS"
+      }
+    },
+    {
+      "id": "G02-annotation-only-does-not-count",
+      "input": {
+        "candidate_pattern_ids": ["1", "7"],
+        "affirmatively_supported_ids": ["1", "7"],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": [],
+        "rejection_reasons": ["ANNOTATION_ONLY_PATTERN"],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G03-unknown-pattern-is-discarded",
+      "input": {
+        "candidate_pattern_ids": ["2", "999"],
+        "affirmatively_supported_ids": ["2", "999"],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": ["2"],
+        "rejected_pattern_ids": ["999"],
+        "rejection_reasons": ["UNKNOWN_PATTERN_ID"],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G04-duplicate-pattern-counts-once",
+      "input": {
+        "candidate_pattern_ids": ["2", "2", "2"],
+        "affirmatively_supported_ids": ["2"],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": ["2"],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G05-unsupported-model-signal-is-discarded",
+      "input": {
+        "candidate_pattern_ids": ["2", "4"],
+        "affirmatively_supported_ids": ["2"],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": ["2"],
+        "rejected_pattern_ids": ["4"],
+        "rejection_reasons": ["PATTERN_NOT_SUPPORTED_BY_DOCUMENT"],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G06-docket-miss-is-not-fraud",
+      "input": {
+        "candidate_pattern_ids": [],
+        "affirmatively_supported_ids": [],
+        "docket_found": false,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": [],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G07-verified-requires-cross-check",
+      "input": {
+        "candidate_pattern_ids": [],
+        "affirmatively_supported_ids": [],
+        "docket_found": true,
+        "cross_check_passed": true
+      },
+      "expected": {
+        "accepted_pattern_ids": [],
+        "verdict": "VERIFIED"
+      }
+    },
+    {
+      "id": "G08-docket-found-cross-check-fails",
+      "input": {
+        "candidate_pattern_ids": [],
+        "affirmatively_supported_ids": [],
+        "docket_found": true,
+        "cross_check_passed": false
+      },
+      "expected": {
+        "accepted_pattern_ids": [],
+        "rejection_reasons": ["DOCKET_CROSS_CHECK_FAILED"],
+        "verdict": "CANNOT_CONFIRM"
+      }
+    },
+    {
+      "id": "G09-exact-legal-quote-is-accepted",
+      "input": {
+        "passage_id": "frcp45-written-objection-deadline",
+        "quote": "The objection must be served before the earlier of the time specified for compliance or 14 days after the subpoena is served.",
+        "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf"
+      },
+      "expected": {
+        "passage_accepted": true,
+        "quote_accepted": true
+      }
+    },
+    {
+      "id": "G10-model-reconstructed-quote-is-quarantined",
+      "input": {
+        "passage_id": "frcp45-required-contents",
+        "quote": "A subpoena must state the court from which it issued.",
+        "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf"
+      },
+      "expected": {
+        "passage_accepted": false,
+        "quote_accepted": false,
+        "rejection_reasons": ["EMPTY_OFFICIAL_QUOTE"]
+      }
+    },
+    {
+      "id": "G11-altered-quote-is-quarantined",
+      "input": {
+        "passage_id": "frcp45-written-objection-deadline",
+        "quote": "The objection must always be served within 14 days.",
+        "source_url": "https://www.uscourts.gov/sites/default/files/document/federal-rules-of-civil-procedure.pdf"
+      },
+      "expected": {
+        "passage_accepted": false,
+        "quote_accepted": false,
+        "rejection_reasons": ["QUOTE_MISMATCH"]
+      }
+    },
+    {
+      "id": "G12-source-mismatch-is-quarantined",
+      "input": {
+        "passage_id": "frcp45-written-objection-deadline",
+        "quote": "The objection must be served before the earlier of the time specified for compliance or 14 days after the subpoena is served.",
+        "source_url": "https://example.com/invented-source"
+      },
+      "expected": {
+        "passage_accepted": false,
+        "quote_accepted": false,
+        "rejection_reasons": ["SOURCE_MISMATCH"]
+      }
+    }
+  ]
+}
