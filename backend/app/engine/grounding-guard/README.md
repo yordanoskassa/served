@@ -16,7 +16,7 @@ The current runtime already validates allowlisted fraud IDs, exact document exce
 | Court identity | The normalized court matches `court-directory-seed.json` | Return `UNKNOWN_AUTHORITY`; add zero scam signals |
 | Docket evidence | CourtListener/RECAP returns the exact normalized case number and parties match; a derived U.S. district-court ID must also match | Do not verify; return `CANNOT_CONFIRM` or human review |
 | Fraud signal | Its stable ID exists in `ftc-patterns.json` and the document contains affirmative supporting language | Discard unknown or unsupported IDs |
-| Countable fraud signal | The accepted corpus entry has `count_toward_scam_threshold: true` | Annotation-only entries add zero to the threshold |
+| Countable fraud signal | The accepted corpus entry has `counts_toward_verdict: true` | Annotation-only entries add zero to the threshold |
 | Legal passage | Its ID exists in `legal-passages.json` | Do not render the passage |
 | Verbatim legal quote | `official_quote` is non-empty and the rendered text exactly equals that field | Quarantine the quote; never reconstruct it |
 | Source attribution | Source name and URL come from the same accepted corpus entry | Replace with the corpus values or omit the claim |
@@ -112,7 +112,7 @@ def guard_patterns(candidate_ids, corpus, supporting_facts):
             rejected.append((pattern_id, "UNKNOWN_PATTERN_ID"))
         elif not affirmatively_supported(pattern, supporting_facts):
             rejected.append((pattern_id, "PATTERN_NOT_SUPPORTED_BY_DOCUMENT"))
-        elif not pattern["count_toward_scam_threshold"]:
+        elif not pattern["counts_toward_verdict"]:
             rejected.append((pattern_id, "ANNOTATION_ONLY_PATTERN"))
         else:
             accepted.append(pattern_id)
