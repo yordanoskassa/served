@@ -121,7 +121,7 @@ Codex was used as the build partner to:
 - prepare and audit the sourced corpora, D1/D2/D3 fixtures, expected outcomes, and 12-case Grounding Guard contract; and
 - inspect the frontend/backend integration, reproduce failures, and keep implementation notes aligned with the repository.
 
-The visual direction and early interaction mocks were developed with Claude. The final verdict is never delegated to either model.
+Early visual reference mocks (in references/drive/) were explored withother AI tools; all product code, architecture, corpora, and the running application were built with Codex and GPT-5.6. The final verdict is never delegated to any model.
 
 ## Run locally
 
