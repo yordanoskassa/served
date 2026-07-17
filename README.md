@@ -1,4 +1,3 @@
- Served
 
 > **That envelope says you have been served. Now you are served by us.**
 
@@ -87,7 +86,14 @@ The hackathon's declared P0 scope is intentionally narrow:
 | **U.S. District Court, Central District of California** | CourtListener/RECAP record lookup and deterministic party matching may produce `VERIFIED` |
 | **Los Angeles Superior Court** | Seeded for authority recognition and human-review routing only; the demo does not claim automated state-court docket verification or a production-ready directory integration |
 
-Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated P0 paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
+Federal docket lookups may run against any U.S. district court via
+CourtListener/RECAP — but only the Central District of California path is
+eval-tested and claimed as validated coverage. Other court identities in the
+seed are expansion metadata, not tested product coverage. A lookup miss
+anywhere returns CANNOT_CONFIRM and is never treated as a fraud signal.
+State-court documents and unrecognized authorities route to human review. A
+similar-looking court name never becomes official through fuzzy matching,
+and lack of coverage never becomes evidence of fraud.
 
 ## Versioned legal sources
 
