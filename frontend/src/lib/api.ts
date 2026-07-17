@@ -111,7 +111,26 @@ export interface Analysis {
 
 export type DashboardSummary = {
   counts: { documents: number; verified: number; review: number; scam: number }
-  recent: { id: string; name: string; verdict: Verdict; created_at: string }[]
+  recent: { id: string; name: string; verdict: Verdict | null; created_at: string | null; detail_available?: boolean }[]
+}
+
+export type SavedAnalysisListItem = {
+  id: string
+  name: string
+  verdict: Verdict | null
+  created_at: string | null
+  detail_available: boolean
+}
+
+export type SavedAnalysisPage = {
+  items: SavedAnalysisListItem[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+export type SavedAnalysisDetail = SavedAnalysisListItem & {
+  analysis: Analysis | null
 }
 
 export type AgentStatus = {
@@ -232,14 +251,42 @@ export async function analyzeDocumentStream(
   return result
 }
 
-export async function fetchDashboardSummary(credential: string): Promise<DashboardSummary> {
-  const response = await fetch(`${API_URL}/dashboard/summary`, { headers: { Authorization: `Bearer ${credential}` } })
+export async function fetchDashboardSummary(credential: string, signal?: AbortSignal): Promise<DashboardSummary> {
+  const response = await fetch(`${API_URL}/dashboard/summary`, { headers: { Authorization: `Bearer ${credential}` }, signal })
   if (!response.ok) throw await responseError(response, "Unable to load dashboard data")
   return response.json()
 }
 
-export async function fetchAgentStatus(): Promise<{ agents: AgentStatus[]; healthy: boolean }> {
-  const response = await fetch(`${API_URL}/agents/status`)
+export async function fetchSavedAnalysis(
+  id: string,
+  credential: string,
+  signal?: AbortSignal,
+): Promise<SavedAnalysisDetail> {
+  const response = await fetch(`${API_URL}/dashboard/analyses/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to load this saved analysis")
+  return response.json()
+}
+
+export async function fetchSavedAnalyses(
+  credential: string,
+  offset = 0,
+  limit = 25,
+  signal?: AbortSignal,
+): Promise<SavedAnalysisPage> {
+  const query = new URLSearchParams({ offset: String(offset), limit: String(limit) })
+  const response = await fetch(`${API_URL}/dashboard/analyses?${query}`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to load saved analyses")
+  return response.json()
+}
+
+export async function fetchAgentStatus(signal?: AbortSignal): Promise<{ agents: AgentStatus[]; healthy: boolean }> {
+  const response = await fetch(`${API_URL}/agents/status`, { signal })
   if (!response.ok) throw await responseError(response, "Unable to load agent status")
   return response.json()
 }

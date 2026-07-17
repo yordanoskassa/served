@@ -555,7 +555,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </div>
               <p className="mt-5 text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Code orchestrator</p>
               <h2 className="mt-2 font-display text-2xl tracking-[-.04em]">Controls the route, not the facts.</h2>
-              <p className="mt-3 text-xs leading-5 text-white/50">It authenticates the request, runs the fixed agent graph, applies the verdict policy, and saves a sanitized run record.</p>
+              <p className="mt-3 text-xs leading-5 text-white/50">It authenticates the request, runs the fixed agent graph, applies the verdict policy, and saves the structured analysis without the uploaded file.</p>
             </div>
             <Separator className="bg-white/10" />
             <div className="space-y-3 p-5 text-xs text-white/55">
@@ -631,7 +631,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </StepShell>
               <Connector label="complete record" />
 
-              <StepShell number="05" eyebrow="Workspace" title="Save and show the dashboard result" copy="The dashboard receives the full result while the backend keeps only sanitized run metadata, the code decision, and execution trace—not the uploaded file." icon={Save} badge="ORCHESTRATOR" index={5} reduceMotion={reduceMotion}>
+              <StepShell number="05" eyebrow="Workspace" title="Save and show the dashboard result" copy="The workspace saves the structured result—including extracted facts, evidence, the code decision, and run trace—but never the uploaded file bytes." icon={Save} badge="ORCHESTRATOR" index={5} reduceMotion={reduceMotion}>
                 <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#812d29]/15 bg-[#812d29]/[.05] p-3 text-xs text-zinc-600 sm:ml-13">
                   <FileCheck2 size={15} className="shrink-0 text-[#812d29]" aria-hidden="true" />
                   The in-session result links each displayed finding to the tool and rule that produced it.

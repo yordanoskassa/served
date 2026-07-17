@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -147,3 +148,32 @@ class AnalysisResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
     evidence: list[EvidenceItem]
     next_step: str
+
+
+class SavedAnalysisListItem(BaseModel):
+    """Projected history metadata; nullable fields belong to pre-v2 records."""
+
+    id: str
+    name: str
+    verdict: str | None = Field(
+        default=None,
+        description="Null only when a legacy record did not retain its verdict.",
+    )
+    created_at: datetime | None = Field(
+        default=None,
+        description="Null only when a legacy record did not retain its creation time.",
+    )
+    detail_available: bool
+
+
+class SavedAnalysisList(BaseModel):
+    items: list[SavedAnalysisListItem]
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class SavedAnalysisDetail(SavedAnalysisListItem):
+    """A user-owned saved run and its full result, when that result was retained."""
+
+    analysis: AnalysisResponse | None = None

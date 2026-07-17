@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, FileText, RefreshCw } from "lucide-react"
+import { Activity, ArrowRight, ChevronRight, FileText, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -11,13 +11,15 @@ import type { DashboardSummary, TraceEvent, Verdict } from "@/lib/api"
 
 type LoadState = "loading" | "ready" | "error"
 
-function verdictBadge(verdict: Verdict): { label: string; variant: "default" | "warning" | "destructive" } {
+function verdictBadge(verdict: Verdict | null): { label: string; variant: "default" | "warning" | "destructive" | "secondary" } {
   if (verdict === "verified") return { label: "VERIFIED", variant: "default" }
   if (verdict === "scam" || verdict === "scam_indicators") return { label: "SCAM", variant: "destructive" }
-  return { label: "REVIEW", variant: "warning" }
+  if (verdict === "cannot_confirm") return { label: "REVIEW", variant: "warning" }
+  return { label: "UNKNOWN", variant: "secondary" }
 }
 
-function savedAt(value: string): string {
+function savedAt(value: string | null): string {
+  if (!value) return "Date unavailable"
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return "Saved analysis"
   return date.toLocaleString([], {
@@ -35,6 +37,7 @@ export function WorkspaceActivity({
   traceEvents,
   onRefresh,
   onOpenDocuments,
+  onOpenAnalysis,
   onOpenPipeline,
 }: {
   summary: DashboardSummary | null
@@ -43,6 +46,7 @@ export function WorkspaceActivity({
   traceEvents: TraceEvent[]
   onRefresh: () => void
   onOpenDocuments: () => void
+  onOpenAnalysis: (id: string) => void
   onOpenPipeline: () => void
 }) {
   const latestEvent = traceEvents.at(-1)
@@ -86,11 +90,12 @@ export function WorkspaceActivity({
           {summaryState === "error" && <Alert className="rounded-2xl border-black/10 bg-bg-base"><AlertTitle>Activity unavailable</AlertTitle><AlertDescription>Refresh to try loading your saved analyses again.</AlertDescription></Alert>}
           {summaryState === "ready" && summary?.recent.slice(0, 4).map((item) => {
             const badge = verdictBadge(item.verdict)
-            return <div className="flex items-center gap-3 border-b border-black/5 py-3 last:border-0" key={item.id}>
+            const date = savedAt(item.created_at)
+            return <button type="button" className="flex w-full items-center gap-3 border-b border-black/5 py-3 text-left transition hover:translate-x-0.5 focus-visible:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 last:border-0" key={item.id} onClick={() => onOpenAnalysis(item.id)} aria-label={`View analysis for ${item.name}, ${badge.label}, ${date}`}>
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-black/5"><FileText size={15} /></span>
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.name}</p><p className="mt-0.5 text-[11px] text-zinc-400">{savedAt(item.created_at)}</p></div>
-              <Badge variant={badge.variant} className="px-2.5 py-1 text-[9px]">{badge.label}</Badge>
-            </div>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.name}</p><p className="mt-0.5 text-[11px] text-zinc-400">{date}</p></div>
+              <Badge variant={badge.variant} className="px-2.5 py-1 text-[9px]">{badge.label}</Badge><ChevronRight className="shrink-0 text-zinc-300" size={15} />
+            </button>
           })}
           {summaryState === "ready" && !summary?.recent.length && <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-black/10 bg-bg-base px-6 text-center"><div><span className="mx-auto grid size-10 place-items-center rounded-full bg-black/5"><FileText size={16} /></span><p className="mt-3 text-sm font-medium">No saved analyses yet</p><p className="mt-1 text-xs leading-5 text-zinc-400">Your first completed check will appear here.</p></div></div>}
         </div>

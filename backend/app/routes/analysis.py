@@ -63,6 +63,10 @@ async def _authorize_upload(file: UploadFile, authorization: str):
 
 
 async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) -> None:
+    # Persist the structured result so a user can reopen the exact evidence,
+    # extracted facts, deterministic decision, and trace shown after the run.
+    # Uploaded file bytes are deliberately never written to MongoDB.
+    analysis_payload = _saved_analysis_payload(result)
     trace = result.trace
     safe_trace = None
     if trace is not None:
@@ -97,12 +101,17 @@ async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) ->
         }
     try:
         await get_db().analyses.insert_one({
+            "schema_version": 2,
+            "detail_available": True,
             "google_subject": profile.subject,
-            "filename": file.filename,
+            "filename": _safe_filename(file.filename),
+            "content_type": file.content_type,
+            "file_size_bytes": file.size,
             "verdict": result.verdict,
             "document_type": result.document_type,
             "decision": result.decision.model_dump(mode="json") if result.decision else None,
             "run_trace": safe_trace,
+            "analysis": analysis_payload,
             "created_at": datetime.now(UTC),
         })
     except Exception as exc:
@@ -110,6 +119,23 @@ async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) ->
             status_code=503,
             detail="The analysis completed but could not be saved. Please try again.",
         ) from exc
+
+
+def _safe_filename(filename: str | None) -> str:
+    """Keep only a bounded display name, never a client-supplied path."""
+    name = (filename or "Uploaded document").replace("\\", "/").rsplit("/", 1)[-1]
+    return name[:255] or "Uploaded document"
+
+
+def _saved_analysis_payload(result: AnalysisResponse) -> dict:
+    """Create the reopenable result snapshot without provider-internal IDs."""
+    payload = result.model_dump(mode="json")
+    trace = payload.get("trace")
+    if isinstance(trace, dict):
+        for usage in trace.get("model_usage") or []:
+            if isinstance(usage, dict):
+                usage["response_id"] = None
+    return payload
 
 
 @router.get("/samples/{sample_id}", response_class=FileResponse)
