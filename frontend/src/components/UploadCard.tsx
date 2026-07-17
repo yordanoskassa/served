@@ -35,11 +35,12 @@ function decisionExplanation(analysis: Analysis): string | null {
 
 export type AnalysisRunState = "idle" | "running" | "complete" | "error"
 
-export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onViewPipeline, initialSample }: {
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onViewPipeline, onReset, initialSample }: {
   onAnalysisComplete?: (analysis: Analysis) => void
   onAnalysisStateChange?: (state: AnalysisRunState) => void
   onTraceEvent?: (event: TraceEvent) => void
   onViewPipeline?: () => void
+  onReset?: () => void
   initialSample?: "D1" | "D2" | "D3"
 }) {
   const { credential } = useAuth()
@@ -134,6 +135,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   function reset() {
     setFile(undefined); setAnalysis(undefined); setError(undefined)
     if (input.current) input.current.value = ""
+    onReset?.()
   }
 
   function chooseFile() {
@@ -220,14 +222,15 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       <div className="mt-6 flex justify-center gap-2">
         <Button onClick={file ? submit : chooseFile} disabled={loading}><Camera size={18} /> {loading ? "Three-agent analysis…" : file ? "Analyze letter" : "Choose a file"}</Button>
       </div>
-      {import.meta.env.DEV && <><Separator className="mt-6" /><div className="pt-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Try a demo document</p>
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D1")}>D1 · real case</Button>
-          <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D2")}>D2 · altered number</Button>
-          <Button className="h-8 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D3")}>D3 · scam letter</Button>
+      <Separator className="mt-6" /><div className="pt-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Run a real sample analysis</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D1")}>Analyze D1</Button>
+          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D2")}>Analyze D2</Button>
+          <Button className="h-9 px-3 text-xs" variant="outline" disabled={loading} onClick={() => useSample("D3")}>Analyze D3</Button>
         </div>
-      </div></>}
+        <p className="mt-2 text-[11px] text-zinc-400">Each sample uses the same live analysis path as an uploaded letter.</p>
+      </div>
       <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck size={15} /> File bytes are processed; result metadata is saved to your workspace</div>
     </div>
   </Card>

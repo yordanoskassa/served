@@ -1,9 +1,10 @@
-import { Activity, ArrowRight, FileText, LayoutDashboard, LogOut, Plus, ShieldCheck } from "lucide-react"
+import { Activity, FileText, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react"
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { BrandMark } from "@/components/BrandMark"
 import { UploadCard, type AnalysisRunState } from "@/components/UploadCard"
+import { WorkspaceActivity } from "@/components/WorkspaceActivity"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -37,7 +38,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 }) {
   const { user, credential, logout } = useAuth()
   const [launchIntent] = useState(initialIntent)
-  const [showUpload, setShowUpload] = useState(Boolean(launchIntent))
   const [refreshKey, setRefreshKey] = useState(0)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [summaryState, setSummaryState] = useState<LoadState>("loading")
@@ -89,10 +89,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
   const counts = summary?.counts
   const metrics = [
-    ["Documents checked", counts?.documents, "Saved analyses"],
-    ["Evidence supported", counts?.verified, "Court-record matches"],
+    ["Saved analyses", counts?.documents, "Most recent 50 records"],
+    ["Verified records", counts?.verified, "Case and parties matched"],
     ["Need review", counts?.review, "Human review suggested"],
-    ["Warning signals", counts?.scam, "Handle with care"],
+    ["Scam warnings", counts?.scam, "Two or more grounded signals"],
   ] as const
   const orderedAgents = AGENT_ORDER
     .map((name) => agents.find((agent) => agent.name === name))
@@ -138,11 +138,11 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-12">
           <TabsContent forceMount value="overview" className="mt-0 space-y-8 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Your workspace</p><h1 className="font-display text-4xl font-medium tracking-[-.055em] sm:text-5xl">Understand before you act.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">One code orchestrator routes each letter through READER, CHECKER, and EXPLAINER. Between CHECKER and EXPLAINER, fixed rules—not an AI agent—set the verdict.</p></div>
-            <Button onClick={() => setShowUpload(true)}><Plus size={17} /> Analyze a document</Button>
+            <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Your workspace</p><h1 className="font-display text-4xl font-medium tracking-[-.055em] sm:text-5xl">Understand before you act.</h1><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">Upload a photo or PDF to extract the letter’s details, check available records, and review the supporting evidence.</p></div>
+            <Button variant="outline" onClick={() => setActiveTab("documents")}><FileText size={16} /> Saved documents</Button>
           </section>
 
-          {showUpload && <section className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
+          <section className={`grid gap-5 ${latestAnalysis ? "" : "lg:grid-cols-[1.15fr_.85fr]"}`}>
             <UploadCard
               initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined}
               onAnalysisComplete={(analysis) => {
@@ -165,21 +165,22 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 })
               }}
               onViewPipeline={openPipeline}
+              onReset={() => {
+                setLatestAnalysis(null)
+                setAnalysisRunState("idle")
+                setTraceEvents([])
+              }}
             />
-            <div className="flex flex-col rounded-[28px] border border-black/10 bg-[#1a1a1a] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,.12)]">
-              <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Orchestrated route</p><h2 className="mt-3 font-display text-2xl tracking-[-.04em]">One controller. Three bounded agents.</h2></div><span className="rounded-full border border-white/10 bg-white/[.06] px-3 py-1 text-[10px] uppercase tracking-[.16em] text-white/55">application code</span></div>
-              <div className="mt-6 space-y-2">
-                {AGENT_ORDER.map((name, index) => {
-                  const agent = orderedAgents.find((item) => item.name === name)
-                  return <div key={name}>
-                    <div className="flex items-center gap-3 rounded-2xl bg-white/[.06] p-3"><span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-black">{index + 1}</span><div className="min-w-0 flex-1"><p className="text-sm font-medium">{name.toUpperCase()}</p><p className="mt-0.5 truncate text-[11px] text-white/40">{agent?.description ?? (name === "reader" ? "Extracts visible document facts." : name === "checker" ? "Checks records and warning patterns." : "Explains the code-decided result.")}</p></div><span className={`size-2 rounded-full ${agent?.enabled && !agent.last_error ? "bg-brand-green" : "bg-white/20"}`} /></div>
-                    {index === 1 && <div className="mx-auto my-2 w-fit rounded-full border border-dashed border-white/15 px-3 py-1 text-[9px] uppercase tracking-[.16em] text-white/45">fixed if / else verdict</div>}
-                  </div>
-                })}
-              </div>
-              <Button variant="outline" onClick={openPipeline} className="mt-5 w-full border-white/15 bg-white/[.08] text-white hover:bg-white/[.14]">Open the full system map <ArrowRight size={15} /></Button>
-            </div>
-          </section>}
+            {!latestAnalysis && <WorkspaceActivity
+              summary={summary}
+              summaryState={summaryState}
+              runState={analysisRunState}
+              traceEvents={traceEvents}
+              onRefresh={() => setRefreshKey((value) => value + 1)}
+              onOpenDocuments={() => setActiveTab("documents")}
+              onOpenPipeline={openPipeline}
+            />}
+          </section>
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {metrics.map(([label, value, note], index) => <article className="rounded-[24px] border border-black/5 bg-white/55 p-5 shadow-[0_12px_40px_rgba(0,0,0,.04)] backdrop-blur-xl" key={label}><div className="mb-6 flex items-center justify-between"><p className="text-xs text-zinc-500">{label}</p><span className={`size-2 rounded-full ${index === 3 ? "bg-orange-400" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="h-10 w-14 rounded-lg bg-black/5" /> : <p className="font-display text-4xl tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}<p className="mt-2 text-[11px] text-zinc-400">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></article>)}
