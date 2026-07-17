@@ -27,7 +27,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
 function DialogContent({ className, children, showCloseButton = true, ...props }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   return <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content data-slot="dialog-content" className={cn("fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[28px] border border-black/10 bg-bg-base p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95", className)} {...props}>
+    <DialogPrimitive.Content data-slot="dialog-content" className={cn("fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[28px] border border-black/10 bg-bg-base p-6 shadow-[0_12px_32px_rgba(0,0,0,.08)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95", className)} {...props}>
       {children}
       {showCloseButton && <DialogPrimitive.Close className="absolute top-4 right-4 rounded-full bg-white/70 p-2 text-zinc-500 transition hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20"><XIcon className="size-4" /><span className="sr-only">Close</span></DialogPrimitive.Close>}
     </DialogPrimitive.Content>

@@ -28,7 +28,7 @@ export function LoginPage({ destination = "your document" }: { destination?: str
   return (
     <div className="relative overflow-hidden rounded-[28px] bg-bg-base p-2">
       <div className="pointer-events-none absolute -top-32 -right-28 size-80 rounded-full bg-brand-green/15 blur-3xl" />
-      <div className="relative w-full rounded-[22px] border border-white/80 bg-white/70 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,.12)] backdrop-blur-2xl sm:p-10">
+      <div className="relative w-full rounded-[22px] border border-black/10 bg-white/75 p-8 text-center shadow-[0_12px_32px_rgba(0,0,0,.08)] backdrop-blur-2xl sm:p-10">
         <div className="mb-7 flex justify-center">
           <BrandMark className="size-12" />
         </div>

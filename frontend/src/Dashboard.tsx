@@ -363,7 +363,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {metrics.map(([label, value, note], index) => <article className="rounded-[24px] border border-black/5 bg-white/55 p-5 shadow-[0_12px_40px_rgba(0,0,0,.04)] backdrop-blur-xl" key={label}><div className="mb-6 flex items-center justify-between"><p className="text-xs text-zinc-500">{label}</p><span className={`size-2 rounded-full ${index === 3 ? "bg-orange-400" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="h-10 w-14 rounded-lg bg-black/5" /> : <p className="font-display text-4xl tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}<p className="mt-2 text-[11px] text-zinc-400">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></article>)}
+            {metrics.map(([label, value, note], index) => <article className="rounded-[24px] border border-black/10 bg-white/55 p-5 backdrop-blur-xl" key={label}><div className="mb-6 flex items-center justify-between"><p className="text-xs text-zinc-500">{label}</p><span className={`size-2 rounded-full ${index === 3 ? "bg-orange-400" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="h-10 w-14 rounded-lg bg-black/5" /> : <p className="font-display text-4xl tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}<p className="mt-2 text-[11px] text-zinc-400">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></article>)}
           </section>
 
           </TabsContent>

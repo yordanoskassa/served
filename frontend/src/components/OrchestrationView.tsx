@@ -203,7 +203,7 @@ function StepShell({
       transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : index * 0.07 }}
       className="list-none"
     >
-      <Card className={dark ? "border-[#812d29] bg-[#1a1a1a] text-white shadow-[0_18px_55px_rgba(61,20,18,.18)]" : "overflow-hidden"}>
+      <Card className={dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "overflow-hidden"}>
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
             <span className={`grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-semibold ${dark ? "bg-[#812d29] text-white" : "bg-[#812d29]/10 text-[#812d29]"}`}>
@@ -456,7 +456,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
   return (
     <TooltipProvider delayDuration={180}>
       <section aria-labelledby="orchestration-title" className="flex flex-col gap-6">
-        <Card className="relative overflow-hidden border-[#812d29]/25 bg-[#782b29] text-white shadow-[0_24px_80px_rgba(75,24,23,.2)]">
+        <Card className="relative overflow-hidden border-[#812d29]/25 bg-[#782b29] text-white">
           <div className="absolute -right-20 -top-28 size-72 rounded-full border border-white/10" aria-hidden="true" />
           <div className="absolute -right-6 -top-16 size-48 rounded-full border border-white/10" aria-hidden="true" />
           <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
