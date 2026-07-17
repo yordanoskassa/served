@@ -195,7 +195,7 @@
   <button data-v="review">6 Attorney review</button>
 </div>
 
-<div class="note"><b>For engineering.</b> Static visual spec for the 3 routes (6 states) — the design-token block at the top of this file mirrors <code>theme.ts</code> 1:1 (colors, fonts, motion durations/easings). Serif (<code>Source Serif 4</code>) for headings only; UI in <code>Inter Tight</code>; citations, IDs and timestamps in <code>JetBrains Mono</code>. One accent (evergreen); verdict states use the semantic colors as a 3px left border, never full-bleed backgrounds. No emoji in product copy. Motion: entrances fade+rise 220ms, list rows stagger 35ms, streaming state is an opacity pulse, nothing bounces. Every field maps to the engine output in P0-SPEC §2 (<b>verdict · confidence · evidence[] · parse · steps[]</b>). Where this file and P0-SPEC disagree, P0-SPEC wins.</div>
+<div class="note"><b>For engineering.</b> Static visual spec for the 3 routes (6 states) — the design-token block at the top of this file mirrors <code>theme.ts</code> 1:1 (colors, fonts, motion durations/easings). Serif (<code>Source Serif 4</code>) for headings only; UI in <code>Inter Tight</code>; citations, IDs and timestamps in <code>JetBrains Mono</code>. One accent (evergreen); verdict states use the semantic colors as a 3px left border, never full-bleed backgrounds. No emoji in product copy. Motion: entrances fade+rise 220ms, list rows stagger 35ms, streaming state is an opacity pulse, nothing bounces. Every field maps to the current engine output schema (<b>verdict · confidence · evidence[] · parse · steps[]</b>). Where this file and the current engine contract disagree, the engine contract wins.</div>
 
 <!-- ============ 1 · UPLOAD ============ -->
 <div class="route" data-r="upload">route <code>/</code> — no login, camera-first</div>
@@ -209,7 +209,7 @@
     <div class="small">JPG, PNG, or PDF · up to 4 pages</div>
   </div>
   <div class="eyebrow">Explain it in</div>
-  <!-- 📌 TODO (B): confirm demo language — Spanish / Chinese / Amharic / other? P0-SPEC v1 says en/es. -->
+  <!-- 📌 TODO (B): confirm demo language — Spanish / Chinese / Amharic / other? the current prototype supports en/es. -->
   <div class="langrow">
     <button class="langbtn on">English</button>
     <button class="langbtn">Español</button>
@@ -219,7 +219,7 @@
 </div></div>
 
 <!-- ============ 2 · PROGRESS ============ -->
-<div class="route" data-r="progress" style="display:none">route <code>/case/{token}</code> while status &lt; verdict_ready — poll a server route every 1.5 s, render new <code>events</code> rows (NOT Supabase Realtime — P0-SPEC §5)</div>
+<div class="route" data-r="progress" style="display:none">route <code>/case/{token}</code> while status &lt; verdict_ready — poll a server route every 1.5 s, render new <code>events</code> rows (NOT Supabase Realtime — current backend contract)</div>
 <div class="phone view" id="v-progress"><div class="phone-inner">
   <div class="brand"><span class="name">Served</span><span class="rule"></span></div>
   <div class="tag">Checking your document — usually 10 to 30 seconds.</div>
@@ -304,7 +304,7 @@
 
   <div style="margin-top:22px; border:2px dashed var(--danger); border-radius:10px; padding:14px 16px; font-size:13px; background:var(--paper-raised); color:var(--ink-soft);">
     <div style="color:var(--danger); font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px;">Engineering note (B) — not part of the UI, delete before shipping</div>
-    The CANNOT_CONFIRM <b>explanation must be scenario-aware</b>: the verdict stays rule-based (P0-SPEC §2), but the model (GPT-5.6 API) generates the explanation from whatever the lookup actually found. At minimum three sub-scenarios:
+    The CANNOT_CONFIRM <b>explanation must be scenario-aware</b>: the verdict stays rule-based under the current deterministic verdict policy, but the model (GPT-5.6 API) generates the explanation from whatever the lookup actually found. At minimum three sub-scenarios:
     <div style="margin-top:8px;"><span class="mono" style="color:var(--danger)">S1</span> — No docket match at all → the copy shown above.</div>
     <div style="margin-top:4px;"><span class="mono" style="color:var(--danger)">S2</span> — Exact number misses, but a <b>party-name search finds a near-match</b> (same parties, number differs by a digit or two) → say so explicitly: <i>"I couldn't find case 5:25-cv-92108, but a case with these exact parties exists under 5:25-cv-02108 — the number on your document may be a typo."</i> Show the candidate docket as evidence. Verdict stays CANNOT_CONFIRM — the candidate is a lead for the attorney, never auto-confirmed.</div>
     <div style="margin-top:4px;"><span class="mono" style="color:var(--danger)">S3</span> — The number <b>exists but belongs to a different case</b> (parties don't match) → state that plainly; strong reason for attorney review.</div>
