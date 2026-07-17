@@ -96,7 +96,7 @@
         "apps.cacd.uscourts.gov"
       ],
       "case_access": {
-        "p0_provider": "CourtListener/RECAP",
+        "prototype_provider": "CourtListener/RECAP",
         "courtlistener_court_id": "cacd",
         "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=cacd&docket_number={urlencoded_case_number}",
         "official_cm_ecf_information_url": "https://ecf.cacd.uscourts.gov/cgi-bin/CourtInfo.pl",
@@ -128,7 +128,7 @@
         ],
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "required_checks": [
           "case number found in CourtListener/RECAP",
           "court matches",
@@ -188,7 +188,7 @@
         "ecf.caed.uscourts.gov"
       ],
       "case_access": {
-        "p0_provider": "CourtListener/RECAP",
+        "prototype_provider": "CourtListener/RECAP",
         "courtlistener_court_id": "caed",
         "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=caed&docket_number={urlencoded_case_number}",
         "automated_lookup": true,
@@ -199,7 +199,7 @@
         "patterns": [],
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "required_checks": [
           "case number found in CourtListener/RECAP",
           "court matches",
@@ -251,7 +251,7 @@
         "ecf.cand.uscourts.gov"
       ],
       "case_access": {
-        "p0_provider": "CourtListener/RECAP",
+        "prototype_provider": "CourtListener/RECAP",
         "courtlistener_court_id": "cand",
         "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=cand&docket_number={urlencoded_case_number}",
         "automated_lookup": true,
@@ -262,7 +262,7 @@
         "patterns": [],
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "required_checks": [
           "case number found in CourtListener/RECAP",
           "court matches",
@@ -314,7 +314,7 @@
         "ecf.casd.uscourts.gov"
       ],
       "case_access": {
-        "p0_provider": "CourtListener/RECAP",
+        "prototype_provider": "CourtListener/RECAP",
         "courtlistener_court_id": "casd",
         "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=casd&docket_number={urlencoded_case_number}",
         "automated_lookup": true,
@@ -325,7 +325,7 @@
         "patterns": [],
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "required_checks": [
           "case number found in CourtListener/RECAP",
           "court matches",
@@ -372,7 +372,7 @@
         "ecf.ca9.uscourts.gov"
       ],
       "case_access": {
-        "p0_provider": "CourtListener/RECAP",
+        "prototype_provider": "CourtListener/RECAP",
         "courtlistener_court_id": "ca9",
         "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=ca9&docket_number={urlencoded_case_number}",
         "automated_lookup": true,
@@ -383,7 +383,7 @@
         "patterns": [],
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "required_checks": [
           "case number found in CourtListener/RECAP",
           "court matches",
@@ -429,7 +429,7 @@
         "www.lacourt.org"
       ],
       "case_access": {
-        "p0_provider": "LASC Case Summary",
+        "prototype_provider": "LASC Case Summary",
         "public_search_url": "https://www.lacourt.org/casesummary/ui/",
         "courtlistener_court_id": null,
         "automated_lookup": false,
@@ -442,7 +442,7 @@
         "reason": "The current seed does not yet have a two-person-reviewed, case-type-complete LASC format rule.",
         "mismatch_effect": "annotation_only"
       },
-      "p0_verification_rule": {
+      "prototype_verification_rule": {
         "checks": [
           "formal document requirements",
           "court exists in this directory",
