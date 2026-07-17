@@ -80,14 +80,14 @@ The current runtime already validates allowlisted fraud IDs, exact document exce
 
 ## Demo coverage—not a universal court checker
 
-The hackathon's declared P0 scope is intentionally narrow:
+The project's declared scope is intentionally narrow:
 
 | Court route | Demo behavior |
 |---|---|
 | **U.S. District Court, Central District of California** | CourtListener/RECAP record lookup and deterministic party matching may produce `VERIFIED` |
 | **Los Angeles Superior Court** | Seeded for authority recognition and human-review routing only; the demo does not claim automated state-court docket verification or a production-ready directory integration |
 
-Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated P0 paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
+Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
 
 ## Versioned legal sources
 
