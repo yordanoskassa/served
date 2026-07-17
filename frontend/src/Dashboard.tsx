@@ -69,6 +69,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const [latestAnalysis, setLatestAnalysis] = useState<Analysis | null>(null)
   const [analysisRunState, setAnalysisRunState] = useState<AnalysisRunState>("idle")
   const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([])
+  const [pipelineAnalysis, setPipelineAnalysis] = useState<Analysis | null>(null)
+  const [pipelineDocumentName, setPipelineDocumentName] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null)
   const [savedDetail, setSavedDetail] = useState<SavedAnalysisDetail | null>(null)
@@ -166,6 +168,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
     setSavedDetail(null)
     setSavedDetailError(null)
     setSavedDetailState("idle")
+    setPipelineAnalysis(null)
+    setPipelineDocumentName(null)
   }, [credential])
 
   useEffect(() => {
@@ -173,7 +177,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
     const startedAt = performance.now()
     let frame = 0
     const focusPipelineHeading = () => {
-      const heading = document.getElementById("orchestration-title")
+      const heading = document.getElementById("latest-run-title")
       if (heading instanceof HTMLElement) {
         heading.focus()
         pipelineFocusPending.current = false
@@ -203,7 +207,9 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const orderedAgents = AGENT_ORDER
     .map((name) => agents.find((agent) => agent.name === name))
     .filter((agent): agent is AgentStatus => Boolean(agent))
-  const openPipeline = () => {
+  const openPipeline = (analysis: Analysis | null = null, documentName: string | null = null) => {
+    setPipelineAnalysis(analysis)
+    setPipelineDocumentName(documentName)
     pipelineFocusPending.current = true
     setActiveTab("agents")
   }
@@ -333,6 +339,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 if (state === "running") {
                   setLatestAnalysis(null)
                   setTraceEvents([])
+                  setPipelineAnalysis(null)
+                  setPipelineDocumentName(null)
                 }
               }}
               onTraceEvent={(event) => {
@@ -343,7 +351,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                     .sort((left, right) => left.seq - right.seq)
                 })
               }}
-              onViewPipeline={openPipeline}
+              onViewPipeline={() => openPipeline()}
               onReset={() => {
                 setLatestAnalysis(null)
                 setAnalysisRunState("idle")
@@ -358,7 +366,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
               onRefresh={() => setRefreshKey((value) => value + 1)}
               onOpenDocuments={openDocuments}
               onOpenAnalysis={(id) => { void openSavedAnalysis(id) }}
-              onOpenPipeline={openPipeline}
+              onOpenPipeline={() => openPipeline()}
             />}
           </section>
 
@@ -386,12 +394,12 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             </section> : <section ref={savedDetailRegion} tabIndex={-1} aria-label="Saved analysis detail" aria-busy={savedDetailState === "loading"} className="space-y-4 outline-none">
               {savedDetailState === "loading" && <><p role="status" className="sr-only">Loading saved analysis</p><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><div className="space-y-4 rounded-[28px] border border-black/5 bg-white/55 p-7"><Skeleton className="h-5 w-28 bg-black/5" /><Skeleton className="h-9 w-1/2 bg-black/5" /><Skeleton className="h-20 w-full bg-black/5" /><Skeleton className="h-52 w-full bg-black/5" /></div></>}
               {savedDetailState === "error" && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><Alert className="rounded-[24px] border-black/10 bg-white/70"><AlertTitle>Analysis unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{savedDetailError ?? "We could not load this saved analysis."}</p>{selectedSavedId && <Button variant="outline" onClick={() => { void openSavedAnalysis(selectedSavedId) }}>Try again</Button>}</AlertDescription></Alert></>}
-              {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} />}
+              {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} onViewPipeline={() => openPipeline(savedDetail.analysis, savedDetail.name)} />}
               {savedDetailState === "ready" && savedDetail && !savedDetail.analysis && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><section className="rounded-[28px] border border-black/5 bg-white/60 p-7"><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${savedVerdictClass(savedDetail.verdict)}`}>{savedVerdictLabel(savedDetail.verdict)}</span><h2 className="mt-5 font-display text-2xl tracking-[-.04em]">{savedDetail.name}</h2><p className="mt-1 text-xs text-zinc-400">{savedDate(savedDetail.created_at)}</p><Alert className="mt-6 rounded-2xl border-black/10 bg-bg-base"><AlertTitle>Earlier analysis</AlertTitle><AlertDescription>The full breakdown was not saved for this earlier analysis. Because Served does not retain uploaded file bytes, upload the document again to create a complete saved breakdown.</AlertDescription></Alert></section></>}
             </section>}
           </TabsContent>
 
-          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-4"><Skeleton className="h-52 w-full rounded-[28px] bg-black/5" /><Skeleton className="h-80 w-full rounded-[28px] bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={latestAnalysis} analysisRunState={analysisRunState} traceEvents={traceEvents} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
+          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-4"><Skeleton className="h-52 w-full rounded-[28px] bg-black/5" /><Skeleton className="h-80 w-full rounded-[28px] bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={pipelineAnalysis ?? latestAnalysis} analysisRunState={pipelineAnalysis ? "complete" : analysisRunState} traceEvents={pipelineAnalysis?.trace?.steps ?? traceEvents} runLabel={pipelineDocumentName} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
 
           <TabsContent value="privacy" className="mt-0"><section className="flex items-start gap-4 rounded-[24px] border border-black/5 bg-white/55 p-5 text-sm backdrop-blur-xl"><span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={17} /></span><p className="pt-1.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis. Your workspace saves the structured result—including extracted facts, evidence, the code decision, and run trace—plus document metadata tied to your account. It does not retain the uploaded file bytes.</p></section></TabsContent>
         </div>

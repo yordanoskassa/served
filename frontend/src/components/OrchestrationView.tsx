@@ -9,15 +9,14 @@ import {
   FileInput,
   GitBranch,
   Gavel,
-  LockKeyhole,
   RefreshCw,
   Save,
   Search,
   ShieldCheck,
   TriangleAlert,
 } from "lucide-react"
-import { motion, useReducedMotion } from "motion/react"
 
+import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +32,7 @@ type OrchestrationViewProps = {
   latestAnalysis?: Analysis | null
   analysisRunState?: "idle" | "running" | "complete" | "error"
   traceEvents?: TraceEvent[]
+  runLabel?: string | null
   onRefresh?: () => void
 }
 
@@ -161,71 +161,6 @@ function ruleLabel(rule: NonNullable<Analysis["decision"]>["rule"]): string {
   if (rule === "two_or_more_scam_signals") return "Two or more countable scam signals"
   if (rule === "case_and_parties_match") return "Case found and parties matched"
   return "Fallback: evidence could not confirm either outcome"
-}
-
-function Connector({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 py-2 pl-[17px] sm:pl-[21px]" aria-hidden="true">
-      <div className="h-8 w-px bg-gradient-to-b from-black/15 to-[#812d29]/60" />
-      <ArrowDown size={14} className="text-[#812d29]" />
-      <span className="text-[9px] font-semibold uppercase tracking-[.18em] text-zinc-400">{label}</span>
-    </div>
-  )
-}
-
-function StepShell({
-  number,
-  eyebrow,
-  title,
-  copy,
-  icon: Icon,
-  badge,
-  children,
-  index,
-  reduceMotion,
-  dark = false,
-}: {
-  number: string
-  eyebrow: string
-  title: string
-  copy: string
-  icon: typeof Activity
-  badge: string
-  children?: React.ReactNode
-  index: number
-  reduceMotion: boolean | null
-  dark?: boolean
-}) {
-  return (
-    <motion.li
-      initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : index * 0.07 }}
-      className="list-none"
-    >
-      <Card className={dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "overflow-hidden"}>
-        <div className="p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <span className={`grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-semibold ${dark ? "bg-[#812d29] text-white" : "bg-[#812d29]/10 text-[#812d29]"}`}>
-              {number}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className={`text-[10px] font-semibold uppercase tracking-[.2em] ${dark ? "text-white/45" : "text-zinc-500"}`}>{eyebrow}</p>
-                <Badge variant={dark ? "outline" : "secondary"} className={dark ? "border-white/15 bg-white/[.06] text-white/70" : undefined}>{badge}</Badge>
-              </div>
-              <div className="mt-3 flex items-center gap-2.5">
-                <Icon size={18} className={dark ? "text-brand-green" : "text-[#812d29]"} aria-hidden="true" />
-                <h3 className="font-display text-xl font-medium tracking-[-.035em] sm:text-2xl">{title}</h3>
-              </div>
-              <p className={`mt-2 max-w-2xl text-sm leading-6 ${dark ? "text-white/50" : "text-zinc-500"}`}>{copy}</p>
-            </div>
-          </div>
-          {children}
-        </div>
-      </Card>
-    </motion.li>
-  )
 }
 
 function formatDuration(duration: number | null | undefined): string {
@@ -429,6 +364,48 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
         <RunNode eventKey="result" title="Result assembled" icon={Save} />
       </div>
 
+      {analysis && (
+        <Accordion type="single" collapsible className="mt-4 rounded-[22px] border border-black/[.07] bg-white/55 px-4">
+          <AccordionItem value="stage-outputs" className="border-0">
+            <AccordionTrigger className="hover:no-underline">
+              <span><span className="block text-left text-sm font-semibold">Inspect the stage outputs</span><span className="mt-1 block text-left text-[11px] font-normal text-zinc-400">Facts, decision inputs, and grounded explanation returned by this run</span></span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid gap-3 lg:grid-cols-3">
+                <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">READER output</p>
+                  <h4 className="mt-2 text-sm font-semibold">Extracted facts</h4>
+                  <dl className="mt-3 space-y-2 text-xs">
+                    <div><dt className="text-zinc-400">Court or issuer</dt><dd className="mt-0.5 break-words text-zinc-700">{analysis.breakdown.court || analysis.breakdown.claimed_authority || "Not extracted"}</dd></div>
+                    <div><dt className="text-zinc-400">Case number</dt><dd className="mt-0.5 break-words text-zinc-700">{analysis.breakdown.case_number || "Not extracted"}</dd></div>
+                    <div><dt className="text-zinc-400">Parties</dt><dd className="mt-0.5 break-words text-zinc-700">{analysis.breakdown.parties.join(" · ") || "Not extracted"}</dd></div>
+                    <div><dt className="text-zinc-400">Deadline</dt><dd className="mt-0.5 break-words text-zinc-700">{analysis.breakdown.deadline || "Not extracted"}</dd></div>
+                  </dl>
+                  <p className="mt-3 border-t border-black/[.06] pt-3 text-[10px] leading-4 text-zinc-400">Model-assisted facts require comparison with the original letter.</p>
+                </section>
+
+                <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Fixed-code output</p>
+                  <h4 className="mt-2 text-sm font-semibold">Decision inputs</h4>
+                  {analysis.decision ? <><p className="mt-3 text-xs leading-5 text-zinc-600">{ruleLabel(analysis.decision.rule)}</p><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Signals</dt><dd className="mt-1 font-semibold">{analysis.decision.counted_signal_ids.length}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Case</dt><dd className="mt-1 font-semibold">{analysis.decision.case_found ? "Found" : "Not found"}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Parties</dt><dd className="mt-1 font-semibold">{analysis.decision.parties_match ? "Match" : "No match"}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Verdict</dt><dd className="mt-1 font-semibold">{verdictLabel(analysis.verdict)}</dd></div></dl></> : <p className="mt-3 text-xs text-zinc-400">No deterministic decision record was returned.</p>}
+                </section>
+
+                <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">EXPLAINER output</p>
+                  <h4 className="mt-2 text-sm font-semibold">Grounded explanation</h4>
+                  <p className="mt-3 text-xs leading-5 text-zinc-600">{analysis.summary}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-black/[.06] pt-3">
+                    <Badge variant="outline">{analysis.guard?.accepted_pattern_ids.length ?? 0} pattern quote(s)</Badge>
+                    <Badge variant="outline">{analysis.guard?.accepted_passage_ids.length ?? 0} legal passage(s)</Badge>
+                    {(analysis.guard?.quarantined_claims.length ?? 0) > 0 && <Badge variant="warning">{analysis.guard?.quarantined_claims.length} quarantined</Badge>}
+                  </div>
+                </section>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
+
       {analysis?.trace && (
         <div className="mt-4 grid gap-2 rounded-[22px] border border-black/[.07] bg-black/[.025] p-4 text-xs text-zinc-500 sm:grid-cols-2 lg:grid-cols-3">
           <p><span className="font-medium text-zinc-800">Configured model:</span> {analysis.trace.model_alias}</p>
@@ -444,226 +421,46 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
   )
 }
 
-export function OrchestrationView({ agents, loadState, latestAnalysis = null, analysisRunState = "idle", traceEvents = [], onRefresh }: OrchestrationViewProps) {
-  const reduceMotion = useReducedMotion()
+export function OrchestrationView({ agents, loadState, latestAnalysis = null, analysisRunState = "idle", traceEvents = [], runLabel, onRefresh }: OrchestrationViewProps) {
   const expectedAgents = AGENTS.map((definition) => ({
     ...definition,
     status: agents.find((agent) => agent.name.toLowerCase() === definition.name),
   }))
   const configuredCount = expectedAgents.filter(({ status }) => status?.enabled).length
   const setupHasIssue = expectedAgents.some(({ status }) => Boolean(status?.last_error))
+  const events = latestAnalysis?.trace?.steps ?? traceEvents
+  const runId = latestAnalysis?.trace?.run_id ?? events[0]?.run_id
+  const intakeName = events.find((event) => event.key === "intake" && event.input_summary)?.input_summary
+  const documentLabel = runLabel || intakeName || "No document selected"
+  const sourceLabel = runLabel ? "Saved analysis" : analysisRunState === "running" ? "Live stream" : "Current session"
 
   return (
     <TooltipProvider delayDuration={180}>
       <section aria-labelledby="orchestration-title" className="flex flex-col gap-6">
-        <Card className="relative overflow-hidden border-[#812d29]/25 bg-[#782b29] text-white">
-          <div className="absolute -right-20 -top-28 size-72 rounded-full border border-white/10" aria-hidden="true" />
-          <div className="absolute -right-6 -top-16 size-48 rounded-full border border-white/10" aria-hidden="true" />
-          <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <Badge variant="outline" className="border-white/20 bg-white/[.08] text-white">Multi-agent system</Badge>
-              <h1 id="orchestration-title" tabIndex={-1} className="mt-5 max-w-3xl rounded font-display text-3xl font-medium tracking-[-.055em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#782b29] sm:text-5xl">
-                One orchestrator. Three specialist agents.
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
-                A code orchestrator moves the document through the same ordered checkpoints every time. The agents extract, investigate, and explain; fixed rules decide the verdict.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur-sm">
-                <p className="font-display text-2xl tracking-[-.04em]">3</p>
-                <p className="text-[10px] uppercase tracking-[.16em] text-white/50">AI agents</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 backdrop-blur-sm">
-                <p className="font-display text-2xl tracking-[-.04em]">1</p>
-                <p className="text-[10px] uppercase tracking-[.16em] text-white/50">Code orchestrator</p>
-              </div>
-            </div>
-          </div>
+        <Card className="p-6 sm:p-8">
+          <Badge variant="secondary">3 agents · 1 code orchestrator</Badge>
+          <h1 id="orchestration-title" className="mt-4 font-display text-3xl font-medium tracking-[-.05em] sm:text-4xl">Analysis pipeline</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-500">Follow the real backend events, inspect the evidence each stage returned, and see the fixed-code decision boundary. The agents report facts; they cannot choose the verdict.</p>
         </Card>
 
-        <Card className="order-2 p-5 sm:p-6" aria-labelledby="readiness-title">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Activity size={17} className="text-[#812d29]" aria-hidden="true" />
-                <h2 id="readiness-title" className="font-display text-2xl font-medium tracking-[-.04em]">System setup</h2>
-              </div>
-              <p className="mt-2 text-xs leading-5 text-zinc-500">Configuration reported by this service instance—not a live provider check or document-progress signal.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={loadState === "ready" && configuredCount === 3 && !setupHasIssue ? "default" : "outline"}>
-                {loadState === "loading" ? "Checking setup" : loadState === "error" ? "Setup status unavailable" : `${configuredCount} of 3 configured`}
-              </Badge>
-              {onRefresh && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button type="button" variant="outline" className="size-10 p-0" onClick={onRefresh} aria-label="Refresh system setup">
-                      <RefreshCw size={15} aria-hidden="true" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Refresh system setup</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          </div>
-
-          {loadState === "error" && (
-            <Alert className="mt-5 rounded-2xl border-orange-200 bg-orange-50/70">
-              <TriangleAlert size={16} aria-hidden="true" />
-              <AlertTitle>Setup status could not be checked</AlertTitle>
-              <AlertDescription>The architecture remains visible below, but current service availability is unknown.</AlertDescription>
-            </Alert>
-          )}
-
-          <ul className="mt-5 grid gap-3 md:grid-cols-3" aria-label="Agent system setup">
-            {expectedAgents.map(({ name, number, fallback, icon: Icon, status }) => {
-              const readiness = readinessFor(status, loadState)
-              return (
-                <li key={name} className="rounded-[22px] border border-black/[.07] bg-white/55 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="grid size-8 place-items-center rounded-full bg-[#812d29]/10 text-[10px] font-semibold text-[#812d29]">{number}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#812d29]/50" aria-label={`${name} setup: ${readiness.label}. ${readiness.detail}`}>
-                          <span className={`size-2 rounded-full ${readiness.dotClass}`} aria-hidden="true" />
-                          <Badge variant={readiness.badgeVariant}>{readiness.label}</Badge>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-64 bg-[#1a1a1a] text-white">{readiness.detail}</TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <div className="mt-4 flex items-center gap-2">
-                    <Icon size={16} className="text-[#812d29]" aria-hidden="true" />
-                    <h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p>
-                  <Separator className="my-3 bg-black/[.06]" />
-                  <p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p>
-                </li>
-              )
-            })}
-          </ul>
-        </Card>
-
-        <div className="order-3 grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)] lg:items-start">
-          <Card className="overflow-hidden border-black/10 bg-[#1a1a1a] text-white lg:sticky lg:top-24">
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <span className="grid size-10 place-items-center rounded-full bg-[#812d29]"><Braces size={18} aria-hidden="true" /></span>
-                <Badge variant="outline" className="border-white/15 bg-white/[.06] text-white/70">Infrastructure</Badge>
-              </div>
-              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[.2em] text-white/45">Code orchestrator</p>
-              <h2 className="mt-2 font-display text-2xl tracking-[-.04em]">Controls the route, not the facts.</h2>
-              <p className="mt-3 text-xs leading-5 text-white/50">It authenticates the request, runs the fixed agent graph, applies the verdict policy, and saves the structured analysis without the uploaded file.</p>
-            </div>
-            <Separator className="bg-white/10" />
-            <div className="space-y-3 p-5 text-xs text-white/55">
-              <p className="flex gap-2"><LockKeyhole size={14} className="mt-0.5 shrink-0 text-brand-green" aria-hidden="true" />Checks access before processing.</p>
-              <p className="flex gap-2"><GitBranch size={14} className="mt-0.5 shrink-0 text-brand-green" aria-hidden="true" />Stops or degrades safely when a dependency fails.</p>
-              <p className="flex gap-2"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-brand-green" aria-hidden="true" />Keeps AI output outside the verdict decision.</p>
-            </div>
-            <div className="border-t border-white/10 bg-[#812d29]/30 px-5 py-4 text-[10px] font-semibold uppercase tracking-[.16em] text-white/60">
-              Not a fourth AI agent
-            </div>
-          </Card>
-
-          <div>
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Ordered execution</p>
-                <h2 className="mt-2 font-display text-3xl font-medium tracking-[-.045em]">From sealed letter to saved explanation</h2>
-              </div>
-              <Badge variant="outline">Same route every time</Badge>
-            </div>
-
-            <ol aria-label="Document analysis orchestration steps">
-              <StepShell number="00" eyebrow="Secure gateway" title="Authenticated intake" copy="The orchestrator accepts the chosen sample or uploaded document only after sign-in, then validates the file before dispatch." icon={LockKeyhole} badge="ORCHESTRATOR" index={0} reduceMotion={reduceMotion}>
-                <div className="mt-4 flex flex-wrap gap-2 pl-0 sm:pl-13">
-                  <Badge variant="outline">Identity checked</Badge>
-                  <Badge variant="outline">File validated</Badge>
-                  <Badge variant="outline">Size limit checked</Badge>
-                </div>
-              </StepShell>
-              <Connector label="dispatch" />
-
-              <StepShell number="01" eyebrow="Agent one" title="READER extracts visible facts" copy="A model transcribes the document type, court, case number, parties, dates, deadlines, and requested actions without a verdict. Critical fields still require review against the original." icon={FileInput} badge="AI AGENT" index={1} reduceMotion={reduceMotion}>
-                <div className="mt-4 grid gap-2 sm:ml-13 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-black/[.035] p-4 text-xs leading-5 text-zinc-500">Output: structured facts + exact visible text excerpts</div>
-                  <div className="rounded-2xl border border-black/[.07] bg-white/70 p-4 text-xs leading-5 text-zinc-500"><strong className="text-zinc-800">Court-directory tool:</strong> exact seeded aliases choose the route; unknown names remain annotation-only.</div>
-                </div>
-              </StepShell>
-              <Connector label="facts only" />
-
-              <StepShell number="02" eyebrow="Agent two" title="CHECKER investigates two evidence paths" copy="It receives the READER’s structured facts and reports what external and approved internal sources support. It still does not choose a verdict." icon={Search} badge="AI AGENT" index={2} reduceMotion={reduceMotion}>
-                <div className="relative mt-5 grid gap-3 sm:ml-13 sm:grid-cols-2">
-                  <div className="pointer-events-none absolute left-1/2 top-0 hidden h-3 w-px -translate-y-3 bg-black/10 sm:block" aria-hidden="true" />
-                  <div className="rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4">
-                    <div className="flex items-center justify-between gap-2"><Gavel size={16} className="text-[#812d29]" aria-hidden="true" /><Badge variant="secondary">External</Badge></div>
-                    <h4 className="mt-3 text-sm font-semibold">CourtListener</h4>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">After an exact eligible court route, looks for the case number and checks whether the named parties match the public record.</p>
-                  </div>
-                  <div className="rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4">
-                    <div className="flex items-center justify-between gap-2"><Database size={16} className="text-[#812d29]" aria-hidden="true" /><Badge variant="secondary">Versioned</Badge></div>
-                    <h4 className="mt-3 text-sm font-semibold">Approved scam corpus</h4>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">Validates exact excerpts within the selected document text against countable patterns backed by approved official sources.</p>
-                  </div>
-                </div>
-              </StepShell>
-              <Connector label="validated findings" />
-
-              <StepShell number="03" eyebrow="Deterministic checkpoint" title="Fixed code applies the verdict rules" copy="This is the decision boundary. No AI agent can return or override the verdict field." icon={Braces} badge="CODE · NOT AI" index={3} reduceMotion={reduceMotion} dark>
-                <div className="mt-5 grid gap-2 sm:ml-13 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-3"><p className="text-xs font-semibold text-orange-200">SCAM</p><p className="mt-1 text-[11px] leading-4 text-white/45">2+ countable scam signals</p></div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-3"><p className="text-xs font-semibold text-brand-green">VERIFIED</p><p className="mt-1 text-[11px] leading-4 text-white/45">Case found + parties match</p></div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[.06] p-3"><p className="text-xs font-semibold text-white">CANNOT_CONFIRM</p><p className="mt-1 text-[11px] leading-4 text-white/45">Anything else</p></div>
-                </div>
-              </StepShell>
-              <Connector label="decision + evidence" />
-
-              <StepShell number="04" eyebrow="Agent three" title="EXPLAINER makes the result understandable" copy="It receives the code-decided verdict and supporting evidence, then writes a plain-language explanation. Approved source excerpts are attached by code without being rewritten." icon={Bot} badge="AI AGENT" index={4} reduceMotion={reduceMotion}>
-                <div className="mt-4 flex flex-wrap gap-2 sm:ml-13">
-                  <Badge variant="outline">Plain language</Badge>
-                  <Badge variant="outline">Source-linked evidence</Badge>
-                  <Badge variant="outline">Grounding Guard quotes</Badge>
-                  <Badge variant="outline">No verdict authority</Badge>
-                </div>
-              </StepShell>
-              <Connector label="complete record" />
-
-              <StepShell number="05" eyebrow="Workspace" title="Save and show the dashboard result" copy="The workspace saves the structured result—including extracted facts, evidence, the code decision, and run trace—but never the uploaded file bytes." icon={Save} badge="ORCHESTRATOR" index={5} reduceMotion={reduceMotion}>
-                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#812d29]/15 bg-[#812d29]/[.05] p-3 text-xs text-zinc-600 sm:ml-13">
-                  <FileCheck2 size={15} className="shrink-0 text-[#812d29]" aria-hidden="true" />
-                  The in-session result links each displayed finding to the tool and rule that produced it.
-                </div>
-              </StepShell>
-            </ol>
-          </div>
-        </div>
-
-        <Card className="order-1 overflow-hidden" aria-labelledby="latest-run-title">
+        <Card className="overflow-hidden" aria-labelledby="latest-run-title">
           <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Returned analysis trace</p>
-              <h2 id="latest-run-title" className="mt-2 font-display text-2xl font-medium tracking-[-.04em]">Latest document run</h2>
-              <p className="mt-2 max-w-2xl text-xs leading-5 text-zinc-500">This section reflects the backend events for the most recent run in this session. It is separate from system setup below.</p>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">{sourceLabel}</p>
+              <h2 id="latest-run-title" tabIndex={-1} className="mt-2 break-words rounded font-display text-2xl font-medium tracking-[-.04em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30">{documentLabel}</h2>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-400">
+                <span>{runId ? `Run ${runId.slice(0, 8)}` : "Run ID appears when processing begins"}</span>
+                {latestAnalysis?.trace?.started_at && <span>Started {new Date(latestAnalysis.trace.started_at).toLocaleString()}</span>}
+              </div>
             </div>
-            {analysisRunState === "complete" && latestAnalysis && (
-              <Badge variant={verdictVariant(latestAnalysis.verdict)}>{verdictLabel(latestAnalysis.verdict)}</Badge>
-            )}
+            {analysisRunState === "complete" && latestAnalysis && <Badge variant={verdictVariant(latestAnalysis.verdict)}>{verdictLabel(latestAnalysis.verdict)}</Badge>}
           </div>
           <Separator className="bg-black/[.06]" />
 
-          <div className="p-5 sm:p-6">
-            {analysisRunState === "idle" && (
-              <div className="rounded-[22px] border border-dashed border-black/10 bg-black/[.02] px-5 py-9 text-center">
-                <FileCheck2 className="mx-auto text-zinc-300" size={24} aria-hidden="true" />
-                <p className="mt-3 text-sm font-medium">No document trace yet</p>
-                <p className="mt-1 text-xs text-zinc-500">Analyze a sample or upload a document to populate this view.</p>
-              </div>
-            )}
+          <div className="space-y-5 p-5 sm:p-6">
+            <AnalysisPipeline events={events} runState={analysisRunState} compact={analysisRunState !== "idle"} />
 
-            {analysisRunState === "running" && traceEvents.length === 0 && (
+            {analysisRunState === "running" && events.length === 0 && (
               <Alert className="rounded-[22px] border-[#812d29]/15 bg-[#812d29]/[.04]">
                 <Activity size={16} className="animate-pulse motion-reduce:animate-none" aria-hidden="true" />
                 <AlertTitle>Connecting to the analysis trace</AlertTitle>
@@ -671,17 +468,17 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </Alert>
             )}
 
-            {analysisRunState === "running" && traceEvents.length > 0 && (
-              <DetailedRunTrace events={traceEvents} analysis={latestAnalysis} />
-            )}
+            {analysisRunState === "idle" && <p className="text-center text-xs text-zinc-500">Analyze a sample or upload a document from Overview. Every stage above will update from the returned backend trace.</p>}
+
+            {analysisRunState === "running" && events.length > 0 && <DetailedRunTrace events={events} analysis={latestAnalysis} />}
 
             {analysisRunState === "error" && (
               <div className="space-y-4">
-                {traceEvents.length > 0 && <DetailedRunTrace events={traceEvents} analysis={latestAnalysis} terminal />}
+                {events.length > 0 && <DetailedRunTrace events={events} analysis={latestAnalysis} terminal />}
                 <Alert className="rounded-[22px] border-orange-200 bg-orange-50/70">
                   <TriangleAlert size={16} aria-hidden="true" />
-                  <AlertTitle>The latest analysis did not complete</AlertTitle>
-                  <AlertDescription>{traceEvents.length > 0 ? "The verified events above show how far the run reached before it stopped." : "No backend trace event was returned for this attempt."}</AlertDescription>
+                  <AlertTitle>The analysis did not complete</AlertTitle>
+                  <AlertDescription>{events.length ? "The verified events above show where the run stopped." : "No backend trace event was returned for this attempt."}</AlertDescription>
                 </Alert>
               </div>
             )}
@@ -695,9 +492,55 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
             )}
 
             {analysisRunState === "complete" && latestAnalysis && (
-              <DetailedRunTrace events={latestAnalysis.trace?.steps ?? traceEvents} analysis={latestAnalysis} terminal />
+              <>
+                <DetailedRunTrace events={events} analysis={latestAnalysis} terminal />
+                {latestAnalysis.official_contact && (
+                  <div className="rounded-[22px] border border-black/[.07] bg-white/70 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-full bg-black/[.05]"><Gavel size={16} aria-hidden="true" /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Deterministic next action · not an agent</p><h3 className="mt-1 text-sm font-semibold">Official contact route</h3></div></div>
+                      <Badge variant={latestAnalysis.official_contact.status === "reviewed_route" ? "default" : latestAnalysis.official_contact.status === "manual_confirmation_required" ? "warning" : "outline"}>{displayStatus(latestAnalysis.official_contact.status)}</Badge>
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-zinc-500">{latestAnalysis.official_contact.office_name || latestAnalysis.official_contact.court_name || latestAnalysis.official_contact.reason || "No reviewed contact route is available for this result."}</p>
+                    <p className="mt-2 text-[10px] text-zinc-400">This action is selected only from the reviewed court directory. Contact details printed in the uploaded letter are never used.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
+        </Card>
+
+        <Card className="px-5 sm:px-6">
+          <Accordion type="single" collapsible>
+            <AccordionItem value="diagnostics" className="border-black/[.07]">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex w-full flex-wrap items-center justify-between gap-3 pr-3 text-left"><div><p className="font-display text-xl tracking-[-.035em]">System diagnostics</p><p className="mt-1 text-xs font-normal text-zinc-500">Configuration for this service instance—not a live run status.</p></div><Badge variant={loadState === "ready" && configuredCount === 3 && !setupHasIssue ? "default" : "outline"}>{loadState === "loading" ? "Checking" : loadState === "error" ? "Unavailable" : `${configuredCount} of 3 configured`}</Badge></div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex justify-end pb-3">{onRefresh && <Tooltip><TooltipTrigger asChild><Button type="button" variant="outline" className="h-9" onClick={onRefresh}><RefreshCw size={14} aria-hidden="true" /> Refresh</Button></TooltipTrigger><TooltipContent>Refresh system setup</TooltipContent></Tooltip>}</div>
+                {loadState === "error" && <Alert className="mb-4 rounded-2xl border-orange-200 bg-orange-50/70"><TriangleAlert size={16} aria-hidden="true" /><AlertTitle>Setup status could not be checked</AlertTitle><AlertDescription>The run trace remains the source of truth for document progress.</AlertDescription></Alert>}
+                <ul className="grid gap-3 md:grid-cols-3" aria-label="Agent system configuration">
+                  {expectedAgents.map(({ name, number, fallback, icon: Icon, status }) => {
+                    const readiness = readinessFor(status, loadState)
+                    return <li key={name} className="rounded-[22px] border border-black/[.07] bg-white/55 p-4"><div className="flex items-center justify-between gap-3"><span className="grid size-8 place-items-center rounded-full bg-black/[.04] text-[10px] font-semibold">{number}</span><Badge variant={readiness.badgeVariant}>{readiness.label}</Badge></div><div className="mt-4 flex items-center gap-2"><Icon size={16} className="text-[#812d29]" aria-hidden="true" /><h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3></div><p className="mt-2 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p><Separator className="my-3 bg-black/[.06]" /><p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p></li>
+                  })}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="policy" className="border-0">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="pr-3 text-left"><p className="font-display text-xl tracking-[-.035em]">Published verdict boundary</p><p className="mt-1 text-xs font-normal text-zinc-500">Same decision graph; external branches can fail closed.</p></div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4"><p className="text-xs font-semibold text-orange-800">SCAM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Two or more accepted, countable scam signals.</p></div>
+                  <div className="rounded-2xl border border-brand-soft bg-brand-soft/30 p-4"><p className="text-xs font-semibold">VERIFIED</p><p className="mt-2 text-xs leading-5 text-zinc-500">The case is found and the caption parties match.</p></div>
+                  <div className="rounded-2xl border border-black/[.07] bg-white/60 p-4"><p className="text-xs font-semibold">CANNOT_CONFIRM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Anything else, including an unavailable evidence branch.</p></div>
+                </div>
+                <p className="mt-4 text-xs leading-5 text-zinc-500"><strong className="text-zinc-800">The orchestrator is not a fourth AI agent.</strong> It enforces this rule order, records the trace, and packages the result.</p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </Card>
       </section>
     </TooltipProvider>

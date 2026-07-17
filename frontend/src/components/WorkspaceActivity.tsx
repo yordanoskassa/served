@@ -1,5 +1,6 @@
 import { Activity, ArrowRight, ChevronRight, FileText, RefreshCw } from "lucide-react"
 
+import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,7 @@ type LoadState = "loading" | "ready" | "error"
 function verdictBadge(verdict: Verdict | null): { label: string; variant: "default" | "warning" | "destructive" | "secondary" } {
   if (verdict === "verified") return { label: "VERIFIED", variant: "default" }
   if (verdict === "scam" || verdict === "scam_indicators") return { label: "SCAM", variant: "destructive" }
-  if (verdict === "cannot_confirm") return { label: "REVIEW", variant: "warning" }
+  if (verdict === "cannot_confirm") return { label: "CANNOT_CONFIRM", variant: "warning" }
   return { label: "UNKNOWN", variant: "secondary" }
 }
 
@@ -49,15 +50,16 @@ export function WorkspaceActivity({
   onOpenAnalysis: (id: string) => void
   onOpenPipeline: () => void
 }) {
-  const latestEvent = traceEvents.at(-1)
   const runActive = runState === "running"
+  const runStopped = runState === "error" && traceEvents.length > 0
+  const showRun = runActive || runStopped
 
   return <Card className="flex min-h-[420px] flex-col overflow-hidden p-2">
     <div className="flex flex-1 flex-col rounded-[22px] bg-white/70 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-400">{runActive ? "Live analysis" : "Workspace activity"}</p>
-          <h2 className="mt-2 font-display text-2xl tracking-[-.04em]">{runActive ? "Your letter is being checked" : "Recent analyses"}</h2>
+          <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-400">{showRun ? "Analysis pipeline" : "Workspace activity"}</p>
+          <h2 className="mt-2 font-display text-2xl tracking-[-.04em]">{runActive ? "Your letter is being checked" : runStopped ? "This run stopped early" : "Recent analyses"}</h2>
         </div>
         <Button
           variant="outline"
@@ -71,19 +73,10 @@ export function WorkspaceActivity({
         </Button>
       </div>
 
-      {runActive ? <div className="flex flex-1 flex-col pt-8">
-        <div className="h-1.5 overflow-hidden rounded-full bg-black/5">
-          <div className="h-full w-2/3 animate-pulse rounded-full bg-brand-green" />
-        </div>
-        <div className="mt-6 rounded-2xl border border-black/5 bg-bg-base p-4" aria-live="polite">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">
-            <Activity size={13} /> Latest verified event
-          </div>
-          <p className="mt-3 text-sm font-semibold">{latestEvent?.label ?? "Connecting to the analysis trace"}</p>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">{latestEvent?.output_summary ?? latestEvent?.detail ?? "The first backend event will appear here."}</p>
-          <p className="mt-3 text-[10px] text-zinc-400">{traceEvents.length} event{traceEvents.length === 1 ? "" : "s"} received</p>
-        </div>
-        <Button className="mt-auto w-full" onClick={onOpenPipeline}>Open live run <ArrowRight size={15} /></Button>
+      {showRun ? <div className="flex flex-1 flex-col pt-6">
+        <AnalysisPipeline events={traceEvents} runState={runStopped ? "error" : "running"} compact />
+        <p className="mt-3 text-[10px] text-zinc-400">{traceEvents.length} verified backend event{traceEvents.length === 1 ? "" : "s"} received</p>
+        <Button className="mt-5 w-full" onClick={onOpenPipeline}>{runStopped ? "Inspect where it stopped" : "Open live evidence"} <ArrowRight size={15} /></Button>
       </div> : <>
         <div className="mt-6 flex-1">
           {summaryState === "loading" && <div className="space-y-4">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-2/3 bg-black/5" /><Skeleton className="h-2 w-1/3 bg-black/5" /></div></div>)}</div>}
