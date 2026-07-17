@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.engine.ground_truth import OfficialClerkContact
 from app.engine.models import Confidence
 from app.schemas.analysis import (
     AnalysisResponse,
@@ -31,6 +32,14 @@ def test_analyze_returns_service_result() -> None:
         summary="A hearing date is visible.",
         verdict=Verdict.CANNOT_CONFIRM,
         confidence=Confidence.LOW,
+        official_contact=OfficialClerkContact(
+            status="reviewed_route",
+            court_name="U.S. District Court, Central District of California",
+            office_name="Eastern Division / Riverside",
+            phone="All Inquiries: (951) 328-4450",
+            tel_uri="tel:+19513284450",
+            official_contact_page="https://www.cacd.uscourts.gov/contact",
+        ),
         evidence=[EvidenceItem(label="Date", detail="July 30", source="Uploaded document")],
         next_step="Call the court using its official website.",
     )
@@ -56,6 +65,7 @@ def test_analyze_returns_service_result() -> None:
         )
     assert response.status_code == 200
     assert response.json()["document_type"] == "Court notice"
+    assert response.json()["official_contact"]["tel_uri"] == "tel:+19513284450"
     database.analyses.insert_one.assert_awaited_once()
     saved = database.analyses.insert_one.await_args.args[0]
     assert saved["schema_version"] == 2

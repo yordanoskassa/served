@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
+from app.engine.ground_truth import OfficialClerkContact
 from app.engine.grounding_guard import GroundingAudit
 from app.engine.models import Confidence, ScamSignalReview, VerdictState
 
@@ -141,6 +142,7 @@ class AnalysisResponse(BaseModel):
     confidence: Confidence
     deadline: str | None = None
     breakdown: LetterBreakdown = Field(default_factory=LetterBreakdown)
+    official_contact: OfficialClerkContact | None = None
     checks: list[AnalysisCheck] = Field(default_factory=list)
     decision: DecisionTrace | None = None
     guard: GroundingAudit | None = None

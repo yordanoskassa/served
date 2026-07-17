@@ -20,6 +20,7 @@ from app.engine.ground_truth import (
     ground_truth_corpus_versions,
     match_court_authority,
     official_court_domains,
+    select_official_clerk_contact,
     select_legal_passage_ids,
 )
 from app.engine.grounding_guard import (
@@ -923,6 +924,13 @@ async def analyze_document(
     )
     trace.record_tool_call()
     court_match = match_court_authority(_claimed_authority(parsed))
+    official_contact = select_official_clerk_contact(
+        court_match,
+        case_number=parsed.case_number,
+        # Office-location routing must come from a trusted source. READER text
+        # is untrusted and CourtListener currently supplies no reviewed office key.
+        verified_office_key=None,
+    )
     directory_status = (
         "complete"
         if court_match.outcome == "OFFICIAL_COURT"
@@ -1334,6 +1342,7 @@ async def analyze_document(
             deadline=parsed.deadline,
             requested_actions=parsed.demands,
         ),
+        official_contact=official_contact,
         checks=[
             AnalysisCheck(key="reader", label="READER extracted visible facts", status="complete" if parsed.readable else "degraded"),
             AnalysisCheck(

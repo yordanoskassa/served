@@ -1,6 +1,6 @@
 # Served three-agent architecture
 
-Implementation status: This document defines the target engineering contract. The current runtime implements the three-agent flow, deterministic verdict policy, and fraud-excerpt validation. Court-directory enforcement, legal-passage insertion, full Grounding Guard automation, and durable orchestration remain release gates.
+Implementation status: The current runtime implements the three-agent flow, deterministic verdict policy, exact court-directory enforcement, legal-passage insertion, Grounding Guard automation, trace persistence, and fail-closed official clerk-contact selection. Production-scale queueing and retry infrastructure remain outside this hackathon release.
 
 ## Product contract
 
@@ -46,10 +46,14 @@ Authenticated upload
   -> EXPLAINER: plain-language result
        `-> legal-passages.json Grounding Guard        [deterministic tool]
   -> canonical source quotations inserted by server  [plain code]
+  -> official clerk-contact route selected or withheld [plain code]
+  -> human reviews and optionally opens phone dialer   [human action]
   -> persist result and update the dashboard          [infrastructure]
 ```
 
 There are no additional product agents. Intake validation, orchestration, persistence, retry handling, the verdict policy, quote insertion, and human review are infrastructure or human processes. They must not be presented as AI agents in code, documentation, metrics, or the dashboard.
+
+The Guided Clerk Call is also not an agent. It is a deterministic, post-verdict action-preparation step. It may expose a phone target only when the exact court route and required division or trusted office key select a fully reviewed `READY` corpus record. Otherwise it removes callable contact data and returns the official court contact page for human confirmation. Contact details printed on the uploaded document never enter this selector. The user reviews the administrative-only script and initiates the call; Served never calls, records, or emails the court.
 
 ## Agent boundaries
 

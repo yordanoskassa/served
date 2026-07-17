@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { GuidedClerkCall } from "@/components/GuidedClerkCall"
 import type { Analysis } from "@/lib/api"
 
 const verdictCopy = {
@@ -135,6 +136,7 @@ export function AnalysisDetail({
         </TabsContent>}
       </Tabs>
 
+      <GuidedClerkCall analysis={analysis} />
       <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
       <div className="mt-5 flex flex-wrap gap-2"><Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>{onViewPipeline && <Button onClick={onViewPipeline}>See the full workflow <ArrowRight size={16} /></Button>}</div>
     </div>

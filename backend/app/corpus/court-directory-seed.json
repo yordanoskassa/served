@@ -162,6 +162,7 @@
       ],
       "clerk_contact": {
         "route": "guided_clerk_call",
+        "official_contact_page": "https://www.cacd.uscourts.gov/contact",
         "selection_rule": "Select only from the reviewed leading division code in the parsed case number: 2, 5, or 8. If the code is missing or unrecognized, do not guess or default to Los Angeles; show the official CACD contact page for human confirmation.",
         "divisions": {
           "2": {
@@ -293,6 +294,7 @@
       ],
       "clerk_contact": {
         "route": "guided_clerk_call",
+        "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
         "selection_rule": "Select only from a reviewed leading office code when available. If the code is missing or unrecognized, do not guess; show the official CAED Clerk's Office page for human confirmation.",
         "divisions": {
           "1": {
@@ -461,6 +463,7 @@
       ],
       "clerk_contact": {
         "route": "guided_clerk_call",
+        "official_contact_page": "https://cand.uscourts.gov/about-court/contacting-court",
         "selection_rule": "Use a reviewed office only when the court location is available from verified routing data. Otherwise show the official CAND contacting-the-court page and request human confirmation.",
         "offices": {
           "san_francisco": {
@@ -607,6 +610,7 @@
       ],
       "clerk_contact": {
         "route": "guided_clerk_call",
+        "official_contact_page": "https://www.casd.uscourts.gov/ContactUs.aspx",
         "selection_rule": "Select only from the reviewed leading division code: 3 for San Diego or 2 for El Centro. If missing or unrecognized, do not guess; show the official CASD contact page for human confirmation.",
         "divisions": {
           "2": {

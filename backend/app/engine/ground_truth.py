@@ -10,7 +10,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.engine.models import CheckerReport, DocumentParse, Tier
 
@@ -28,6 +28,40 @@ class CourtCaseAccess(CorpusModel):
     automated_lookup: bool = False
 
 
+class ClerkContactRecord(CorpusModel):
+    """An official, reviewed court-contact record from the directory corpus."""
+
+    name: str | None = None
+    purpose: str | None = None
+    line_label: str | None = None
+    phone: str | None = None
+    office_hours: str | None = None
+    timezone: str | None = None
+    guided_call_eligible: str | None = None
+    routing_boundary: str | None = None
+    official_contact_page: str | None = None
+    official_public_sources: list[str] = Field(default_factory=list)
+    verified_on: str | None = None
+    verification_method: str | None = None
+    verification_status: str | None = None
+    runtime_readiness: str | None = None
+    main_phone: str | None = None
+    alternate_phone: str | None = None
+    civil_intake_phone: str | None = None
+    case_information_phone: str | None = None
+    routing_note: str | None = None
+
+
+class ClerkContactDirectory(ClerkContactRecord):
+    route: Literal["guided_clerk_call", "identity_and_contact_only"]
+    selection_rule: str | None = None
+    divisions: dict[str, ClerkContactRecord] = Field(default_factory=dict)
+    offices: dict[str, ClerkContactRecord] = Field(default_factory=dict)
+    automated_lookup: bool | None = None
+    maximum_verdict: str | None = None
+    restriction: str | None = None
+
+
 class CourtEntry(CorpusModel):
     id: str
     tier: Literal["federal", "federal_appellate", "state"]
@@ -37,6 +71,7 @@ class CourtEntry(CorpusModel):
     official_website: str
     official_domains: list[str] = Field(default_factory=list)
     case_access: CourtCaseAccess
+    clerk_contact: ClerkContactDirectory | None = None
 
 
 class FictitiousAuthority(CorpusModel):
@@ -80,6 +115,39 @@ class CourtDirectoryMatch(BaseModel):
             and self.automated_lookup
             and bool(self.courtlistener_court_id)
         )
+
+
+class OfficialClerkContact(BaseModel):
+    """Fail-closed contact selection exposed by the analysis API."""
+
+    status: Literal[
+        "reviewed_route",
+        "manual_confirmation_required",
+        "not_available",
+    ] = "not_available"
+    court_name: str | None = None
+    office_name: str | None = None
+    purpose: str | None = None
+    line_label: str | None = None
+    phone: str | None = None
+    tel_uri: str | None = None
+    office_hours: str | None = None
+    timezone: str | None = None
+    official_contact_page: str | None = None
+    verified_on: str | None = None
+    routing_note: str | None = None
+    reason: str | None = None
+
+    @model_validator(mode="after")
+    def enforce_callable_route_boundary(self) -> "OfficialClerkContact":
+        """A callable target may exist only on a reviewed U.S. phone route."""
+        valid_tel = bool(self.tel_uri and re.fullmatch(r"tel:\+1\d{10}", self.tel_uri))
+        if self.status != "reviewed_route" or not self.phone or not valid_tel:
+            if self.status == "reviewed_route":
+                self.status = "manual_confirmation_required"
+            self.phone = None
+            self.tel_uri = None
+        return self
 
 
 class LegalPassage(CorpusModel):
@@ -215,6 +283,174 @@ def match_court_authority(query: str | None) -> CourtDirectoryMatch:
         outcome="UNKNOWN_AUTHORITY",
         tier=Tier.NONE,
         verified_on=corpus.verified_on,
+    )
+
+
+def _leading_division_code(case_number: str | None) -> str | None:
+    if not case_number:
+        return None
+    match = re.match(r"^\s*(\d+)\s*:", case_number)
+    if not match:
+        return None
+    return match.group(1).lstrip("0") or "0"
+
+
+def _official_tel_uri(contact: ClerkContactRecord) -> str | None:
+    """Build a call target exclusively from an explicit official corpus field."""
+    official_phone = (
+        contact.case_information_phone
+        or contact.main_phone
+        or contact.civil_intake_phone
+    )
+    if not official_phone:
+        return None
+    digits = re.sub(r"\D", "", official_phone)
+    if len(digits) == 10:
+        return f"tel:+1{digits}"
+    if len(digits) == 11 and digits.startswith("1"):
+        return f"tel:+{digits}"
+    return None
+
+
+def _is_reviewed_clerk_route(contact: ClerkContactRecord) -> bool:
+    eligibility = (contact.guided_call_eligible or "").strip().lower()
+    verification = (contact.verification_status or "").strip().lower()
+    readiness = (contact.runtime_readiness or "").strip().upper()
+    return (
+        eligibility.startswith("yes")
+        and verification.startswith("verified")
+        and readiness == "READY"
+        and bool(contact.phone)
+        and bool(contact.official_contact_page)
+        and bool(_official_tel_uri(contact))
+    )
+
+
+def _manual_clerk_contact(
+    *,
+    court: CourtEntry,
+    directory: ClerkContactDirectory,
+    reason: str,
+    page: str | None = None,
+) -> OfficialClerkContact:
+    # Fail closed: a manual state intentionally omits every callable number,
+    # even when a plausible number exists elsewhere in the corpus.
+    return OfficialClerkContact(
+        status="manual_confirmation_required",
+        court_name=court.display_name,
+        official_contact_page=page or directory.official_contact_page or court.official_website,
+        verified_on=load_court_directory().verified_on,
+        routing_note=directory.selection_rule or directory.restriction,
+        reason=reason,
+    )
+
+
+def select_official_clerk_contact(
+    match: CourtDirectoryMatch,
+    *,
+    case_number: str | None = None,
+    verified_office_key: str | None = None,
+) -> OfficialClerkContact:
+    """Select a Guided Clerk Call route without trusting document contact data.
+
+    ``verified_office_key`` is reserved for a canonical office key produced by
+    trusted routing evidence. It must never be populated from a READER guess or
+    arbitrary uploaded-document text.
+    """
+    if match.outcome != "OFFICIAL_COURT" or not match.court_id:
+        return OfficialClerkContact(
+            reason="No exact seeded official-court match is available for contact routing."
+        )
+
+    court = next(
+        (entry for entry in load_court_directory().courts if entry.id == match.court_id),
+        None,
+    )
+    if court is None:
+        return OfficialClerkContact(
+            reason="The matched court does not have a current directory entry."
+        )
+
+    directory = court.clerk_contact
+    if directory is None:
+        return OfficialClerkContact(
+            status="manual_confirmation_required",
+            court_name=court.display_name,
+            official_contact_page=court.official_website,
+            verified_on=match.verified_on,
+            reason="No reviewed Guided Clerk Call route is available for this court.",
+        )
+
+    if directory.route != "guided_clerk_call":
+        return _manual_clerk_contact(
+            court=court,
+            directory=directory,
+            reason=(
+                directory.restriction
+                or "This court is identity-and-contact only and has no Guided Clerk Call route."
+            ),
+        )
+
+    selected: ClerkContactRecord | None
+    selection_source: str
+    if directory.divisions:
+        division_code = _leading_division_code(case_number)
+        selected = directory.divisions.get(division_code or "")
+        selection_source = (
+            f"reviewed division code {division_code}"
+            if division_code
+            else "division code"
+        )
+    elif directory.offices:
+        selected = (
+            directory.offices.get(verified_office_key)
+            if verified_office_key is not None
+            else None
+        )
+        selection_source = (
+            f"trusted office route {verified_office_key}"
+            if verified_office_key
+            else "trusted office route"
+        )
+    else:
+        selected = directory
+        selection_source = "reviewed court-wide route"
+
+    if selected is None:
+        return _manual_clerk_contact(
+            court=court,
+            directory=directory,
+            reason=(
+                "A reviewed division or office could not be selected from trusted routing data. "
+                "Use the official contact page to confirm the correct office."
+            ),
+        )
+
+    if not _is_reviewed_clerk_route(selected):
+        return _manual_clerk_contact(
+            court=court,
+            directory=directory,
+            page=selected.official_contact_page,
+            reason=(
+                "The matching office route is not fully reviewed and ready for guided calling. "
+                "Use the official contact page to confirm current details."
+            ),
+        )
+
+    return OfficialClerkContact(
+        status="reviewed_route",
+        court_name=court.display_name,
+        office_name=selected.name,
+        purpose=selected.purpose,
+        line_label=selected.line_label,
+        phone=selected.phone,
+        tel_uri=_official_tel_uri(selected),
+        office_hours=selected.office_hours,
+        timezone=selected.timezone,
+        official_contact_page=selected.official_contact_page,
+        verified_on=selected.verified_on,
+        routing_note=selected.routing_note or selected.routing_boundary,
+        reason=f"Selected from {selection_source} in the reviewed court directory.",
     )
 
 

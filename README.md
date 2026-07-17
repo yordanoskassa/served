@@ -8,7 +8,7 @@
 
 Served gives the recipient an evidence-backed first answer in about 30 seconds.
 
-In our demo, John — an immigrant restaurant owner already having a rough month — finds an official-looking federal subpoena in the mail, addressed to his restaurant, John Doe’s Kitchen LLC: it demands payroll records for a former employee’s wage lawsuit. His English is fine; legal English is the foreign language, as it is for almost everyone. **He is not being sued — but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
+In our demo, John — a restaurant owner who moved from Mexico and whose business is already having a rough month — finds an official-looking federal subpoena in the mail, addressed to his restaurant, John Doe’s Kitchen LLC: it demands payroll records for a former employee’s wage lawsuit. His English is fine; legal English is the foreign language, as it is for almost everyone. **He is not being sued — but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
 Three narrowly scoped AI agents gather and explain the evidence. A small deterministic code policy—not an AI model—selects the final outcome.
 
 ```text
@@ -56,7 +56,7 @@ Agents cannot promote free-form model text into accepted evidence. The repositor
 
 | Source of truth | Defines | Contract consumer | Current status |
 |---|---|---|---|
-| [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) | Recognized court identities, official domains, routing metadata, and the rule that absence is never fraud evidence | CHECKER routing and deterministic validation | Enforced through exact normalized seed matching |
+| [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) | Recognized court identities, official domains, reviewed clerk-contact routes, and the rule that absence is never fraud evidence | CHECKER routing, deterministic validation, and Guided Clerk Call preparation | Enforced through exact normalized seed matching and fail-closed contact selection |
 | [`ftc-patterns.json`](backend/app/corpus/ftc-patterns.json) | Which affirmative warning signs may be reported, which ones count, and the official source behind each | CHECKER | Loaded and validated by the runtime |
 | [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | IDs, sources, and verbatim quotes are guarded at runtime |
 | [`multi-agent-architecture.md`](docs/multi-agent-architecture.md) | Agent responsibilities, schemas, failure behavior, and the immutable verdict boundary | Engineering contract | Checked in |
@@ -86,6 +86,18 @@ For a seeded federal route, the candidate record must match the configured Court
 The checked-in [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) currently covers the four U.S. District Courts in California, the Ninth Circuit, and a Los Angeles Superior Court stub. The state-court stub has no automated docket integration in this release.
 
 Ambiguous, inexact, or unsupported claimed authorities remain `UNKNOWN_AUTHORITY` and receive no automated route. A missing record, unavailable provider, or out-of-scope authority never becomes a scam signal; without the required record-and-party match, the safe outcome is `CANNOT_CONFIRM`.
+
+## Guided Clerk Call
+
+After the search and code-owned verdict are complete, Served can prepare a safe administrative call using only the reviewed contact data in `court-directory-seed.json`. The uploaded document never supplies the phone number, email address, or contact URL.
+
+- CACD, CAED, and CASD select a phone route only when the case number contains an exact reviewed leading division code.
+- The Ninth Circuit uses its reviewed court-wide Case Information route.
+- CAND selects a specific office only when a trusted routing source supplies a reviewed office key. The uploaded letter is not trusted for that choice; without trusted routing, Served shows the court's official contact page and no dial button.
+- LASC remains an identity/contact stub with no automated docket lookup; it exposes only the official contact page, never a phone or dial action, in this release.
+- Any missing, ambiguous, or not-fully-reviewed route strips the phone number and falls back to the official court contact page. No office is guessed or silently defaulted.
+
+The user reviews the court, route, and administrative-only script before opening their own phone dialer. Served does not place or record calls, email the court, ask the clerk for legal advice, or claim the clerk can authenticate the paper. The boundary is: **confirm the case, not the document.**
 
 ## Versioned legal sources
 

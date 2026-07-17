@@ -64,6 +64,22 @@ export type AnalysisRunTrace = {
   metrics: RunMetrics
 }
 
+export type OfficialContact = {
+  status: "reviewed_route" | "manual_confirmation_required" | "not_available"
+  court_name: string | null
+  office_name: string | null
+  purpose: string | null
+  line_label: string | null
+  phone: string | null
+  tel_uri: string | null
+  office_hours: string | null
+  timezone: string | null
+  official_contact_page: string | null
+  verified_on: string | null
+  routing_note: string | null
+  reason: string | null
+}
+
 export interface Analysis {
   document_type: string
   summary: string
@@ -107,6 +123,7 @@ export interface Analysis {
   limitations: string[]
   evidence: { id: string; tool_key: "reader" | "court_directory" | "courtlistener" | "scam_patterns" | "legal_passages"; label: string; detail: string; source: string; quote: string | null; source_url: string | null }[]
   next_step: string
+  official_contact?: OfficialContact | null
 }
 
 export type DashboardSummary = {
