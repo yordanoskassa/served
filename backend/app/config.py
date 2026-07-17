@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,6 +65,22 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices(
             "SERVED_COURTLISTENER_API_TOKEN", "COURTLISTENER_API_TOKEN"
+        ),
+    )
+    resend_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("SERVED_RESEND_API_KEY", "RESEND_API_KEY"),
+    )
+    resend_from_email: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "SERVED_RESEND_FROM_EMAIL", "RESEND_FROM_EMAIL"
+        ),
+    )
+    resend_reply_to: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "SERVED_RESEND_REPLY_TO", "RESEND_REPLY_TO"
         ),
     )
 

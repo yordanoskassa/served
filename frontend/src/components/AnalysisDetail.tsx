@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
+import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,7 @@ export function AnalysisDetail({
   backLabel = "Check another letter",
   onBack,
   onViewPipeline,
+  savedAnalysisId,
 }: {
   analysis: Analysis
   documentName?: string
@@ -57,6 +59,7 @@ export function AnalysisDetail({
   backLabel?: string
   onBack: () => void
   onViewPipeline?: () => void
+  savedAnalysisId?: string
 }) {
   const verdict = verdictCopy[analysis.verdict]
   const decision = decisionExplanation(analysis)
@@ -141,7 +144,11 @@ export function AnalysisDetail({
 
       <GuidedClerkCall analysis={analysis} />
       <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
-      <div className="mt-5 flex flex-wrap gap-2"><Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>{onViewPipeline && <Button onClick={onViewPipeline}>Open this run’s evidence pipeline <ArrowRight size={16} /></Button>}</div>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
+        {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} />}
+        {onViewPipeline && <Button onClick={onViewPipeline}>Open this run’s evidence pipeline <ArrowRight size={16} /></Button>}
+      </div>
     </div>
   </Card>
 }

@@ -4,7 +4,7 @@
 
 [Try the demo](https://servedai.netlify.app/) · [Architecture](docs/multi-agent-architecture.md) · [Safety corpus](backend/app/corpus/README.md) · [UPL boundary](docs/product-safety/UPL.md)
 
-**Anyone can get one of these.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land in the mailbox of a household or small business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour question.
+**Served is the evidence-first legal mailroom for small businesses without legal staff.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land at a restaurant, shop, or family business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour question.
 
 Served gives the recipient an evidence-backed first answer in about 30 seconds.
 
@@ -99,6 +99,20 @@ After the search and code-owned verdict are complete, Served can prepare a safe 
 
 The user reviews the court, route, and administrative-only script before opening their own phone dialer. Served does not place or record calls, email the court, ask the clerk for legal advice, or claim the clerk can authenticate the paper. The boundary is: **confirm the case, not the document.**
 
+## Email evidence handoff
+
+A signed-in owner can email a complete saved analysis to their verified Google
+account. The handoff includes extracted facts, the fixed-code decision receipt,
+retained evidence and source links, limitations, and the reviewed official next
+step. It does not attach the uploaded document because Served does not retain
+uploaded file bytes.
+
+The endpoint has no recipient field: it sends only to the authenticated owner's
+verified email and never to an address found in the uploaded letter. The owner
+can then deliberately forward the brief to an attorney, accountant, manager, or
+other trusted adviser. This keeps the workflow useful for a small business while
+preventing Served from becoming an open mail relay.
+
 ## Versioned legal sources
 
 The legal corpus is a dated source snapshot, not model memory:
@@ -151,7 +165,7 @@ npm install
 npm run dev
 ```
 
-The frontend falls back to the deployed EasyPanel API. For local backend work, set `VITE_API_URL=http://localhost:8001/api` before starting Vite. Copy `.env.example` to your local environment and keep OpenAI and CourtListener credentials out of Git.
+The frontend falls back to the deployed EasyPanel API. For local backend work, set `VITE_API_URL=http://localhost:8001/api` before starting Vite. Copy `.env.example` to your local environment and keep OpenAI, CourtListener, and Resend credentials out of Git.
 
 ## Repository map
 
@@ -201,3 +215,9 @@ the services cannot share a private network).
 Google login can reuse Lumper's OAuth client, but the Served production origin
 must also be added to that client's Authorized JavaScript origins in Google
 Cloud. Served uses the shared Mongo cluster with the separate `served` database.
+
+For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
+`SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
+sender address must use a domain verified in Resend; optionally set
+`SERVED_RESEND_REPLY_TO`. Do not place any of these values in frontend or
+Netlify environment variables.

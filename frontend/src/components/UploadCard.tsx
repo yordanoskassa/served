@@ -124,7 +124,13 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     input.current?.click()
   }
 
-  if (analysis) return <AnalysisDetail analysis={analysis} onBack={reset} onViewPipeline={onViewPipeline} />
+  if (analysis) return <AnalysisDetail
+    analysis={analysis}
+    documentName={file?.name}
+    onBack={reset}
+    onViewPipeline={onViewPipeline}
+    savedAnalysisId={analysis.saved_analysis_id ?? undefined}
+  />
 
   return <Card className="overflow-hidden p-2">
     <div className="rounded-[22px] border border-dashed border-black/15 bg-white/65 px-6 py-10 text-center sm:px-10">

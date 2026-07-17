@@ -267,7 +267,10 @@ def test_stream_returns_trace_before_the_final_result() -> None:
     assert [message["type"] for message in messages] == ["trace", "result"]
     assert messages[0]["event"]["key"] == "intake"
     assert messages[1]["analysis"]["verdict"] == "cannot_confirm"
+    assert messages[1]["analysis"]["saved_analysis_id"]
     database.analyses.insert_one.assert_awaited_once()
+    saved = database.analyses.insert_one.await_args.args[0]
+    assert str(saved["_id"]) == messages[1]["analysis"]["saved_analysis_id"]
 
 
 def test_upload_rejects_mismatched_declared_type_before_analysis() -> None:

@@ -66,8 +66,11 @@ def test_analyze_returns_service_result() -> None:
     assert response.status_code == 200
     assert response.json()["document_type"] == "Court notice"
     assert response.json()["official_contact"]["tel_uri"] == "tel:+19513284450"
+    assert response.json()["saved_analysis_id"]
     database.analyses.insert_one.assert_awaited_once()
     saved = database.analyses.insert_one.await_args.args[0]
+    assert str(saved["_id"]) == response.json()["saved_analysis_id"]
+    assert saved["analysis"]["saved_analysis_id"] == response.json()["saved_analysis_id"]
     assert saved["schema_version"] == 2
     assert saved["detail_available"] is True
     assert saved["analysis"] == result.model_dump(mode="json")

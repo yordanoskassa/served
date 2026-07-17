@@ -136,6 +136,7 @@ class AnalysisRunTrace(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
+    saved_analysis_id: str | None = None
     document_type: str
     summary: str
     verdict: Verdict
@@ -179,3 +180,11 @@ class SavedAnalysisDetail(SavedAnalysisListItem):
     """A user-owned saved run and its full result, when that result was retained."""
 
     analysis: AnalysisResponse | None = None
+
+
+class AnalysisEmailResponse(BaseModel):
+    """Acknowledgement that Resend accepted a user-owned handoff for delivery."""
+
+    status: Literal["sent"] = "sent"
+    message_id: str
+    recipient: str

@@ -81,6 +81,7 @@ export type OfficialContact = {
 }
 
 export interface Analysis {
+  saved_analysis_id?: string | null
   document_type: string
   summary: string
   verdict: Verdict
@@ -148,6 +149,12 @@ export type SavedAnalysisPage = {
 
 export type SavedAnalysisDetail = SavedAnalysisListItem & {
   analysis: Analysis | null
+}
+
+export type EvidenceBriefEmailResponse = {
+  status: "sent"
+  message_id: string
+  recipient: string
 }
 
 export type AgentStatus = {
@@ -284,6 +291,20 @@ export async function fetchSavedAnalysis(
     signal,
   })
   if (!response.ok) throw await responseError(response, "Unable to load this saved analysis")
+  return response.json()
+}
+
+export async function emailEvidenceBrief(
+  id: string,
+  credential: string,
+  signal?: AbortSignal,
+): Promise<EvidenceBriefEmailResponse> {
+  const response = await fetch(`${API_URL}/dashboard/analyses/${encodeURIComponent(id)}/email`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to email this evidence brief")
   return response.json()
 }
 

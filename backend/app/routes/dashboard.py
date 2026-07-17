@@ -6,9 +6,15 @@ from app.db import get_db
 from app.routes.auth import _verify_google_token
 from app.schemas.analysis import (
     AnalysisResponse,
+    AnalysisEmailResponse,
     SavedAnalysisDetail,
     SavedAnalysisList,
     SavedAnalysisListItem,
+)
+from app.services.email_delivery import (
+    EmailDeliveryError,
+    EmailDeliveryNotConfiguredError,
+    send_analysis_handoff,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -140,4 +146,64 @@ async def analysis_detail(
         created_at=record.get("created_at"),
         detail_available=analysis is not None,
         analysis=analysis,
+    )
+
+
+@router.post(
+    "/analyses/{analysis_id}/email",
+    response_model=AnalysisEmailResponse,
+    status_code=202,
+)
+async def email_analysis_handoff(
+    analysis_id: str,
+    authorization: str = Header(default=""),
+) -> AnalysisEmailResponse:
+    """Email a complete saved result only to its authenticated owner's address."""
+    profile = _authenticate(authorization)
+    if not ObjectId.is_valid(analysis_id):
+        raise HTTPException(status_code=404, detail="Saved analysis not found.")
+
+    try:
+        record = await get_db().analyses.find_one({
+            "_id": ObjectId(analysis_id),
+            "google_subject": profile.subject,
+        })
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Saved analysis is temporarily unavailable.",
+        ) from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Saved analysis not found.")
+
+    payload = record.get("analysis")
+    try:
+        analysis = AnalysisResponse.model_validate(payload)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="This saved analysis does not contain a complete handoff.",
+        ) from exc
+
+    try:
+        receipt = await send_analysis_handoff(
+            analysis_id=analysis_id,
+            filename=record.get("filename") or "Uploaded document",
+            analysis=analysis,
+            recipient=profile.email,
+        )
+    except EmailDeliveryNotConfiguredError:
+        raise HTTPException(
+            status_code=503,
+            detail="Email delivery is not configured.",
+        ) from None
+    except EmailDeliveryError:
+        raise HTTPException(
+            status_code=502,
+            detail="The handoff email could not be sent. Please try again.",
+        ) from None
+
+    return AnalysisEmailResponse(
+        message_id=receipt.message_id,
+        recipient=receipt.recipient,
     )

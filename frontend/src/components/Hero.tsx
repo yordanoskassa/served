@@ -90,7 +90,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
             <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.07em] text-[#fffaf1]">Served</p>
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.28em] text-white/55 sm:text-[9px]">legal mail, made clearer</p>
+            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.28em] text-white/55 sm:text-[9px]">the small-business legal mailroom</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
@@ -132,7 +132,7 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">An evidence-first legal-mail experience</motion.p>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">Evidence-first legal-mail triage for small businesses</motion.p>
       <AnimatePresence mode="wait">
         <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
           <h1 className="font-display text-[clamp(2.75rem,6.2vw,6rem)] font-medium leading-[.9] tracking-[-.07em] text-[#1a1a1a]">

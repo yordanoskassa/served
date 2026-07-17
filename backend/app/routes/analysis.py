@@ -4,6 +4,7 @@ from pathlib import Path
 
 from datetime import UTC, datetime
 
+from bson import ObjectId
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
 
@@ -62,10 +63,12 @@ async def _authorize_upload(file: UploadFile, authorization: str):
     return _verify_google_token(token)
 
 
-async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) -> None:
+async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) -> str:
     # Persist the structured result so a user can reopen the exact evidence,
     # extracted facts, deterministic decision, and trace shown after the run.
     # Uploaded file bytes are deliberately never written to MongoDB.
+    analysis_id = ObjectId()
+    result.saved_analysis_id = str(analysis_id)
     analysis_payload = _saved_analysis_payload(result)
     trace = result.trace
     safe_trace = None
@@ -101,6 +104,7 @@ async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) ->
         }
     try:
         await get_db().analyses.insert_one({
+            "_id": analysis_id,
             "schema_version": 2,
             "detail_available": True,
             "google_subject": profile.subject,
@@ -119,6 +123,7 @@ async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) ->
             status_code=503,
             detail="The analysis completed but could not be saved. Please try again.",
         ) from exc
+    return str(analysis_id)
 
 
 def _safe_filename(filename: str | None) -> str:
