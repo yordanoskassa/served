@@ -43,7 +43,7 @@ The complete verdict policy is deliberately small and reviewable:
 ```python
 if countable_positive_fraud_signals >= 2:
     verdict = SCAM
-elif federal_case_found and parties_match:
+elif case_found and parties_match:
     verdict = VERIFIED
 else:
     verdict = CANNOT_CONFIRM
@@ -68,26 +68,25 @@ Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code,
 
 The [Grounding Guard specification](backend/app/engine/grounding-guard/README.md) defines the deterministic boundary between model output and anything shown to the user. Its acceptance criteria require the application to:
 
-- rejects unknown or unsupported fraud-pattern IDs;
-- deduplicates repeated findings and prevents annotation-only patterns from counting;
-- requires exact document excerpts for fraud findings;
-- keeps record and directory misses out of the scam threshold;
-- allows a legal quote only when it exactly matches a non-empty corpus value;
-- quarantines mismatched sources or reconstructed quotations; and
-- falls back to `CANNOT_CONFIRM` or human review when evidence is incomplete.
+- reject unknown or unsupported fraud-pattern IDs;
+- deduplicate repeated findings and prevent annotation-only patterns from counting;
+- require exact document excerpts for fraud findings;
+- keep record and directory misses out of the scam threshold;
+- allow a legal quote only when it exactly matches a non-empty corpus value;
+- quarantine mismatched sources or reconstructed quotations; and
+- fall back to `CANNOT_CONFIRM` or human review when evidence is incomplete.
 
 The current runtime already validates allowlisted fraud IDs, exact document excerpts, duplicates, and countability before the verdict policy. The repository also includes [12 broader guardrail test vectors](backend/app/engine/grounding-guard/guardrail-test-cases.json). Wiring all 12 into automated pytest and GitHub checks—and implementing the remaining court and legal-quote guards—is a release gate. Checked-in test data alone is not claimed as an active test suite.
 
-## Demo coverage—not a universal court checker
+## Current prototype lookup scope
 
-The hackathon's declared P0 scope is intentionally narrow:
+The runtime is not restricted to a two-court allowlist. When READER extracts a case number and CourtListener credentials are available, CHECKER searches CourtListener/RECAP for that number.
 
-| Court route | Demo behavior |
-|---|---|
-| **U.S. District Court, Central District of California** | CourtListener/RECAP record lookup and deterministic party matching may produce `VERIFIED` |
-| **Los Angeles Superior Court** | Seeded for authority recognition and human-review routing only; the demo does not claim automated state-court docket verification or a production-ready directory integration |
+For a claimed U.S. district court that the current parser can identify, the candidate record must match the derived CourtListener court ID, the normalized case number, and the extracted parties before code may return `VERIFIED`. The parser can derive district-court IDs across the United States; it is not limited to California.
 
-Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated P0 paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
+The checked-in [`court-directory-seed.json`](backend/app/corpus/court-directory-seed.json) currently documents the four U.S. District Courts in California, the Ninth Circuit, and a Los Angeles Superior Court stub. It is a source contract, not yet a runtime allowlist. The current prototype does not provide a separate automated Los Angeles Superior Court docket integration.
+
+Strict directory enforcement for ambiguous, state, appellate, or otherwise unsupported claimed authorities remains a release gate. A missing record, unavailable provider, or out-of-scope authority must never become a scam signal; without the required record-and-party match, the safe outcome is `CANNOT_CONFIRM`.
 
 ## Versioned legal sources
 
@@ -163,7 +162,6 @@ Served provides document information, evidence links, and review logistics—not
 The attorney handoff shown in the hackathon demo illustrates a future workflow. It is not a live legal service, and no attorney is retained through the demo.
 
 **Hackathon prototype. Bounded coverage. Evidence before action.**
-
 
 
 ## Deploying
