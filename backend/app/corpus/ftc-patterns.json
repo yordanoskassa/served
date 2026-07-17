@@ -1,16 +1,17 @@
 [
   {
     "id": "1",
+    "count_toward_scam_threshold": false,
     "title": "Nonexistent court or agency name",
     "description": "The document affirmatively presents an invented court or government agency as a real authority.",
     "detection_hint": "Compare the claimed authority with the court-directory seed and known government entities. Match fabricated names such as 'Federal Legal Processing Bureau' only when the document claims official authority; a directory or docket miss by itself is annotation-only and never proves fraud.",
     "source_name": "FTC — Impersonation of Government and Businesses Rule (16 CFR Part 461)",
     "source_url": "https://www.ftc.gov/legal-library/browse/rules/impersonation-government-businesses-rule",
-    "official_quote": "",
-    "counts_toward_verdict": false
+    "official_quote": ""
   },
   {
     "id": "2",
+    "count_toward_scam_threshold": true,
     "title": "Gift-card, cryptocurrency, or wire-only payment demand",
     "description": "The recipient is told to satisfy a government or legal demand through gift cards or another hard-to-reverse payment channel such as cryptocurrency or wire transfer.",
     "detection_hint": "Look for instructions to buy gift cards, disclose card numbers or PINs, transfer cryptocurrency, wire funds, or use a payment app as the required or only payment method.",
@@ -20,6 +21,7 @@
   },
   {
     "id": "3",
+    "count_toward_scam_threshold": true,
     "title": "Countdown threat deadline inconsistent with debt-collection notice rights",
     "description": "A purported debt-collection notice demands payment within 24 to 72 hours while threatening immediate consequences and omitting or contradicting the applicable validation and dispute period.",
     "detection_hint": "In consumer debt-collection documents only, extract countdown phrases such as 'within 48 hours' and compare them with the stated validation information and dispute end date. Do not apply the 30-day debt-dispute rule to unrelated legal documents.",
@@ -29,6 +31,7 @@
   },
   {
     "id": "4",
+    "count_toward_scam_threshold": true,
     "title": "Threat of immediate arrest, asset freezing, or license suspension",
     "description": "The sender uses an immediate, non-appealable threat of arrest, deportation, asset freezing, or license suspension to force payment or disclosure of personal information.",
     "detection_hint": "Look for 'pay now or else' language tied to arrest, police action, deportation, frozen assets, or suspended licenses, especially when the document denies an opportunity to question or appeal the demand.",
@@ -38,6 +41,7 @@
   },
   {
     "id": "5",
+    "count_toward_scam_threshold": true,
     "title": "Instruction to avoid the courthouse, a lawyer, or other verification",
     "description": "The sender tells the recipient not to discuss the demand or independently verify it with a court, agency, lawyer, family member, or trusted person.",
     "detection_hint": "Match isolation language such as 'do not contact the courthouse,' 'do not speak to a lawyer,' 'do not tell anyone,' or instructions to use only the sender's contact details.",
@@ -47,6 +51,7 @@
   },
   {
     "id": "6",
+    "count_toward_scam_threshold": true,
     "title": "Payment offered as the only way to stop a legal filing",
     "description": "A purported government or legal authority says an immediate payment will prevent a lawsuit, warrant, filing, prosecution, or other official action.",
     "detection_hint": "Look for conditional framing such as 'pay now to stop filing,' 'send payment to cancel the warrant,' or 'settle today to prevent legal action,' especially when payment goes to the sender rather than a court-approved channel.",
@@ -56,36 +61,37 @@
   },
   {
     "id": "7",
+    "count_toward_scam_threshold": false,
     "title": "Missing or malformed court case number",
     "description": "A document presented as a court filing or electronic filing notice has no case number, or substitutes a generic reference number that does not match the identified court's verified format.",
     "detection_hint": "Check for a complete case number only after identifying the named court and its reviewed format. Under P0-SPEC this match is annotation-only: it does not count toward the two-signal scam threshold, and a CourtListener or docket miss must never be treated as fraud.",
     "source_name": "U.S. Bankruptcy Court, District of Colorado — Nationwide Notices of Electronic Filing Scam",
     "source_url": "https://www.cob.uscourts.gov/news/nationwide-notices-electronic-filing-nefs-scam",
-    "official_quote": "all NEF subject lines will include the complete case number and document title",
-    "counts_toward_verdict": false
+    "official_quote": "all NEF subject lines will include the complete case number and document title"
   },
   {
     "id": "8",
+    "count_toward_scam_threshold": true,
     "title": "Payment resolution by phone call to a non-government number",
     "description": "A purported court notice directs the recipient to call a supplied non-government number and pay a fine or legal charge over the phone.",
     "detection_hint": "Match phone-payment instructions in court or jury notices, particularly when the number is not independently listed on an official court website and the caller demands immediate payment.",
     "source_name": "U.S. Courts — New Year, Old Juror Scam",
     "source_url": "https://www.uscourts.gov/data-news/judiciary-news/2015/01/16/new-year-old-juror-scam",
-    "official_quote": "no court nor any law enforcement agency will ever call to request payment of a fine",
-    "counts_toward_verdict": false
+    "official_quote": "no court nor any law enforcement agency will ever call to request payment of a fine"
   },
   {
     "id": "9",
+    "count_toward_scam_threshold": true,
     "title": "Non-government contact channels used while claiming federal authority",
     "description": "A sender claiming to be a federal court or agency presents only private contact channels, such as a commercial email domain, private post-office box, or non-government payment portal.",
     "detection_hint": "Flag only when the channel is represented as the agency's own official contact but uses a private domain or address and no independently verified government channel is provided. Do not flag outside counsel, contractors, or legitimate private parties solely because they use a .com address.",
     "source_name": "FTC — Impersonation of Government and Businesses Rule (16 CFR Part 461)",
     "source_url": "https://www.ftc.gov/legal-library/browse/rules/impersonation-government-businesses-rule",
-    "official_quote": "",
-    "counts_toward_verdict": false
+    "official_quote": ""
   },
   {
     "id": "10",
+    "count_toward_scam_threshold": true,
     "title": "Generic or mismatched recipient details",
     "description": "An individualized debt or legal demand uses a generic addressee, the wrong person's name, or recipient information that conflicts with the document's stated account or claim.",
     "detection_hint": "For individualized debt-collection notices, compare the addressee and mailing details with the named debtor and account context. Match generic labels such as 'business owner' only when the notice should identify a specific recipient; do not treat a lawful role-based addressee as suspicious by itself.",
