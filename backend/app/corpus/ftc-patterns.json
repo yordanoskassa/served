@@ -64,7 +64,7 @@
     "count_toward_scam_threshold": false,
     "title": "Missing or malformed court case number",
     "description": "A document presented as a court filing or electronic filing notice has no case number, or substitutes a generic reference number that does not match the identified court's verified format.",
-    "detection_hint": "Check for a complete case number only after identifying the named court and its reviewed format. Under P0-SPEC this match is annotation-only: it does not count toward the two-signal scam threshold, and a CourtListener or docket miss must never be treated as fraud.",
+    "detection_hint": "Check for a complete case number only after identifying the named court and its reviewed format. Under the current deterministic verdict policy this match is annotation-only: it does not count toward the two-signal scam threshold, and a CourtListener or docket miss must never be treated as fraud.",
     "source_name": "U.S. Bankruptcy Court, District of Colorado — Nationwide Notices of Electronic Filing Scam",
     "source_url": "https://www.cob.uscourts.gov/news/nationwide-notices-electronic-filing-nefs-scam",
     "official_quote": "all NEF subject lines will include the complete case number and document title"
