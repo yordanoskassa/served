@@ -1,5 +1,7 @@
 # Served three-agent architecture
 
+Implementation status: This document defines the target engineering contract. The current runtime implements the three-agent flow, deterministic verdict policy, and fraud-excerpt validation. Court-directory enforcement, legal-passage insertion, full Grounding Guard automation, and durable orchestration remain release gates.
+
 ## Product contract
 
 Served analyzes an uploaded legal-looking letter with exactly three AI agents:
