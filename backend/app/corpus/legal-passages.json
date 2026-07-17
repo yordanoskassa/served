@@ -49,7 +49,7 @@
       "result": "UNKNOWN_AUTHORITY",
       "action": "Route to human review.",
       "scam_threshold_contribution": 0,
-      "rule": "Absence from the limited directory is not evidence of fraud, just as a RECAP docket miss is not evidence of fraud. P0-SPEC section 2 indicator 4 remains annotation-only.",
+      "rule": "Absence from the limited directory is not evidence of fraud, just as a RECAP docket miss is not evidence of fraud. Directory-only authority findings remain annotation-only under the current prototype safety contract.",
       "only_positive_fraud_matches_count": true
     },
     "out_of_scope_for_july": [
