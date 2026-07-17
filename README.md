@@ -1,3 +1,4 @@
+##Served
 
 > **That envelope says you have been served. Now you are served by us.**
 
@@ -86,14 +87,7 @@ The hackathon's declared P0 scope is intentionally narrow:
 | **U.S. District Court, Central District of California** | CourtListener/RECAP record lookup and deterministic party matching may produce `VERIFIED` |
 | **Los Angeles Superior Court** | Seeded for authority recognition and human-review routing only; the demo does not claim automated state-court docket verification or a production-ready directory integration |
 
-Federal docket lookups may run against any U.S. district court via
-CourtListener/RECAP — but only the Central District of California path is
-eval-tested and claimed as validated coverage. Other court identities in the
-seed are expansion metadata, not tested product coverage. A lookup miss
-anywhere returns CANNOT_CONFIRM and is never treated as a fraud signal.
-State-court documents and unrecognized authorities route to human review. A
-similar-looking court name never becomes official through fuzzy matching,
-and lack of coverage never becomes evidence of fraud.
+Other court identities currently present in the seed are expansion metadata, not claimed as tested product coverage. Anything outside the validated P0 paths returns an unknown/unconfirmed state or routes to human review. A similar-looking court name never becomes official through fuzzy matching, and lack of coverage never becomes evidence of fraud.
 
 ## Versioned legal sources
 
@@ -129,6 +123,46 @@ Codex was used as the build partner to:
 - inspect the frontend/backend integration, reproduce failures, and keep implementation notes aligned with the repository.
 
 The visual direction and early interaction mocks were developed with Claude. The final verdict is never delegated to either model.
+
+## Run locally
+
+Backend:
+
+```bash
+cd backend
+python -m uvicorn app.main:app --reload --port 8001
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend defaults to `http://localhost:8001/api`. Set `VITE_API_URL` to use another backend. Copy `.env.example` to your local environment and keep OpenAI and CourtListener credentials out of Git.
+
+## Repository map
+
+```text
+backend/app/corpus/                  sourced, versioned ground truth
+backend/app/engine/                  schemas, Grounding Guard, verdict policy
+backend/app/services/                agents and external integrations
+backend/fixtures/                    D1/D2/D3 and golden expected results
+backend/tests/                       deterministic backend tests
+docs/multi-agent-architecture.md     full engineering contract
+docs/product-safety/UPL.md           legal-information boundary copy
+frontend/                            React/Vite product UI
+```
+
+## What Served is not
+
+Served provides document information, evidence links, and review logistics—not legal advice. It does not determine that a document is legally valid, properly served, enforceable, or fraudulent; calculate a case-specific legal deadline; or create an attorney-client relationship.
+
+The attorney handoff shown in the hackathon demo illustrates a future workflow. It is not a live legal service, and no attorney is retained through the demo.
+
+**Hackathon prototype. Bounded coverage. Evidence before action.**
 
 ## Run locally
 
