@@ -12,7 +12,7 @@
       },
       "expected": {
         "accepted_pattern_ids": ["2", "4"],
-        "verdict": "SCAM_INDICATORS"
+        "verdict": "SCAM"
       }
     },
     {
