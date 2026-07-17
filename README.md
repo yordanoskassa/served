@@ -8,8 +8,7 @@
 
 Served gives the recipient an evidence-backed first answer in about 30 seconds.
 
-In our demo, a small-restaurant owner receives an official-looking federal subpoena demanding payroll records for a former employee’s wage lawsuit. **He is not being sued—but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
-
+In our demo, John — an immigrant restaurant owner already having a rough month — finds an official-looking federal subpoena in the mail, addressed to his restaurant, John Doe’s Kitchen LLC: it demands payroll records for a former employee’s wage lawsuit. His English is fine; legal English is the foreign language, as it is for almost everyone. **He is not being sued — but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
 Three narrowly scoped AI agents gather and explain the evidence. A small deterministic code policy—not an AI model—selects the final outcome.
 
 ```text
