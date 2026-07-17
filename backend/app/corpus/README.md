@@ -19,7 +19,7 @@ case found + parties match                   -> VERIFIED
 anything else                                -> CANNOT_CONFIRM
 ```
 
-Only a pattern with `"count_toward_scam_threshold": true` may increase the scam-signal count. Missing, ambiguous, or unavailable evidence falls back to `CANNOT_CONFIRM` or human review — never an AI guess.
+Only a pattern with `"counts_toward_verdict": true` may increase the scam-signal count. Missing, ambiguous, or unavailable evidence falls back to `CANNOT_CONFIRM` or human review — never an AI guess.
 
 ## How Served prevents AI hallucinations from deciding the verdict
 
