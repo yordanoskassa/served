@@ -4,13 +4,17 @@ The Grounding Guard is the boundary between model output and the user-facing res
 
 The guard does not ask another model whether an answer looks correct. It validates structured fields against the versioned corpus and applies deterministic rules in application code.
 
+## Implementation status
+
+The current runtime already validates allowlisted fraud IDs, exact document excerpts, duplicate IDs, and countability before applying the verdict policy. Court-directory enforcement, legal-passage selection, exact legal-quote validation, the full audit object, and automation of all 12 test vectors remain release gates. The tables below describe the complete acceptance contract, not a claim that every guard is already active.
+
 ## What it protects
 
 | Input | Accepted only when | Failure behavior |
 |---|---|---|
 | Extracted document fact | It matches the READER schema and is labeled as document-derived | Omit the field or mark it unconfirmed |
 | Court identity | The normalized court matches `court-directory-seed.json` | Return `UNKNOWN_AUTHORITY`; add zero scam signals |
-| Docket evidence | CourtListener/RECAP returns a record and the required court, party, and date checks pass | Do not verify; return `CANNOT_CONFIRM` or human review |
+| Docket evidence | CourtListener/RECAP returns the exact normalized case number and parties match; a derived U.S. district-court ID must also match | Do not verify; return `CANNOT_CONFIRM` or human review |
 | Fraud signal | Its stable ID exists in `ftc-patterns.json` and the document contains affirmative supporting language | Discard unknown or unsupported IDs |
 | Countable fraud signal | The accepted corpus entry has `count_toward_scam_threshold: true` | Annotation-only entries add zero to the threshold |
 | Legal passage | Its ID exists in `legal-passages.json` | Do not render the passage |
@@ -38,12 +42,14 @@ The EXPLAINER runs after the verdict. Legal passages may explain a result, but t
 
 ```text
 if countable_positive_fraud_signals >= 2:
-    verdict = SCAM_INDICATORS
-elif federal_docket_found and court_party_date_cross_check_passed:
+    verdict = SCAM
+elif case_found and parties_match:
     verdict = VERIFIED
 else:
     verdict = CANNOT_CONFIRM
 ```
+
+`SCAM` is the internal code verdict. The UI may present it as **SCAM INDICATORS**. Document date is extracted evidence but is not part of the current verdict function.
 
 Additional requirements:
 
