@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.0.0",
-  "verified_on": "2026-07-16",
+  "schema_version": "1.1.0",
+  "verified_on": "2026-07-17",
   "scope": {
     "release": "hackathon-prototype-v1",
     "description": "Intentionally limited July demo court-routing seed. Read this boundary before extending.",
@@ -159,7 +159,75 @@
           "label": "Local RECAP spot-check confirming the cacd identifier",
           "path": "../subdata set/recap-spot-check/recap-spot-check-results.json"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "guided_clerk_call",
+        "selection_rule": "Select only from the reviewed leading division code in the parsed case number: 2, 5, or 8. If the code is missing or unrecognized, do not guess or default to Los Angeles; show the official CACD contact page for human confirmation.",
+        "divisions": {
+          "2": {
+            "name": "Western Division / Los Angeles",
+            "purpose": "Case-existence inquiry (clerk's office)",
+            "line_label": "Clerk's Office / Civil Intake",
+            "phone": "Main: (213) 894-1565 · Civil Intake: (213) 894-3535",
+            "office_hours": "9:00 a.m. to 4:00 p.m., Monday through Friday, excluding court-observed holidays",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.cacd.uscourts.gov/contact",
+            "official_public_sources": [
+              "https://www.cacd.uscourts.gov/contact",
+              "https://www.cacd.uscourts.gov/locations/felicitas-and-gonzalo-mendez-united-states-courthouse",
+              "https://www.cacd.uscourts.gov/locations/edward-r-roybal-federal-building-and-united-states-courthouse"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(213) 894-1565",
+            "civil_intake_phone": "(213) 894-3535"
+          },
+          "5": {
+            "name": "Eastern Division / Riverside",
+            "purpose": "Case-existence inquiry (clerk's office)",
+            "line_label": "Clerk's Office",
+            "phone": "All Inquiries: (951) 328-4450",
+            "office_hours": "9:00 a.m. to 4:00 p.m., Monday through Friday, excluding court-observed holidays",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.cacd.uscourts.gov/contact",
+            "official_public_sources": [
+              "https://www.cacd.uscourts.gov/contact",
+              "https://www.cacd.uscourts.gov/locations/george-e-brown-jr-federal-building-and-united-states-courthouse"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(951) 328-4450"
+          },
+          "8": {
+            "name": "Southern Division / Santa Ana",
+            "purpose": "Case-existence inquiry (clerk's office)",
+            "line_label": "Clerk's Office",
+            "phone": "All Inquiries: (714) 338-4750",
+            "office_hours": "9:00 a.m. to 4:00 p.m., Monday through Friday, excluding court-observed holidays",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.cacd.uscourts.gov/contact",
+            "official_public_sources": [
+              "https://www.cacd.uscourts.gov/contact",
+              "https://www.cacd.uscourts.gov/locations/ronald-reagan-federal-building-and-us-courthouse"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(714) 338-4750"
+          }
+        }
+      }
     },
     {
       "id": "usdc-caed",
@@ -222,7 +290,112 @@
           "label": "CourtListener REST API overview",
           "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "guided_clerk_call",
+        "selection_rule": "Select only from a reviewed leading office code when available. If the code is missing or unrecognized, do not guess; show the official CAED Clerk's Office page for human confirmation.",
+        "divisions": {
+          "1": {
+            "name": "Fresno",
+            "purpose": "Case-related questions",
+            "line_label": "Clerk's Office main number",
+            "phone": "(559) 499-5600",
+            "office_hours": "9:00 a.m. to 4:00 p.m. Monday – Friday (excluding holidays)",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
+            "official_public_sources": [
+              "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(559) 499-5600"
+          },
+          "2": {
+            "name": "Sacramento",
+            "purpose": "Case-related questions",
+            "line_label": "Clerk's Office main number",
+            "phone": "(916) 930-4000 or (866) 884-5525",
+            "office_hours": "9:00 a.m. to 4:00 p.m. Monday – Friday (excluding holidays)",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
+            "official_public_sources": [
+              "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(916) 930-4000",
+            "alternate_phone": "(866) 884-5525"
+          },
+          "3": {
+            "name": "Redding",
+            "purpose": "Case-related questions",
+            "line_label": "Clerk's Office main number",
+            "phone": "(530) 246-5416",
+            "office_hours": null,
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Review",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
+            "official_public_sources": [
+              "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Phone verified · CourtInfo hours secondary-only",
+            "runtime_readiness": "PHONE READY · HOURS REVIEW",
+            "main_phone": "(530) 246-5416",
+            "hours_status": "Contact the office for current public hours; do not infer hours from CM/ECF."
+          },
+          "5": {
+            "name": "Bakersfield",
+            "purpose": "Case-record / intake questions",
+            "line_label": "Clerk's Office main number",
+            "phone": "(661) 326-6620",
+            "office_hours": null,
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Review",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
+            "official_public_sources": [
+              "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Phone verified · CourtInfo hours secondary-only",
+            "runtime_readiness": "PHONE READY · HOURS REVIEW",
+            "main_phone": "(661) 326-6620",
+            "hours_status": "Contact the office for current public hours; do not infer hours from CM/ECF."
+          },
+          "6": {
+            "name": "Yosemite",
+            "purpose": "Case-related questions",
+            "line_label": "Clerk's Office main number",
+            "phone": "(209) 372-0320",
+            "office_hours": "Monday through Friday, 9:00 a.m. – 4:00 p.m., excluding holidays (confirmed by official phone call)",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/",
+            "official_public_sources": [
+              "https://www.caed.uscourts.gov/caednew/index.cfm/clerks-office/"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Direct confirmation through the official Clerk's Office number",
+            "verification_status": "Verified — official phone confirmation",
+            "runtime_readiness": "READY",
+            "main_phone": "(209) 372-0320",
+            "hours_verification_method": "Direct call to the official Clerk's Office number"
+          }
+        }
+      }
     },
     {
       "id": "usdc-cand",
@@ -285,7 +458,94 @@
           "label": "CourtListener REST API overview",
           "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "guided_clerk_call",
+        "selection_rule": "Use a reviewed office only when the court location is available from verified routing data. Otherwise show the official CAND contacting-the-court page and request human confirmation.",
+        "offices": {
+          "san_francisco": {
+            "name": "San Francisco",
+            "purpose": "Case-record / intake questions",
+            "line_label": "Front Desk / Intake",
+            "phone": "(415) 522-2000",
+            "office_hours": "Front desk: 9:00 a.m.–4:00 p.m. Public building access and court filing drop box: 6:00 a.m.–6:00 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://cand.uscourts.gov/locations/san-francisco",
+            "official_public_sources": [
+              "https://cand.uscourts.gov/locations/san-francisco"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(415) 522-2000"
+          },
+          "oakland": {
+            "name": "Oakland",
+            "purpose": "Case-record / intake questions",
+            "line_label": "Front Desk / Intake",
+            "phone": "(510) 637-3530",
+            "office_hours": "Front desk: 9:00 a.m.–4:00 p.m. Public building access and court filing drop box: 7:00 a.m.–5:00 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://cand.uscourts.gov/locations/oakland",
+            "official_public_sources": [
+              "https://cand.uscourts.gov/locations/oakland"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(510) 637-3530"
+          },
+          "san_jose": {
+            "name": "San Jose",
+            "purpose": "Case-record / intake questions",
+            "line_label": "Front Desk / Intake",
+            "phone": "(408) 535-5363",
+            "office_hours": "Front desk: 9:00 a.m.–4:00 p.m. Public building access and court filing drop box: 7:30 a.m.–5:00 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://cand.uscourts.gov/locations/san-jose",
+            "official_public_sources": [
+              "https://cand.uscourts.gov/locations/san-jose"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified — public website controls",
+            "runtime_readiness": "READY",
+            "main_phone": "(408) 535-5363",
+            "public_source_controls": true,
+            "audit_note": "A different digit appears in CM/ECF CourtInfo. The official public San Jose location page controls; never display the secondary value."
+          },
+          "eureka_mckinleyville": {
+            "name": "Eureka / McKinleyville",
+            "purpose": "Clerk's Office location / general courthouse questions",
+            "line_label": "Courthouse general number (Clerk's Office location)",
+            "phone": "(707) 445-3612",
+            "office_hours": "9:00 a.m. – 4:00 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes — official clerk-location routing",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://cand.uscourts.gov/about-court/contacting-court",
+            "official_public_sources": [
+              "https://cand.uscourts.gov/about-court/clerks-office",
+              "https://cand.uscourts.gov/about-court/contacting-court",
+              "https://cand.uscourts.gov/locations/eureka-mckinleyville"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(707) 445-3612",
+            "routing_note": "This is the official courthouse general number listed for the Clerk's Office location; transfer may be required."
+          }
+        }
+      }
     },
     {
       "id": "usdc-casd",
@@ -344,7 +604,55 @@
           "label": "CourtListener REST API overview",
           "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "guided_clerk_call",
+        "selection_rule": "Select only from the reviewed leading division code: 3 for San Diego or 2 for El Centro. If missing or unrecognized, do not guess; show the official CASD contact page for human confirmation.",
+        "divisions": {
+          "2": {
+            "name": "El Centro",
+            "purpose": "General case / clerk questions",
+            "line_label": "Courthouse / Clerk's Office routing",
+            "phone": "(760) 339-4242",
+            "office_hours": "Monday through Friday, 8:30 a.m.–4:30 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.casd.uscourts.gov/ContactUs.aspx",
+            "official_public_sources": [
+              "https://www.casd.uscourts.gov/ContactUs.aspx"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified — public website controls",
+            "runtime_readiness": "READY",
+            "main_phone": "(760) 339-4242",
+            "public_source_controls": true,
+            "audit_note": "An older/different number appears in CM/ECF CourtInfo. The official public CASD Contact Us page controls; never display the secondary value."
+          },
+          "3": {
+            "name": "San Diego",
+            "purpose": "General case / clerk questions",
+            "line_label": "Clerk's Office",
+            "phone": "(619) 557-5600",
+            "office_hours": "Clerk's Office business hours: Monday through Friday, 8:30 a.m.–4:30 p.m. Physical file review: 8:30 a.m.–4:00 p.m.; automated records may be reviewed until 4:30 p.m.",
+            "timezone": "America/Los_Angeles",
+            "guided_call_eligible": "Yes",
+            "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+            "official_contact_page": "https://www.casd.uscourts.gov/clerksoffice.aspx",
+            "official_public_sources": [
+              "https://www.casd.uscourts.gov/clerksoffice.aspx#faq1",
+              "https://www.casd.uscourts.gov/clerksoffice/telephone-list.aspx"
+            ],
+            "verified_on": "2026-07-17",
+            "verification_method": "Review against official public court contact and location sources",
+            "verification_status": "Verified",
+            "runtime_readiness": "READY",
+            "main_phone": "(619) 557-5600",
+            "file_review_hours": "Physical file review ends at 4:00 p.m.; automated records may be reviewed until 4:30 p.m."
+          }
+        }
+      }
     },
     {
       "id": "usca-ca9",
@@ -402,7 +710,31 @@
           "label": "CourtListener REST API overview",
           "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "guided_clerk_call",
+        "name": "Case Information",
+        "purpose": "Pending-case information",
+        "line_label": "Case Information line",
+        "phone": "Case Information: (415) 355-7840 · Main: (415) 355-8000",
+        "office_hours": "Monday through Friday, 8:30 a.m. – 5:00 p.m. Pacific Time, excluding federal holidays",
+        "timezone": "America/Los_Angeles",
+        "guided_call_eligible": "Yes",
+        "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+        "official_contact_page": "https://www.ca9.uscourts.gov/contact",
+        "official_public_sources": [
+          "https://www.ca9.uscourts.gov/contact",
+          "https://www.ca9.uscourts.gov/about/visit/"
+        ],
+        "verified_on": "2026-07-17",
+        "verification_method": "Review against official public court contact and location sources",
+        "verification_status": "Verified",
+        "runtime_readiness": "READY",
+        "case_information_phone": "(415) 355-7840",
+        "main_phone": "(415) 355-8000",
+        "email": "questions@ca9.uscourts.gov",
+        "email_action_policy": "Any email must be drafted for the user, reviewed by the user, and sent by the user. Never auto-send."
+      }
     },
     {
       "id": "ca-lasc",
@@ -423,17 +755,17 @@
         "county": "Los Angeles",
         "court_level": "California superior court"
       },
-      "official_website": "https://www.lacourt.org/",
+      "official_website": "https://www.lacourt.ca.gov/",
       "official_domains": [
-        "lacourt.org",
-        "www.lacourt.org"
+        "lacourt.ca.gov",
+        "www.lacourt.ca.gov"
       ],
       "case_access": {
         "prototype_provider": "LASC Case Summary",
-        "public_search_url": "https://www.lacourt.org/casesummary/ui/",
+        "public_search_url": null,
         "courtlistener_court_id": null,
         "automated_lookup": false,
-        "reason": "The current prototype has no reviewed state-court docket integration for this route.",
+        "reason": "This entry is an identity/contact stub only. The current prototype has no reviewed automated state-court docket integration for this route.",
         "search_result_warning": "The court states that online case information is not the official court record and may contain errors or omissions."
       },
       "case_number_validation": {
@@ -454,17 +786,43 @@
       "sources": [
         {
           "label": "Official court website",
-          "url": "https://www.lacourt.org/"
+          "url": "https://www.lacourt.ca.gov/"
         },
         {
-          "label": "Official LASC Case Summary search and warning",
-          "url": "https://www.lacourt.org/casesummary/ui/"
+          "label": "Official Contact the Court page",
+          "url": "https://www.lacourt.ca.gov/pages/lp/court-communications/tp/about-the-court/cp/contact-the-court"
         },
         {
-          "label": "Official current local rules defining the court",
-          "url": "https://www.lacourt.org/courtrules/CurrentCourtRulesPDF/Chap1.pdf"
+          "label": "Locally captured official Contact the Court page PDF",
+          "path": "../Superior Court of Los Angeles County _ About the Court.pdf",
+          "captured_on": "2026-07-17"
         }
-      ]
+      ],
+      "clerk_contact": {
+        "route": "identity_and_contact_only",
+        "automated_lookup": false,
+        "maximum_verdict": "CANNOT_CONFIRM",
+        "guided_call_eligible": "No",
+        "civil_call_center_phone": "(213) 633-6333",
+        "self_help_call_center_phone": "(213) 830-0845",
+        "stanley_mosk_courthouse_phone": "(213) 830-0800",
+        "name": "Civil Call Center (route by case type)",
+        "purpose": "Clerk's Office assistance",
+        "line_label": "Civil Call Center",
+        "phone": "Civil: (213) 633-6333 · Self-Help: (213) 830-0845 · Stanley Mosk: (213) 830-0800",
+        "office_hours": "Call centers: 8:30 a.m. – 4:30 p.m., Monday through Friday, except court holidays",
+        "timezone": "America/Los_Angeles",
+        "routing_boundary": "Administrative routing only. Court staff cannot authenticate the uploaded document or provide legal advice. Never use contact information printed on the uploaded document.",
+        "official_contact_page": "https://www.lacourt.ca.gov/pages/lp/court-communications/tp/about-the-court/cp/contact-the-court",
+        "official_public_sources": [
+          "Official LASC \"Contact the Court\" page, captured as PDF 2026-07-17"
+        ],
+        "verified_on": "2026-07-17",
+        "verification_method": "Review against official public court contact and location sources",
+        "verification_status": "Verified — official court page PDF",
+        "runtime_readiness": "DATA READY (identity/contact only; no automated docket lookup)",
+        "restriction": "This state-court stub cannot independently produce VERIFIED and is not a Guided Clerk Call route in this build."
+      }
     }
   ],
   "fixture_only_fictitious_authorities": [
@@ -486,5 +844,13 @@
       },
       "important_note": "The document may separately trigger affirmative FTC-backed scam patterns. This directory result alone never decides SCAM."
     }
-  ]
+  ],
+  "contact_source_policy": {
+    "authoritative_source": "The court's official public contact or location page",
+    "secondary_audit_source": "CM/ECF CourtInfo may be used only as a corroborating audit source because its contact data may update slowly.",
+    "conflict_rule": "The official public contact/location page always controls. A CM/ECF mismatch must not replace a public phone number, create a HOLD by itself, or appear in Guided Clerk Call UI.",
+    "uploaded_document_rule": "Never use a phone number, email address, or URL printed on the uploaded document for Guided Clerk Call routing.",
+    "missing_route_rule": "If a division or office cannot be selected from reviewed data, do not guess or silently default. Show the court's official contact page and request human confirmation.",
+    "court_staff_boundary": "Court staff may confirm administrative case information but cannot authenticate an uploaded document or provide legal advice."
+  }
 }
