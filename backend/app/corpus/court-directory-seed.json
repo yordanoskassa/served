@@ -1,0 +1,490 @@
+{
+  "schema_version": "1.0.0",
+  "verified_on": "2026-07-16",
+  "scope": {
+    "release": "hackathon-p0",
+    "description": "Intentionally limited July demo court-routing seed. Read this boundary before extending.",
+    "included_federal_courts": 5,
+    "included_state_court_stubs": 1,
+    "included_fixture_only_fictitious_authorities": 1,
+    "july_demo_scope": {
+      "federal": [
+        "The four United States District Courts in California",
+        "United States Court of Appeals for the Ninth Circuit"
+      ],
+      "fake_authority_fixture": "D3's fictional Federal Legal Processing Bureau"
+    },
+    "not_in_directory_behavior": {
+      "result": "UNKNOWN_AUTHORITY",
+      "action": "Route to human review.",
+      "scam_threshold_contribution": 0,
+      "rule": "A real out-of-state or other federal court may simply be outside this seed. Absence is not evidence of fraud, exactly as a RECAP docket miss is not evidence of fraud. P0-SPEC section 2 indicator 4 remains annotation-only.",
+      "only_positive_fraud_matches_count": true
+    },
+    "out_of_scope": [
+      "Federal districts outside California",
+      "State courts beyond the optional Los Angeles Superior Court stub",
+      "Tribal courts",
+      "Administrative bodies",
+      "Fuzzy matching that automatically declares a court official",
+      "Automated state-court docket verification",
+      "Using a directory miss as a scam signal"
+    ],
+    "planned_extension_window": "August"
+  },
+  "normalization": {
+    "steps": [
+      "Apply Unicode NFKC normalization",
+      "Convert to lowercase",
+      "Replace ampersands with the word and",
+      "Remove punctuation except hyphens inside case numbers",
+      "Collapse repeated whitespace",
+      "Trim leading and trailing whitespace"
+    ],
+    "automatic_match_policy": "Only normalized exact matches against canonical_name or aliases may return OFFICIAL_COURT.",
+    "fuzzy_match_policy": "A similar-looking name may return NAME_MISMATCH for review, but must never return OFFICIAL_COURT automatically."
+  },
+  "match_outcomes": {
+    "OFFICIAL_COURT": {
+      "meaning": "The normalized name exactly matches a seeded official court name or alias.",
+      "scam_threshold_contribution": 0
+    },
+    "NAME_MISMATCH": {
+      "meaning": "The name resembles a known court but is not an exact seeded name or alias.",
+      "action": "Request human review or ask the user to verify the court on its official website.",
+      "scam_threshold_contribution": 0
+    },
+    "UNKNOWN_AUTHORITY": {
+      "meaning": "No exact official-court match was found in this limited seed.",
+      "action": "Treat as annotation-only and route to human verification.",
+      "scam_threshold_contribution": 0
+    }
+  },
+  "global_guardrails": [
+    "A court-directory miss is annotation-only and never counts toward the two-signal scam threshold.",
+    "A case-number format mismatch is annotation-only until two teammates independently spot-check the rule.",
+    "A CourtListener or RECAP miss yields CANNOT_CONFIRM, not SCAM.",
+    "Only a federal court route may use CourtListener or RECAP in the P0 flow.",
+    "The state-court route has no automated public-docket lookup in P0 and therefore cannot yield VERIFIED.",
+    "No court name, domain, or case-number pattern alone decides the final verdict."
+  ],
+  "courts": [
+    {
+      "id": "usdc-cacd",
+      "tier": "federal",
+      "canonical_name": "United States District Court for the Central District of California",
+      "display_name": "U.S. District Court, Central District of California",
+      "aliases": [
+        "United States District Court Central District of California",
+        "U.S. District Court Central District of California",
+        "US District Court Central District of California",
+        "Central District of California",
+        "C.D. California",
+        "C.D. Cal.",
+        "CDCA"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "state": "California",
+        "court_level": "United States district court",
+        "district": "Central District of California"
+      },
+      "official_website": "https://www.cacd.uscourts.gov/",
+      "official_domains": [
+        "cacd.uscourts.gov",
+        "ecf.cacd.uscourts.gov",
+        "apps.cacd.uscourts.gov"
+      ],
+      "case_access": {
+        "p0_provider": "CourtListener/RECAP",
+        "courtlistener_court_id": "cacd",
+        "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=cacd&docket_number={urlencoded_case_number}",
+        "official_cm_ecf_information_url": "https://ecf.cacd.uscourts.gov/cgi-bin/CourtInfo.pl",
+        "automated_lookup": true,
+        "miss_effect": "CANNOT_CONFIRM"
+      },
+      "case_number_validation": {
+        "mode": "annotation_only_until_two_person_review",
+        "pattern": "^(?:0?[258]):\\d{2}-cv-\\d{5}(?:-[A-Za-z]{1,8}){0,2}$",
+        "flags": "i",
+        "components": {
+          "division_code": "2, 5, or 8",
+          "year": "two digits",
+          "case_type": "cv",
+          "sequence": "five digits",
+          "judge_initials": "optional in parsed input",
+          "referral_judge_initials": "optional in parsed input"
+        },
+        "division_codes": {
+          "2": "Western Division / Los Angeles",
+          "5": "Eastern Division / Riverside",
+          "8": "Southern Division / Santa Ana"
+        },
+        "accepted_examples": [
+          "2:26-cv-07693",
+          "2:14-cv-00011-ABC",
+          "5:25-cv-02108-KK-SP",
+          "8:16-cv-00011-ABC"
+        ],
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "required_checks": [
+          "case number found in CourtListener/RECAP",
+          "court matches",
+          "at least one party matches",
+          "document date matches"
+        ],
+        "all_checks_pass": "VERIFIED",
+        "any_check_fails_or_is_missing": "CANNOT_CONFIRM"
+      },
+      "sources": [
+        {
+          "label": "Official court website",
+          "url": "https://www.cacd.uscourts.gov/"
+        },
+        {
+          "label": "Official CM/ECF court information and case-number example",
+          "url": "https://ecf.cacd.uscourts.gov/cgi-bin/CourtInfo.pl"
+        },
+        {
+          "label": "Official Electronic Document Submission System examples and division codes",
+          "url": "https://apps.cacd.uscourts.gov/edss"
+        },
+        {
+          "label": "CourtListener REST API overview",
+          "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
+        },
+        {
+          "label": "Local RECAP spot-check confirming the cacd identifier",
+          "path": "../subdata set/recap-spot-check/recap-spot-check-results.json"
+        }
+      ]
+    },
+    {
+      "id": "usdc-caed",
+      "tier": "federal",
+      "canonical_name": "United States District Court for the Eastern District of California",
+      "display_name": "U.S. District Court, Eastern District of California",
+      "aliases": [
+        "United States District Court Eastern District of California",
+        "U.S. District Court Eastern District of California",
+        "US District Court Eastern District of California",
+        "Eastern District of California",
+        "E.D. California",
+        "E.D. Cal.",
+        "EDCA"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "state": "California",
+        "court_level": "United States district court",
+        "district": "Eastern District of California"
+      },
+      "official_website": "https://www.caed.uscourts.gov/",
+      "official_domains": [
+        "caed.uscourts.gov",
+        "www.caed.uscourts.gov",
+        "ecf.caed.uscourts.gov"
+      ],
+      "case_access": {
+        "p0_provider": "CourtListener/RECAP",
+        "courtlistener_court_id": "caed",
+        "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=caed&docket_number={urlencoded_case_number}",
+        "automated_lookup": true,
+        "miss_effect": "CANNOT_CONFIRM"
+      },
+      "case_number_validation": {
+        "mode": "disabled_until_two_person_review",
+        "patterns": [],
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "required_checks": [
+          "case number found in CourtListener/RECAP",
+          "court matches",
+          "at least one party matches",
+          "document date matches"
+        ],
+        "all_checks_pass": "VERIFIED",
+        "any_check_fails_or_is_missing": "CANNOT_CONFIRM"
+      },
+      "sources": [
+        {
+          "label": "Official court website",
+          "url": "https://www.caed.uscourts.gov/"
+        },
+        {
+          "label": "Official court description",
+          "url": "https://www.caed.uscourts.gov/caednew/index.cfm/about-the-federal-court/"
+        },
+        {
+          "label": "CourtListener REST API overview",
+          "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
+        }
+      ]
+    },
+    {
+      "id": "usdc-cand",
+      "tier": "federal",
+      "canonical_name": "United States District Court for the Northern District of California",
+      "display_name": "U.S. District Court, Northern District of California",
+      "aliases": [
+        "United States District Court Northern District of California",
+        "U.S. District Court Northern District of California",
+        "US District Court Northern District of California",
+        "Northern District of California",
+        "N.D. California",
+        "N.D. Cal.",
+        "NDCA"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "state": "California",
+        "court_level": "United States district court",
+        "district": "Northern District of California"
+      },
+      "official_website": "https://cand.uscourts.gov/",
+      "official_domains": [
+        "cand.uscourts.gov",
+        "www.cand.uscourts.gov",
+        "ecf.cand.uscourts.gov"
+      ],
+      "case_access": {
+        "p0_provider": "CourtListener/RECAP",
+        "courtlistener_court_id": "cand",
+        "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=cand&docket_number={urlencoded_case_number}",
+        "automated_lookup": true,
+        "miss_effect": "CANNOT_CONFIRM"
+      },
+      "case_number_validation": {
+        "mode": "disabled_until_two_person_review",
+        "patterns": [],
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "required_checks": [
+          "case number found in CourtListener/RECAP",
+          "court matches",
+          "at least one party matches",
+          "document date matches"
+        ],
+        "all_checks_pass": "VERIFIED",
+        "any_check_fails_or_is_missing": "CANNOT_CONFIRM"
+      },
+      "sources": [
+        {
+          "label": "Official court website",
+          "url": "https://cand.uscourts.gov/"
+        },
+        {
+          "label": "Official court history and identity",
+          "url": "https://cand.uscourts.gov/about-court/northern-district-history"
+        },
+        {
+          "label": "CourtListener REST API overview",
+          "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
+        }
+      ]
+    },
+    {
+      "id": "usdc-casd",
+      "tier": "federal",
+      "canonical_name": "United States District Court for the Southern District of California",
+      "display_name": "U.S. District Court, Southern District of California",
+      "aliases": [
+        "United States District Court Southern District of California",
+        "U.S. District Court Southern District of California",
+        "US District Court Southern District of California",
+        "Southern District of California",
+        "S.D. California",
+        "S.D. Cal.",
+        "SDCA"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "state": "California",
+        "court_level": "United States district court",
+        "district": "Southern District of California"
+      },
+      "official_website": "https://www.casd.uscourts.gov/",
+      "official_domains": [
+        "casd.uscourts.gov",
+        "www.casd.uscourts.gov",
+        "ecf.casd.uscourts.gov"
+      ],
+      "case_access": {
+        "p0_provider": "CourtListener/RECAP",
+        "courtlistener_court_id": "casd",
+        "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=casd&docket_number={urlencoded_case_number}",
+        "automated_lookup": true,
+        "miss_effect": "CANNOT_CONFIRM"
+      },
+      "case_number_validation": {
+        "mode": "disabled_until_two_person_review",
+        "patterns": [],
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "required_checks": [
+          "case number found in CourtListener/RECAP",
+          "court matches",
+          "at least one party matches",
+          "document date matches"
+        ],
+        "all_checks_pass": "VERIFIED",
+        "any_check_fails_or_is_missing": "CANNOT_CONFIRM"
+      },
+      "sources": [
+        {
+          "label": "Official court website",
+          "url": "https://www.casd.uscourts.gov/"
+        },
+        {
+          "label": "CourtListener REST API overview",
+          "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
+        }
+      ]
+    },
+    {
+      "id": "usca-ca9",
+      "tier": "federal_appellate",
+      "canonical_name": "United States Court of Appeals for the Ninth Circuit",
+      "display_name": "U.S. Court of Appeals for the Ninth Circuit",
+      "aliases": [
+        "United States Court of Appeals Ninth Circuit",
+        "U.S. Court of Appeals for the Ninth Circuit",
+        "US Court of Appeals for the Ninth Circuit",
+        "Court of Appeals for the Ninth Circuit",
+        "Ninth Circuit Court of Appeals",
+        "Ninth Circuit",
+        "9th Circuit"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "court_level": "United States court of appeals",
+        "circuit": "Ninth Circuit"
+      },
+      "official_website": "https://www.ca9.uscourts.gov/",
+      "official_domains": [
+        "ca9.uscourts.gov",
+        "www.ca9.uscourts.gov",
+        "ecf.ca9.uscourts.gov"
+      ],
+      "case_access": {
+        "p0_provider": "CourtListener/RECAP",
+        "courtlistener_court_id": "ca9",
+        "search_endpoint_template": "https://www.courtlistener.com/api/rest/v4/search/?type=d&court=ca9&docket_number={urlencoded_case_number}",
+        "automated_lookup": true,
+        "miss_effect": "CANNOT_CONFIRM"
+      },
+      "case_number_validation": {
+        "mode": "disabled_until_two_person_review",
+        "patterns": [],
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "required_checks": [
+          "case number found in CourtListener/RECAP",
+          "court matches",
+          "at least one party matches",
+          "document date matches"
+        ],
+        "all_checks_pass": "VERIFIED",
+        "any_check_fails_or_is_missing": "CANNOT_CONFIRM"
+      },
+      "sources": [
+        {
+          "label": "Official court website and jurisdiction description",
+          "url": "https://www.ca9.uscourts.gov/"
+        },
+        {
+          "label": "CourtListener REST API overview",
+          "url": "https://wiki.free.law/c/courtlistener/help/api/rest/v4/overview"
+        }
+      ]
+    },
+    {
+      "id": "ca-lasc",
+      "tier": "state",
+      "canonical_name": "Superior Court of California, County of Los Angeles",
+      "display_name": "Los Angeles County Superior Court",
+      "aliases": [
+        "Superior Court of California County of Los Angeles",
+        "Superior Court of Los Angeles County",
+        "Los Angeles Superior Court",
+        "Los Angeles County Superior Court",
+        "LA Superior Court",
+        "LASC"
+      ],
+      "jurisdiction": {
+        "country": "United States",
+        "state": "California",
+        "county": "Los Angeles",
+        "court_level": "California superior court"
+      },
+      "official_website": "https://www.lacourt.org/",
+      "official_domains": [
+        "lacourt.org",
+        "www.lacourt.org"
+      ],
+      "case_access": {
+        "p0_provider": "LASC Case Summary",
+        "public_search_url": "https://www.lacourt.org/casesummary/ui/",
+        "courtlistener_court_id": null,
+        "automated_lookup": false,
+        "reason": "P0-SPEC.md treats the state tier as having no suitable free automated docket API.",
+        "search_result_warning": "The court states that online case information is not the official court record and may contain errors or omissions."
+      },
+      "case_number_validation": {
+        "mode": "disabled_for_seed",
+        "patterns": [],
+        "reason": "The P0 seed does not yet have a two-person-reviewed, case-type-complete LASC format rule.",
+        "mismatch_effect": "annotation_only"
+      },
+      "p0_verification_rule": {
+        "checks": [
+          "formal document requirements",
+          "court exists in this directory",
+          "static California bar snapshot if relevant"
+        ],
+        "maximum_verdict": "CANNOT_CONFIRM",
+        "reason": "P0 does not automatically verify the state docket."
+      },
+      "sources": [
+        {
+          "label": "Official court website",
+          "url": "https://www.lacourt.org/"
+        },
+        {
+          "label": "Official LASC Case Summary search and warning",
+          "url": "https://www.lacourt.org/casesummary/ui/"
+        },
+        {
+          "label": "Official current local rules defining the court",
+          "url": "https://www.lacourt.org/courtrules/CurrentCourtRulesPDF/Chap1.pdf"
+        }
+      ]
+    }
+  ],
+  "fixture_only_fictitious_authorities": [
+    {
+      "id": "fixture-d3-federal-legal-processing-bureau",
+      "canonical_fixture_name": "Federal Legal Processing Bureau",
+      "aliases": [
+        "Federal Processing Bureau"
+      ],
+      "fixture": "D3",
+      "route": "none",
+      "match_outcome": "UNKNOWN_AUTHORITY",
+      "is_official_court": false,
+      "evidence_scope": "Known fictitious name in the Served D3 test specimen; this is not a general public blacklist entry.",
+      "directory_signal": {
+        "label": "Named court or authority not found",
+        "effect": "annotation_only",
+        "scam_threshold_contribution": 0
+      },
+      "important_note": "The document may separately trigger affirmative FTC-backed scam patterns. This directory result alone never decides SCAM."
+    }
+  ]
+}
