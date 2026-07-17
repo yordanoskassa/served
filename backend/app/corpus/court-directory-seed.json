@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "verified_on": "2026-07-16",
   "scope": {
-    "release": "hackathon-p0",
+    "release": "hackathon-prototype-v1",
     "description": "Intentionally limited July demo court-routing seed. Read this boundary before extending.",
     "included_federal_courts": 5,
     "included_state_court_stubs": 1,
@@ -18,7 +18,7 @@
       "result": "UNKNOWN_AUTHORITY",
       "action": "Route to human review.",
       "scam_threshold_contribution": 0,
-      "rule": "A real out-of-state or other federal court may simply be outside this seed. Absence is not evidence of fraud, exactly as a RECAP docket miss is not evidence of fraud. P0-SPEC section 2 indicator 4 remains annotation-only.",
+      "rule": "A real out-of-state or other federal court may simply be outside this seed. Absence is not evidence of fraud, exactly as a RECAP docket miss is not evidence of fraud. Directory-only authority findings remain annotation-only.",
       "only_positive_fraud_matches_count": true
     },
     "out_of_scope": [
@@ -64,8 +64,8 @@
     "A court-directory miss is annotation-only and never counts toward the two-signal scam threshold.",
     "A case-number format mismatch is annotation-only until two teammates independently spot-check the rule.",
     "A CourtListener or RECAP miss yields CANNOT_CONFIRM, not SCAM.",
-    "Only a federal court route may use CourtListener or RECAP in the P0 flow.",
-    "The state-court route has no automated public-docket lookup in P0 and therefore cannot yield VERIFIED.",
+    "The directory contract designates CourtListener or RECAP for federal routes; runtime directory enforcement remains a release gate.",
+    "The state-court stub has no dedicated automated public-docket integration in the current prototype and therefore cannot independently establish VERIFIED.",
     "No court name, domain, or case-number pattern alone decides the final verdict."
   ],
   "courts": [
@@ -433,13 +433,13 @@
         "public_search_url": "https://www.lacourt.org/casesummary/ui/",
         "courtlistener_court_id": null,
         "automated_lookup": false,
-        "reason": "P0-SPEC.md treats the state tier as having no suitable free automated docket API.",
+        "reason": "The current prototype has no reviewed state-court docket integration for this route.",
         "search_result_warning": "The court states that online case information is not the official court record and may contain errors or omissions."
       },
       "case_number_validation": {
         "mode": "disabled_for_seed",
         "patterns": [],
-        "reason": "The P0 seed does not yet have a two-person-reviewed, case-type-complete LASC format rule.",
+        "reason": "The current seed does not yet have a two-person-reviewed, case-type-complete LASC format rule.",
         "mismatch_effect": "annotation_only"
       },
       "p0_verification_rule": {
@@ -449,7 +449,7 @@
           "static California bar snapshot if relevant"
         ],
         "maximum_verdict": "CANNOT_CONFIRM",
-        "reason": "P0 does not automatically verify the state docket."
+        "reason": "The current prototype does not automatically verify the state docket."
       },
       "sources": [
         {
