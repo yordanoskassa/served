@@ -110,6 +110,9 @@ function stateForStage(stage: PipelineStage, latest: Map<TraceEvent["key"], Trac
   if (stageEvents.some((event) => event.status === "started")) {
     return runState === "error" ? "failed" : "active"
   }
+  if (stageEvents.some((event) => ["degraded", "skipped", "unavailable"].includes(event.status))) {
+    return "limited"
+  }
 
   const summary = latest.get(stage.summaryKey)
   if (!summary) return runState === "error" ? "failed" : "active"
@@ -205,8 +208,9 @@ export function AnalysisPipeline({
         />
       </div>
 
-      <ol className={cn("relative mt-4 grid gap-2", compact ? "grid-cols-2 sm:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-6")}>
+      <div className="relative mt-4">
         <div className="pointer-events-none absolute left-[8%] right-[8%] top-[19px] hidden h-px bg-black/[.08] xl:block" aria-hidden="true" />
+        <ol className={cn("relative grid gap-2", compact ? "grid-cols-2 sm:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-6")}>
         {stages.map((stage) => {
           const Icon = stage.icon
           return (
@@ -247,7 +251,8 @@ export function AnalysisPipeline({
             </li>
           )
         })}
-      </ol>
+        </ol>
+      </div>
     </section>
   )
 }

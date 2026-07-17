@@ -230,6 +230,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   }
   const openSavedAnalysis = async (id: string) => {
     if (!credential) return
+    setPipelineAnalysis(null)
+    setPipelineDocumentName(null)
     savedDetailController.current?.abort()
     const controller = new AbortController()
     savedDetailController.current = controller
