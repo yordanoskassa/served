@@ -3,6 +3,36 @@
   "verified_on": "2026-07-16",
   "jurisdiction": "United States federal law",
   "purpose": "Grounded source corpus for the Served EXPLAINER. These passages explain extracted facts after the deterministic verdict has been calculated; they never determine the verdict.",
+  "source_timeline": [
+    {
+      "date": "2025-04-23",
+      "status": "ADOPTED_AND_TRANSMITTED",
+      "event": "The Supreme Court adopted the 2025 Civil Rules package and transmitted it to Congress.",
+      "scope_note": "The package amended Civil Rules 16 and 26 and added Rule 16.1. It did not amend Rule 45.",
+      "source_url": "https://www.uscourts.gov/sites/default/files/document/2025_congressional_package_final.pdf"
+    },
+    {
+      "date": "2025-12-01",
+      "status": "EFFECTIVE",
+      "event": "The 2025 amendments to Civil Rules 16 and 26 and new Rule 16.1 took effect.",
+      "scope_note": "Served uses the official Federal Rules of Civil Procedure amended through this date. The Rule 45 passages in this corpus remain the current text because Rule 45 was not part of the 2025 effective amendments.",
+      "source_url": "https://www.uscourts.gov/forms-rules/current-rules-practice-procedure"
+    },
+    {
+      "date": "2026-07-16",
+      "status": "CORPUS_VERIFIED",
+      "event": "Served re-verified the selected Rule 45 passages against the U.S. Courts current-rules publication.",
+      "scope_note": "This is a verification date, not a claim that the corpus will remain current indefinitely.",
+      "source_url": "https://www.uscourts.gov/forms-rules/current-rules-practice-procedure/federal-rules-civil-procedure"
+    },
+    {
+      "date": "2027-12-01",
+      "status": "PROPOSED_NOT_CURRENT",
+      "event": "Proposed Rule 45 amendments are projected to take effect no earlier than this date if they complete the Rules Enabling Act process.",
+      "scope_note": "Served does not treat proposed amendments as current law. The corpus must be re-verified before adopting any future text.",
+      "source_url": "https://www.uscourts.gov/forms-rules/pending-rules-and-forms-amendments"
+    }
+  ],
   "coverage_and_boundary": {
     "notice": "Read before extending. This seed is intentionally limited to the July demo scope.",
     "july_demo_scope": {
