@@ -91,7 +91,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
             <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.07em] text-[#fffaf1]">Served</p>
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena response</p>
+            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena help</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
@@ -133,14 +133,14 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">Financial subpoena response for independent restaurants</motion.p>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">AI for small businesses without legal teams</motion.p>
       <AnimatePresence mode="wait">
         <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
           <h1 className="font-display text-[clamp(2.75rem,6.2vw,6rem)] font-medium leading-[.9] tracking-[-.07em] text-[#1a1a1a]">
-            {open ? <>Two record sources.<br /><span className="text-[#8e8e8e]">One safety gate.</span></> : <>A financial subpoena landed.<br /><span className="text-[#8e8e8e]">Find the exact records.</span></>}
+            {open ? <>Payroll or bank records.<br /><span className="text-[#8e8e8e]">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="text-[#8e8e8e]">Served handles the search.</span></>}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
-            {open ? "A verified payroll request unlocks payroll matching. A verified payment request unlocks bank matching. Anything uncertain keeps sensitive sources locked." : "Built for immigrant-owned restaurants without legal, HR, or finance teams. Verify the request, search the correct source, and review only the records it actually describes."}
+            {open ? "A verified payroll request opens payroll matching. A verified payment request opens bank matching. If Served is not sure, your records stay locked." : "Served reads and verifies the request, searches the right payroll or bank data, and shows you what to review before the deadline."}
           </p>
         </motion.div>
       </AnimatePresence>

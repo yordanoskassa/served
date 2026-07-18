@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 
 const links = [
   { label: "workflow", href: "#workflow" },
+  { label: "bank connection", href: "#bank-connection" },
   { label: "record matching", href: "#record-matching" },
   { label: "privacy", href: "#privacy" },
-  { label: "resources", href: "#resources" },
 ]
 
 export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
@@ -24,7 +24,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
           {links.map((link) => <a className="text-[11px] lowercase tracking-tight text-zinc-700 transition-colors hover:text-black" href={link.href} key={link.label}>{link.label}</a>)}
         </div>
         <div className="col-span-6 hidden items-center justify-end gap-3 md:col-span-3 md:flex">
-          <a href="#resources" className="text-xs text-zinc-700 hover:text-black">why restaurants</a>
+          <a href="#resources" className="text-xs text-zinc-700 hover:text-black">the story</a>
           <Button onClick={onGetStarted} className="px-4 py-2 text-xs font-medium hover:scale-[1.03]">run the demo <span aria-hidden="true">→</span></Button>
         </div>
         <button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((value) => !value)} className="col-span-6 flex justify-end md:hidden">
@@ -36,7 +36,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
       {open && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="fixed top-[84px] left-0 z-40 w-full overflow-hidden border-b border-black/10 bg-bg-base/95 px-8 backdrop-blur-xl md:hidden">
         <div className="flex flex-col gap-5 py-7 text-sm">
           {links.map((link) => <a onClick={() => setOpen(false)} href={link.href} key={link.label}>{link.label}</a>)}
-          <a href="#resources" onClick={() => setOpen(false)}>why restaurants</a>
+          <a href="#resources" onClick={() => setOpen(false)}>the story</a>
           <Button onClick={() => { setOpen(false); onGetStarted() }} className="w-fit px-5 py-2.5">run the demo →</Button>
         </div>
       </motion.div>}

@@ -199,7 +199,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
   const counts = summary?.counts
   const metrics = [
-    ["Financial requests", counts?.documents, "Recent restaurant subpoenas"],
+    ["Financial requests", counts?.documents, "Recent small-business subpoenas"],
     ["Ready to match", counts?.verified, "Eligible for source access"],
     ["Need verification", counts?.review, "Financial records remain locked"],
     ["Safety stops", counts?.scam, "No sensitive access allowed"],
@@ -308,7 +308,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
       <main className="lg:ml-56">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-bg-base/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
           <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg">Served</span></button>
-          <div className="hidden lg:block"><p className="text-xs text-zinc-500">{greeting()}</p><p className="font-display text-lg tracking-[-.03em]">Financial subpoena workspace</p></div>
+          <div className="hidden lg:block"><p className="text-xs text-zinc-500">{greeting()}</p><p className="font-display text-lg tracking-[-.03em]">Financial subpoena help</p></div>
           <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
             <Avatar className="size-8"><AvatarImage src={user.picture ?? undefined} alt={user.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(user.name)}</AvatarFallback></Avatar>
             <span className="max-w-28 truncate">{user.given_name || user.name}</span>
@@ -325,12 +325,12 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Financial subpoena response</p><h1 className="font-display text-3xl font-medium tracking-[-.05em] sm:text-4xl">From legal deadline to review-ready records.</h1><p className="mt-2 max-w-2xl text-sm leading-5 text-zinc-500">Built for immigrant-owned restaurants without legal, HR, or finance teams. Verify the request, unlock only the correct source, and protect everything unrelated.</p></div>
+            <div><p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">AI for small businesses without legal teams</p><h1 className="font-display text-3xl font-medium tracking-[-.05em] sm:text-4xl">Handle the request before the deadline.</h1><p className="mt-2 max-w-2xl text-sm leading-5 text-zinc-500">Verify the subpoena, search the right payroll or bank data, and review only the records it asks for.</p></div>
             <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
           <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-3">
-            {["1 · Understand and verify", "2 · Match the requested source", "3 · Review the response manifest"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
+            {["1 · Read and verify", "2 · Find the records", "3 · Review the matches"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>

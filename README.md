@@ -4,9 +4,9 @@
 
 [Try the demo](https://servedai.netlify.app/) · [Architecture](docs/multi-agent-architecture.md) · [Safety corpus](backend/app/corpus/README.md) · [UPL boundary](docs/product-safety/UPL.md)
 
-**Served is a financial subpoena response workspace for immigrant-owned restaurants without legal, HR, or finance staff.** A records request can arrive with a strict deadline and ask for payroll, wage, time, payment, or bank records spread across systems an owner rarely has time to search. Served verifies the referenced case before touching sensitive data, unlocks only the requested source, and prepares a review-ready candidate manifest.
+**Served is AI that handles financial subpoenas for small businesses without legal teams.** It reads and verifies the request, searches the right payroll or bank data, and shows the owner which records to review before the deadline.
 
-The product is not just a document explainer. It carries the owner from subpoena to review-ready records while keeping unrelated employees, vendors, and transactions outside the response.
+The product goes beyond explaining a document. It helps find the requested records while keeping unrelated employees, vendors, and transactions out.
 
 In our demo, John, a restaurant owner who moved from Mexico, receives a financial subpoena addressed to John Doe’s Kitchen LLC. Served explains the request, checks the referenced case against the public federal docket, extracts the named person and date range, and then opens the correct record path. D1 matches payroll records. D4 searches authenticated business-bank transactions and produces the demo’s 7 include, 2 review, and 19 exclude result. D2 and D3 show why uncertain or suspicious requests must fail closed before financial access.
 Three narrowly scoped AI agents gather and explain the document evidence. An optional fourth worker, COOK, retrieves authenticated business-bank records after the document result. A small deterministic code policy—not an AI model—selects the legal-mail outcome.
@@ -119,12 +119,14 @@ preventing Served from becoming an open mail relay.
 After the document result, a signed-in owner can optionally connect a business
 bank through Plaid Link. The browser receives only a short-lived Link token.
 The one-time public token is exchanged by the backend, and the resulting Plaid
-access token is never returned to the frontend. Transaction details are fetched
-on demand and are not written into saved analysis records.
+access token is never returned to the frontend. After a verified D4 request and
+successful connection, transactions are fetched and matched automatically for
+that analysis. Transaction details are not written into saved analysis records.
 
 The hackathon flow uses Plaid Sandbox and its realistic small-business data. It
-demonstrates the authenticated data connection and record retrieval; financial
-records do not alter the document-verification verdict. Production deployment
+demonstrates the real Link token, backend token exchange, transaction fetch, and
+automatic 7 include / 2 review / 19 exclude match; financial records do not alter
+the document-verification verdict. Production deployment
 requires a separately managed production secret and the appropriate Plaid
 production approval.
 

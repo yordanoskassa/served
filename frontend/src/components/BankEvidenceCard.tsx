@@ -1,5 +1,5 @@
-import { AlertTriangle, CheckCircle2, Landmark, LoaderCircle, Search, ShieldCheck } from "lucide-react"
-import { useEffect, useState } from "react"
+import { AlertTriangle, CheckCircle2, DatabaseZap, Landmark, LoaderCircle, RefreshCw, ShieldCheck, Zap } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -44,9 +44,11 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
   const [status, setStatus] = useState<PlaidConnectionStatus | null>(null)
   const [statusState, setStatusState] = useState<LoadState>("loading")
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmedCutoff, setConfirmedCutoff] = useState(cutoffDate || "2026-07-16")
   const [records, setRecords] = useState<PaymentMatchResponse | null>(null)
+  const autoMatchStarted = useRef(false)
 
   useEffect(() => {
     if (!credential || !analysisId) return
@@ -56,6 +58,18 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
       .then((nextStatus) => {
         setStatus(nextStatus)
         setStatusState("ready")
+        if (nextStatus.connected && !autoMatchStarted.current) {
+          autoMatchStarted.current = true
+          setBusy(true)
+          setBusyLabel("Fetching and matching transactions…")
+          void matchPlaidTransactions(analysisId, credential, cutoffDate || "2026-07-16")
+            .then(setRecords)
+            .catch((cause) => setError(cause instanceof Error ? cause.message : "Payment records could not be matched."))
+            .finally(() => {
+              setBusy(false)
+              setBusyLabel(null)
+            })
+        }
       })
       .catch((cause) => {
         if (controller.signal.aborted) return
@@ -68,6 +82,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
   const connect = async () => {
     if (!credential || busy) return
     setBusy(true)
+    setBusyLabel("Opening secure bank connection…")
     setError(null)
     try {
       const linkToken = await createPlaidLinkToken(analysisId, credential)
@@ -76,20 +91,27 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
       handler = window.Plaid.create({
         token: linkToken,
         onSuccess: (publicToken, metadata) => {
-          void exchangePlaidPublicToken(analysisId, credential, publicToken, metadata.institution)
-            .then((nextStatus) => {
+          setBusyLabel("Bank connected. Fetching transactions…")
+          void (async () => {
+            try {
+              const nextStatus = await exchangePlaidPublicToken(analysisId, credential, publicToken, metadata.institution)
               setStatus(nextStatus)
-              setRecords(null)
-            })
-            .catch((cause) => setError(cause instanceof Error ? cause.message : "The bank could not be connected."))
-            .finally(() => {
+              setBusyLabel("Matching transactions to the subpoena…")
+              setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
+              autoMatchStarted.current = true
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : "The bank could not be connected.")
+            } finally {
               setBusy(false)
+              setBusyLabel(null)
               handler?.destroy()
-            })
+            }
+          })()
         },
         onExit: (linkError) => {
           if (linkError?.error_message) setError(linkError.error_message)
           setBusy(false)
+          setBusyLabel(null)
           handler?.destroy()
         },
       })
@@ -97,12 +119,14 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The bank connection could not start.")
       setBusy(false)
+      setBusyLabel(null)
     }
   }
 
   const matchRecords = async () => {
     if (!credential || busy) return
     setBusy(true)
+    setBusyLabel("Refreshing transaction match…")
     setError(null)
     try {
       setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
@@ -110,6 +134,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
       setError(cause instanceof Error ? cause.message : "Payment records could not be matched.")
     } finally {
       setBusy(false)
+      setBusyLabel(null)
     }
   }
 
@@ -117,17 +142,29 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
   if (statusState === "error") return <Alert className="mt-5 rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
   if (!status?.configured) return <Alert className="mt-5 rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTitle>Plaid Sandbox is not configured</AlertTitle><AlertDescription>The verified D4 workflow is ready, but the backend Plaid environment is unavailable.</AlertDescription></Alert>
 
-  return <section className="mt-5 overflow-hidden rounded-2xl border border-black/10 bg-[#111] text-white">
-    <div className="p-4 sm:p-5">
+  const progress = [
+    { label: "Request verified", done: true },
+    { label: "Bank connected", done: status.connected },
+    { label: "Transactions fetched", done: Boolean(records) },
+    { label: "Matches ready", done: Boolean(records) },
+  ]
+
+  return <section className="mt-5 overflow-hidden rounded-[28px] border border-black/10 bg-[#111] text-white shadow-[0_20px_50px_rgba(0,0,0,.18)]">
+    <div className="p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10"><Landmark size={18} /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Step 2 · D4 payment evidence</p><h3 className="mt-1 font-display text-lg tracking-[-.03em]">Potentially responsive payments</h3><p className="mt-1 max-w-2xl text-xs leading-5 text-white/55">This saved analysis is VERIFIED and specifically requests payment and bank records for Audrea Barnes.</p></div></div>
-        <Badge className="bg-brand-green text-black">GATE PASSED</Badge>
+        <div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-green text-black"><Zap size={20} /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Live Plaid integration · request verified</p><h3 className="mt-1 font-display text-2xl tracking-[-.04em]">Connect the bank. Served finds the requested payments.</h3><p className="mt-1 max-w-2xl text-xs leading-5 text-white/55">D4 asks for payment and bank records for Audrea Barnes. After one secure connection, transactions are fetched and matched automatically.</p></div></div>
+        <Badge className="bg-brand-green text-black">READY TO CONNECT</Badge>
+      </div>
+
+      <div className="mt-5 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[.04] sm:grid-cols-4">
+        {progress.map((step, index) => <div className={`flex items-center gap-2 px-3 py-3 text-[11px] ${index < progress.length - 1 ? "border-b border-white/10 sm:border-r sm:border-b-0" : ""}`} key={step.label}><span className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${step.done ? "bg-brand-green text-black" : "bg-white/10 text-white/40"}`}>{step.done ? "✓" : index + 1}</span><span className={step.done ? "text-white" : "text-white/40"}>{step.label}</span></div>)}
       </div>
 
       {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Could not complete that step</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
 
-      {!status.connected ? <div className="mt-4"><Button className="bg-white text-black hover:bg-white/90" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <Landmark size={16} />}Connect business bank</Button>{status.environment === "sandbox" && <p className="mt-2 max-w-xl text-[10px] leading-4 text-white/50">Sandbox: use phone <strong className="text-white/80">415-555-0010</strong> and code <strong className="text-white/80">123456</strong>, or choose “Maybe later.”</p>}</div> : <div className="mt-4 rounded-2xl bg-white/[.07] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-brand-green" size={16} /><div><p className="text-sm font-medium">{status.institution_name || "Business bank connected"}</p><p className="text-[10px] text-white/40">Connection reusable, eligibility rechecked for this analysis</p></div></div><div className="flex flex-wrap items-end gap-2"><label className="text-[10px] text-white/50">Confirmed cutoff<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-brand-green text-black hover:bg-brand-green/90" disabled={busy || !confirmedCutoff} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <Search size={16} />}Match D4 payments</Button></div></div>
+      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-brand-green text-sm font-semibold text-black hover:bg-brand-green/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || "Connect business bank and find matches"}</Button><p className="mt-3 max-w-2xl text-[11px] leading-5 text-white/50"><strong className="text-white/75">Real Plaid Link flow.</strong> The hackathon uses Plaid Sandbox data, but the app performs the token exchange, transaction fetch, and matching through the backend rather than displaying a prebuilt result.</p>{status.environment === "sandbox" && <p className="mt-2 max-w-xl text-[10px] leading-4 text-white/40">Demo phone <strong className="text-white/70">415-555-0010</strong> · code <strong className="text-white/70">123456</strong> · or choose “Maybe later”</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-brand-green" size={18} /><div><p className="text-sm font-medium">{status.institution_name || "Business bank connected"}</p><p className="text-[10px] text-white/40">Transactions fetch and match automatically for this verified request</p></div></div><div className="flex flex-wrap items-end gap-2"><label className="text-[10px] text-white/50">Search through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh matches"}</Button></div></div>
+        {busy && <div className="mt-4 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-white/65"><DatabaseZap className="text-brand-green" size={15} /><span>{busyLabel}</span></div>}
       </div>}
     </div>
 

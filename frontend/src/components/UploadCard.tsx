@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, FileImage, LoaderCircle, ShieldCheck } from "lucide-react"
+import { AlertTriangle, Camera, FileImage, Landmark, LoaderCircle, ShieldCheck, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { AnalysisDetail } from "@/components/AnalysisDetail"
@@ -136,7 +136,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">
       <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={21} /> : file ? <FileImage size={21} /> : <Camera size={21} />}</div>
       <h2 className="font-display text-xl font-medium tracking-[-.035em]">{file ? "Ready to verify" : "Upload the financial subpoena"}</h2>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-muted-foreground">{file ? "Served will extract and independently verify the request before any record source can unlock." : "Start with the subpoena. Payroll and banking data stay locked until its request is understood and verified."}</p>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-muted-foreground">{file ? "Served will read and verify the request before payroll or bank records can open." : "Start with the subpoena. Payroll and bank data stay locked until Served understands and verifies it."}</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
       {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
@@ -149,15 +149,18 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       </div>
     </div>
     <div className="px-5 py-4 sm:px-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Choose a financial subpoena path</p>
-        <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button aria-label="Analyze verified payment records request D4" className="h-9 px-2 text-xs sm:px-3" disabled={loading} onClick={() => useSample("D4")}><span className="sm:hidden">D4</span><span className="hidden sm:inline">Payment subpoena</span></Button>
+      <div className="rounded-2xl bg-[#111] p-4 text-white">
+        <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-green text-black"><Zap size={16} /></span><div><p className="text-[9px] font-semibold uppercase tracking-[.18em] text-brand-green">Hero demo · real Plaid flow</p><p className="mt-1 text-sm font-semibold">Connect a bank and match transactions automatically.</p><p className="mt-1 text-[10px] leading-4 text-white/45">Verify D4 first, then Plaid fetches the account data and Served creates the 7 / 2 / 19 result.</p></div></div>
+        <Button aria-label="Analyze D4 and unlock the Plaid bank connection" className="mt-4 h-10 w-full bg-brand-green text-xs font-semibold text-black hover:bg-brand-green/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Run D4 and unlock bank connection</Button>
+      </div>
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other request paths</p>
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
           <Button aria-label="Analyze verified payroll subpoena D1" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D1")}><span className="sm:hidden">D1</span><span className="hidden sm:inline">Payroll subpoena</span></Button>
           <Button aria-label="Analyze uncertain request D2" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D2")}><span className="sm:hidden">D2</span><span className="hidden sm:inline">Uncertain</span></Button>
           <Button aria-label="Analyze scam demand D3" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D3")}><span className="sm:hidden">D3</span><span className="hidden sm:inline">Scam demand</span></Button>
         </div>
-        <p className="mt-2 text-[11px] text-zinc-400">D4 is the hero bank-payment demo. D1 shows payroll matching. D2 and D3 prove sensitive sources stay locked.</p>
+        <p className="mt-2 text-[11px] text-zinc-400">D1 shows payroll matching. D2 and D3 prove sensitive sources stay locked.</p>
       </div>
       <Separator className="my-3" />
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><ShieldCheck size={14} /> The analysis is saved; uploaded file bytes are not</div>

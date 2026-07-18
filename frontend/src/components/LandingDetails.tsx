@@ -1,31 +1,61 @@
-import { ArrowUpRight, FileCheck2, FileSearch, ListChecks, LockKeyhole, Scale, ShieldCheck } from "lucide-react"
+import { ArrowRight, ArrowUpRight, CheckCircle2, DatabaseZap, FileCheck2, FileSearch, Landmark, ListChecks, LockKeyhole, Scale, ShieldCheck, Zap } from "lucide-react"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 
+const banks = ["Chase", "Bank of America", "Wells Fargo", "Citi", "Capital One", "U.S. Bank"] as const
+
+function BankLogo({ name }: { name: (typeof banks)[number] }) {
+  if (name === "Chase") return <div className="flex items-center gap-2"><span className="grid size-7 rotate-45 grid-cols-2 gap-0.5 rounded-[5px] bg-[#117aca] p-1"><i className="bg-white/90" /><i className="bg-white/40" /><i className="bg-white/40" /><i className="bg-white/90" /></span><strong className="tracking-[.08em]">CHASE</strong></div>
+  if (name === "Bank of America") return <div className="flex items-center gap-2"><span className="space-y-0.5"><i className="block h-1 w-7 -skew-x-[25deg] bg-[#e31837]" /><i className="ml-1 block h-1 w-7 -skew-x-[25deg] bg-[#07549a]" /><i className="ml-2 block h-1 w-7 -skew-x-[25deg] bg-[#e31837]" /></span><strong className="max-w-20 text-[10px] leading-3 text-[#07549a]">BANK OF AMERICA</strong></div>
+  if (name === "Wells Fargo") return <div className="flex items-center gap-2"><span className="grid size-8 place-items-center bg-[#c41230] font-serif text-[9px] font-bold text-[#ffdf8d]">WF</span><strong className="font-serif text-[#c41230]">WELLS FARGO</strong></div>
+  if (name === "Citi") return <div className="relative px-1 pt-1 text-2xl font-bold tracking-[-.08em] text-[#056dae]"><span className="absolute top-0 left-[15px] h-3 w-8 rounded-t-full border-t-2 border-[#ef3340]" />citi</div>
+  if (name === "Capital One") return <div className="relative pr-3 text-sm font-bold tracking-[-.04em] text-[#003a70]">Capital One<span className="absolute -top-1 right-0 text-lg text-[#d9272e]">›</span></div>
+  return <div className="flex items-center text-sm font-bold"><span className="bg-[#d8292f] px-1.5 py-1 text-white">us</span><span className="bg-[#174a7c] px-1.5 py-1 text-white">bank</span></div>
+}
+
 export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
   const workflow = [
     { icon: FileSearch, title: "Understand", text: "Extract the employee, record types, date range, deadline, and claimed court from the letter." },
-    { icon: Scale, title: "Verify", text: "Check official court sources. If the request is missing or uncertain, every sensitive record source stays locked." },
-    { icon: FileCheck2, title: "Match", text: "Use only the relevant source: payroll for D1, bank payments for D4, and the request's exact person and dates." },
-    { icon: ListChecks, title: "Review", text: "See why each candidate matched and approve a manifest before anything is produced or shared." },
+    { icon: Scale, title: "Verify", text: "Check official court sources. If anything is missing or uncertain, payroll and bank data stay locked." },
+    { icon: FileCheck2, title: "Find", text: "Search the right source using the person, record type, and dates named in the request." },
+    { icon: ListChecks, title: "Review", text: "See what matched and why before you prepare or share anything." },
   ]
 
   return <div className="bg-bg-base px-8 pb-24 md:px-16 lg:px-20">
     <section id="workflow" className="mx-auto max-w-7xl border-t border-black/10 py-20">
       <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
-        <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The subpoena-to-records workflow</p><h2 className="mt-5 max-w-xl font-display text-4xl tracking-[-.055em] sm:text-6xl">One request. Only the records it names.</h2></div>
-        <p className="max-w-2xl text-sm leading-7 text-zinc-500">A restaurant owner should not have to search every payroll file or bank transaction under deadline pressure. Served turns a verified financial subpoena into transparent matching criteria while keeping unrelated employees, vendors, and payments out of the response.</p>
+        <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">How Served works</p><h2 className="mt-5 max-w-xl font-display text-4xl tracking-[-.055em] sm:text-6xl">One request. Only the records it asks for.</h2></div>
+        <p className="max-w-2xl text-sm leading-7 text-zinc-500">A small-business owner should not have to search every payroll file or bank transaction under deadline pressure. Served finds the likely matches and keeps unrelated employees, vendors, and payments out.</p>
       </div>
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {workflow.map(({ icon: Icon, title, text }, index) => <article className="rounded-[28px] border border-black/5 bg-white/55 p-6 backdrop-blur-xl" key={title}><div className="flex items-center justify-between"><span className="grid size-10 place-items-center rounded-full bg-brand-soft"><Icon size={17} /></span><span className="text-xs text-zinc-400">0{index + 1}</span></div><h3 className="mt-8 font-display text-2xl tracking-[-.04em]">{title}</h3><p className="mt-3 text-sm leading-6 text-zinc-500">{text}</p></article>)}
       </div>
     </section>
 
+    <section id="bank-connection" className="mx-auto max-w-7xl border-t border-black/10 py-20">
+      <div className="grid gap-8 lg:grid-cols-[.88fr_1.12fr] lg:items-end">
+        <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The integration judges can see</p><h2 className="mt-5 max-w-2xl font-display text-4xl tracking-[-.055em] sm:text-6xl">Connect the bank. Fetch the data. Find the matches.</h2></div>
+        <div><p className="max-w-2xl text-sm leading-7 text-zinc-500">After D4 is verified, Served opens Plaid Link, connects the business account, fetches its transactions through the backend, and matches them to the person and dates in the subpoena. The result is created from fetched data, not a prebuilt screen.</p><Button onClick={onGetStarted} className="mt-5">Run the live connection flow <ArrowRight size={15} /></Button></div>
+      </div>
+
+      <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6" aria-label="Example banks shown in the connection experience">
+        {banks.map((bank) => <div className="flex min-h-20 items-center justify-center rounded-2xl border border-black/[.07] bg-white/70 px-3 text-xs shadow-[0_8px_20px_rgba(0,0,0,.03)]" key={bank}><BankLogo name={bank} /></div>)}
+      </div>
+      <p className="mt-3 text-center text-[10px] text-zinc-400">Institution availability depends on the Plaid environment. The hackathon demo uses Plaid Sandbox.</p>
+
+      <div className="mt-8 overflow-hidden rounded-[30px] bg-[#111] p-6 text-white shadow-[0_22px_50px_rgba(0,0,0,.16)] sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-brand-green text-black"><Zap size={20} /></span><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Real Plaid Link flow</p><h3 className="mt-1 font-display text-2xl tracking-[-.04em]">One connection starts the full search.</h3><p className="mt-1 text-xs leading-5 text-white/50">The user does not upload a fake transaction list or watch a canned animation.</p></div></div><span className="rounded-full bg-white/10 px-3 py-1 text-[10px] text-white/60">SANDBOX</span></div>
+        <div className="mt-6 grid overflow-hidden rounded-2xl border border-white/10 sm:grid-cols-4">
+          {[{ icon: ShieldCheck, label: "Request verified" }, { icon: Landmark, label: "Bank connected" }, { icon: DatabaseZap, label: "Transactions fetched" }, { icon: CheckCircle2, label: "Matches explained" }].map(({ icon: Icon, label }, index) => <div className={`flex items-center gap-3 p-4 ${index < 3 ? "border-b border-white/10 sm:border-r sm:border-b-0" : ""}`} key={label}><span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10"><Icon className={index === 3 ? "text-brand-green" : "text-white"} size={15} /></span><div><p className="text-[10px] text-white/35">0{index + 1}</p><p className="mt-0.5 text-xs font-medium">{label}</p></div></div>)}
+        </div>
+      </div>
+    </section>
+
     <section id="record-matching" className="mx-auto grid max-w-7xl gap-8 border-t border-black/10 py-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
-      <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The demo moment</p><h2 className="mt-5 max-w-2xl font-display text-4xl tracking-[-.055em] sm:text-6xl">28 searched. 7 matched. 2 need review. 19 stayed protected.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-zinc-500">D4 asks for payments to Audrea Barnes. After the request passes verification, Served checks the connected business account once, explains each candidate, and keeps suppliers, other employees, and out-of-range payments outside the packet.</p><Button onClick={onGetStarted} className="mt-6">Run the D4 payment demo <ArrowUpRight size={15} /></Button></div>
+      <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The result from fetched data</p><h2 className="mt-5 max-w-2xl font-display text-4xl tracking-[-.055em] sm:text-6xl">28 searched. 7 matched. 2 need review. 19 stayed protected.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-zinc-500">D4 asks for payments to Audrea Barnes. Served checks the connected account, explains each match, and keeps suppliers, other employees, and out-of-range payments outside the response.</p><Button onClick={onGetStarted} className="mt-6">Run the D4 payment demo <ArrowUpRight size={15} /></Button></div>
       <div className="overflow-hidden rounded-[30px] bg-[#111] p-6 text-white shadow-xl">
-        <div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Candidate manifest</p><span className="rounded-full bg-brand-green px-3 py-1 text-[10px] font-semibold text-black">VERIFIED</span></div>
+        <div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Records to review</p><span className="rounded-full bg-brand-green px-3 py-1 text-[10px] font-semibold text-black">VERIFIED</span></div>
         <div className="mt-8 grid grid-cols-3 gap-3"><div className="rounded-2xl bg-brand-green p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">7</p><p className="mt-1 text-xs font-medium">include</p></div><div className="rounded-2xl bg-amber-300 p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">2</p><p className="mt-1 text-xs font-medium">review</p></div><div className="rounded-2xl bg-white/10 p-5"><p className="font-display text-5xl tracking-[-.07em]">19</p><p className="mt-1 text-xs text-white/60">exclude</p></div></div>
         <div className="mt-3 space-y-2">{["Exact Audrea payee + in-range date", "Unnamed check needs review", "Near-name ACH needs review"].map((label) => <div className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm" key={label}><ShieldCheck className="text-brand-green" size={16} />{label}</div>)}</div>
       </div>
@@ -33,13 +63,13 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
 
     <section id="privacy" className="mx-auto max-w-7xl rounded-[32px] border border-black/5 bg-white/55 p-8 backdrop-blur-xl sm:p-12">
       <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-[10px] font-semibold uppercase tracking-[.2em]">Privacy boundary</span>
-      <div className="mt-5 grid gap-8 md:grid-cols-2 md:items-end"><div><h2 className="max-w-2xl font-display text-4xl tracking-[-.05em]">Verification controls access.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">D1 can unlock a payroll CSV match. D4 can unlock bank-payment matching. Uncertain, scam, and unrelated verified requests keep sensitive sources locked.</p></div><div className="flex items-start gap-3 rounded-2xl bg-black p-5 text-white"><LockKeyhole className="mt-0.5 shrink-0 text-brand-green" size={18} /><p className="text-sm leading-6 text-white/65"><strong className="text-white">No auto-production.</strong> Served creates a candidate manifest for human review. It does not decide legal responsiveness or send records.</p></div></div>
+      <div className="mt-5 grid gap-8 md:grid-cols-2 md:items-end"><div><h2 className="max-w-2xl font-display text-4xl tracking-[-.05em]">No verification, no access.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-black/60">D1 opens payroll matching. D4 opens bank-payment matching. Uncertain, suspicious, or unrelated requests keep those records locked.</p></div><div className="flex items-start gap-3 rounded-2xl bg-black p-5 text-white"><LockKeyhole className="mt-0.5 shrink-0 text-brand-green" size={18} /><p className="text-sm leading-6 text-white/65"><strong className="text-white">Nothing is sent automatically.</strong> Served shows possible matches for a person to review. It does not decide what must be shared.</p></div></div>
     </section>
 
     <section id="resources" className="mx-auto grid max-w-7xl gap-10 border-b border-black/10 py-20 md:grid-cols-2">
-      <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Built for the daily reality</p><h2 className="mt-4 font-display text-4xl tracking-[-.05em]">For independent restaurants without legal, HR, or finance teams.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">Served helps immigrant business owners understand a financial subpoena, verify the referenced case, and narrow the search across payroll or banking data before the deadline. It remains an evidence tool, not legal advice.</p><Button variant="outline" onClick={onGetStarted} className="mt-6">Run the restaurant story →</Button></div>
+      <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The demo story</p><h2 className="mt-4 font-display text-4xl tracking-[-.05em]">John runs a restaurant. He does not have a legal team.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">John moved from Mexico and built a neighborhood restaurant. Then a financial subpoena arrives with a deadline and asks for records about a former employee. Served helps him understand it, verify it, and find the requested payroll or bank records without exposing everything else.</p><Button variant="outline" onClick={onGetStarted} className="mt-6">Run John’s story →</Button></div>
       <Accordion type="single" collapsible className="rounded-[28px] border border-black/5 bg-white/55 px-6 backdrop-blur-xl">
-        <AccordionItem value="why-restaurants"><AccordionTrigger>Why focus on restaurants?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">Restaurants manage hourly workers, time records, wage statements, and payroll data, often without dedicated HR staff. A narrow former-employee request can still force an owner to search across many sensitive records.</AccordionContent></AccordionItem>
+        <AccordionItem value="why-restaurants"><AccordionTrigger>Why is John a restaurant owner?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">John makes the small-business problem concrete. Restaurants manage hourly workers, time records, wage statements, and payroll data, often without a legal or HR team. The product can serve other small businesses facing the same problem.</AccordionContent></AccordionItem>
         <AccordionItem value="record-match"><AccordionTrigger>Does a match mean the record must be shared?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">No. A match means the record fits the displayed employee, type, and date criteria. A person must review the manifest and decide what to do with qualified legal help when needed.</AccordionContent></AccordionItem>
         <AccordionItem value="bank"><AccordionTrigger>When does Served connect a bank?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">Only D4 asks for payment and bank records, so only a verified D4-style request unlocks Plaid. D1 uses payroll data instead. Uncertain, scam, and unrelated verified requests fail closed.</AccordionContent></AccordionItem>
         <AccordionItem value="legal-advice" className="border-b-0"><AccordionTrigger>Is this legal advice?</AccordionTrigger><AccordionContent className="leading-6 text-zinc-500">No. Served organizes evidence, candidate records, and limitations. Urgent or high-stakes requests should be reviewed by a qualified professional.</AccordionContent></AccordionItem>
