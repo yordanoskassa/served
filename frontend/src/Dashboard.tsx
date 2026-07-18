@@ -16,7 +16,7 @@ import type { EntryIntent } from "@/lib/entry"
 
 type LoadState = "loading" | "ready" | "error"
 type DetailLoadState = "idle" | LoadState
-const AGENT_ORDER = ["reader", "checker", "explainer"] as const
+const AGENT_ORDER = ["reader", "checker", "explainer", "cook"] as const
 const HISTORY_PAGE_SIZE = 25
 const OrchestrationView = lazy(() => import("@/components/OrchestrationView").then((module) => ({ default: module.OrchestrationView })))
 

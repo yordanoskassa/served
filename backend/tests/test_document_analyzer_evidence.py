@@ -37,8 +37,13 @@ def test_agent_contracts_reject_any_verdict_field(model, payload) -> None:
         model.model_validate(payload)
 
 
-def test_agent_catalog_contains_exactly_the_three_product_agents() -> None:
-    assert [item["name"] for item in agent_status()] == ["reader", "checker", "explainer"]
+def test_agent_catalog_contains_the_four_product_agents() -> None:
+    assert [item["name"] for item in agent_status()] == [
+        "reader",
+        "checker",
+        "explainer",
+        "cook",
+    ]
 
 
 def test_validated_signals_require_document_excerpts_and_known_unique_ids() -> None:

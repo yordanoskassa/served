@@ -9,21 +9,22 @@
 Served gives the recipient an evidence-backed first answer in about 30 seconds.
 
 In our demo, John — a restaurant owner who moved from Mexico and whose business is already having a rough month — finds an official-looking federal subpoena in the mail, addressed to his restaurant, John Doe’s Kitchen LLC: it demands payroll records for a former employee’s wage lawsuit. His English is fine; legal English is the foreign language, as it is for almost everyone. **He is not being sued — but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
-Three narrowly scoped AI agents gather and explain the evidence. A small deterministic code policy—not an AI model—selects the final outcome.
+Three narrowly scoped AI agents gather and explain the document evidence. An optional fourth worker, COOK, retrieves authenticated business-bank records after the document result. A small deterministic code policy—not an AI model—selects the legal-mail outcome.
 
 ```text
-Upload -> READER -> CHECKER -> code-decided verdict -> EXPLAINER
+Upload -> READER -> CHECKER -> code-decided verdict -> EXPLAINER -> optional COOK records
 ```
 
-## Three agents · one code-decided verdict
+## Four scoped workers · one code-decided verdict
 
 | Agent | Job | Hard boundary |
 |---|---|---|
 | **1 · READER** | Extracts the document type, claimed court, case number, parties, dates, deadline, requested actions, and visible text | Does not investigate, label scams, or choose a verdict |
 | **2 · CHECKER** | Searches CourtListener/RECAP and compares exact document excerpts with the approved fraud-pattern corpus | Does not treat a missing record as fraud or choose a verdict |
 | **3 · EXPLAINER** | Turns the immutable code result into plain language; any legal quotation must be inserted from an allowlisted corpus entry | Cannot change the verdict or generate an official quotation |
+| **4 · COOK** | Uses Plaid Link to retrieve authenticated business-bank transactions after the letter is understood | Cannot affect the legal-mail verdict; does not use contact or payment details from the uploaded letter |
 
-CourtListener and the corpus are CHECKER tools, not additional agents. The verdict policy and Grounding Guard are ordinary application code.
+CourtListener and the corpus are CHECKER tools, not additional agents. COOK is a financial-data worker rather than an LLM judge. The verdict policy and Grounding Guard are ordinary application code.
 
 ## Three honest outcomes
 
@@ -113,6 +114,20 @@ can then deliberately forward the brief to an attorney, accountant, manager, or
 other trusted adviser. This keeps the workflow useful for a small business while
 preventing Served from becoming an open mail relay.
 
+## Plaid financial evidence
+
+After the document result, a signed-in owner can optionally connect a business
+bank through Plaid Link. The browser receives only a short-lived Link token.
+The one-time public token is exchanged by the backend, and the resulting Plaid
+access token is never returned to the frontend. Transaction details are fetched
+on demand and are not written into saved analysis records.
+
+The hackathon flow uses Plaid Sandbox and its realistic small-business data. It
+demonstrates the authenticated data connection and record retrieval; financial
+records do not alter the document-verification verdict. Production deployment
+requires a separately managed production secret and the appropriate Plaid
+production approval.
+
 ## Versioned legal sources
 
 The legal corpus is a dated source snapshot, not model memory:
@@ -165,7 +180,7 @@ npm install
 npm run dev
 ```
 
-The frontend falls back to the deployed EasyPanel API. For local backend work, set `VITE_API_URL=http://localhost:8001/api` before starting Vite. Copy `.env.example` to your local environment and keep OpenAI, CourtListener, and Resend credentials out of Git.
+The frontend falls back to the deployed EasyPanel API. For local backend work, set `VITE_API_URL=http://localhost:8001/api` before starting Vite. Copy `.env.example` to your local environment and keep OpenAI, CourtListener, Resend, and Plaid credentials out of Git. For the Plaid demo, set `PLAID_CLIENT_ID`, `PLAID_SANDBOX_SECRET`, and `PLAID_ENVIRONMENT=sandbox` in `backend/.env`.
 
 ## Repository map
 

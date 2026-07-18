@@ -173,6 +173,34 @@ export type UserProfile = {
   picture: string | null
 }
 
+export type PlaidConnectionStatus = {
+  configured: boolean
+  connected: boolean
+  environment: "sandbox" | "development" | "production"
+  institution_name: string | null
+  connected_at: string | null
+}
+
+export type PlaidTransaction = {
+  transaction_id: string
+  account_id: string
+  name: string
+  merchant_name: string | null
+  date: string
+  amount: number
+  currency: string | null
+  pending: boolean
+  category_primary: string | null
+  category_detailed: string | null
+}
+
+export type PlaidTransactionsResponse = {
+  transactions: PlaidTransaction[]
+  total: number
+  initial_update_complete: boolean
+  historical_update_complete: boolean
+}
+
 const API_URL = (
   import.meta.env.VITE_API_URL || "https://anton-served.hrvnvm.easypanel.host/api"
 ).replace(/\/$/, "")
@@ -326,5 +354,60 @@ export async function fetchSavedAnalyses(
 export async function fetchAgentStatus(signal?: AbortSignal): Promise<{ agents: AgentStatus[]; healthy: boolean }> {
   const response = await fetch(`${API_URL}/agents/status`, { signal })
   if (!response.ok) throw await responseError(response, "Unable to load agent status")
+  return response.json()
+}
+
+export async function fetchPlaidStatus(
+  credential: string,
+  signal?: AbortSignal,
+): Promise<PlaidConnectionStatus> {
+  const response = await fetch(`${API_URL}/plaid/status`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to load bank connection")
+  return response.json()
+}
+
+export async function createPlaidLinkToken(credential: string): Promise<string> {
+  const response = await fetch(`${API_URL}/plaid/link-token`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}` },
+  })
+  if (!response.ok) throw await responseError(response, "Unable to start Plaid Link")
+  const data = await response.json() as { link_token: string }
+  return data.link_token
+}
+
+export async function exchangePlaidPublicToken(
+  credential: string,
+  publicToken: string,
+  institution?: { institution_id: string; name: string } | null,
+): Promise<PlaidConnectionStatus> {
+  const response = await fetch(`${API_URL}/plaid/exchange`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${credential}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      public_token: publicToken,
+      institution_id: institution?.institution_id ?? null,
+      institution_name: institution?.name ?? null,
+    }),
+  })
+  if (!response.ok) throw await responseError(response, "Unable to finish bank connection")
+  return response.json()
+}
+
+export async function fetchPlaidTransactions(
+  credential: string,
+  signal?: AbortSignal,
+): Promise<PlaidTransactionsResponse> {
+  const response = await fetch(`${API_URL}/plaid/transactions`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to retrieve transactions")
   return response.json()
 }

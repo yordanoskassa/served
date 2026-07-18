@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
+import { BankEvidenceCard } from "@/components/BankEvidenceCard"
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -146,6 +147,7 @@ export function AnalysisDetail({
 
       <GuidedClerkCall analysis={analysis} />
       <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
+      <BankEvidenceCard />
       <div className="mt-5 flex flex-wrap gap-2">
         <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
         {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} />}

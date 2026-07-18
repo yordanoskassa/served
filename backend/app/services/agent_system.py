@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
 
 from app.config import settings
+from app.services.plaid import sync_transactions
 
 
 @dataclass
@@ -73,6 +74,11 @@ coordinator = AgentCoordinator()
 coordinator.register(Agent("reader", "Reads the document and extracts facts without judging them."))
 coordinator.register(Agent("checker", "Checks CourtListener and official scam patterns without deciding a verdict."))
 coordinator.register(Agent("explainer", "Explains the code-decided result in plain language with exact source quotes."))
+coordinator.register(Agent(
+    "cook",
+    "Pulls authenticated bank transactions via Plaid for evidence matching.",
+    runner=sync_transactions,
+))
 
 
 def register_runner(name: str, runner: Callable[..., Awaitable[Any]]) -> None:
@@ -86,6 +92,7 @@ def agent_status() -> list[dict[str, Any]]:
         "reader": bool(settings.openai_api_key),
         "checker": bool(settings.openai_api_key and settings.courtlistener_api_token),
         "explainer": bool(settings.openai_api_key),
+        "cook": settings.plaid_configured,
     }
     statuses = coordinator.status()
     for item in statuses:

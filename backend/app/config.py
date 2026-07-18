@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from typing import Literal
+
 from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -83,6 +85,51 @@ class Settings(BaseSettings):
             "SERVED_RESEND_REPLY_TO", "RESEND_REPLY_TO"
         ),
     )
+    plaid_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("SERVED_PLAID_CLIENT_ID", "PLAID_CLIENT_ID"),
+    )
+    plaid_secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("SERVED_PLAID_SECRET", "PLAID_SECRET"),
+    )
+    plaid_sandbox_secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices(
+            "SERVED_PLAID_SANDBOX_SECRET", "PLAID_SANDBOX_SECRET"
+        ),
+    )
+    plaid_production_secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices(
+            "SERVED_PLAID_PRODUCTION_SECRET", "PLAID_PRODUCTION_SECRET"
+        ),
+    )
+    plaid_environment: Literal["sandbox", "development", "production"] = Field(
+        default="sandbox",
+        validation_alias=AliasChoices(
+            "SERVED_PLAID_ENVIRONMENT", "PLAID_ENVIRONMENT", "PLAID_ENV"
+        ),
+    )
+    plaid_redirect_uri: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "SERVED_PLAID_REDIRECT_URI", "PLAID_REDIRECT_URI"
+        ),
+    )
+
+    def effective_plaid_secret(self) -> str:
+        """Prefer PLAID_SECRET; otherwise pick sandbox vs production secret."""
+        explicit = self.plaid_secret.get_secret_value().strip()
+        if explicit:
+            return explicit
+        if self.plaid_environment == "production":
+            return self.plaid_production_secret.get_secret_value().strip()
+        return self.plaid_sandbox_secret.get_secret_value().strip()
+
+    @property
+    def plaid_configured(self) -> bool:
+        return bool(self.plaid_client_id.strip() and self.effective_plaid_secret())
 
     @field_validator("cors_origins")
     @classmethod
