@@ -1,0 +1,1140 @@
+{
+  "fixture_id": "served-payroll-bulk-v1",
+  "fixture_only": true,
+  "request_source": "D1.pdf",
+  "request_criteria": {
+    "employee_id": "E-1042",
+    "employee_name": "Audrea Barnes",
+    "record_types": [
+      "PAYROLL_REGISTER",
+      "WAGE_STATEMENT",
+      "TIME_RECORD"
+    ],
+    "start_date": "2026-01-01",
+    "cutoff_date": "2026-07-15",
+    "cutoff_basis": "D1 issue date; locked for deterministic replay"
+  },
+  "expected_totals": {
+    "MATCHED": 21,
+    "POSSIBLE": 7,
+    "OUTSIDE": 247,
+    "TOTAL": 275
+  },
+  "outside_breakdown": {
+    "OTHER_EMPLOYEE": 180,
+    "OUTSIDE_DATE_RANGE": 40,
+    "UNREQUESTED_RECORD_TYPE": 27
+  },
+  "possible_reason_codes": [
+    "NAME_VARIANT",
+    "MISSING_EMPLOYEE_ID",
+    "DATE_OVERLAPS_START",
+    "DATE_OVERLAPS_CUTOFF",
+    "CATEGORY_MAPPING_NEEDED",
+    "POSSIBLE_DUPLICATE",
+    "MISSING_PERIOD_END"
+  ],
+  "expected_by_record_id": {
+    "MATCH-2026-01-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-01-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-01-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-02-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-02-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-02-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-03-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-03-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-03-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-04-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-04-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-04-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-05-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-05-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-05-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-06-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-06-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-06-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-07-PR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-07-WS": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "MATCH-2026-07-TR": {
+      "disposition": "MATCHED",
+      "reason_code": "EXACT_EMPLOYEE_TYPE_DATE_MATCH"
+    },
+    "POSS-001": {
+      "disposition": "POSSIBLE",
+      "reason_code": "NAME_VARIANT"
+    },
+    "POSS-002": {
+      "disposition": "POSSIBLE",
+      "reason_code": "MISSING_EMPLOYEE_ID"
+    },
+    "POSS-003": {
+      "disposition": "POSSIBLE",
+      "reason_code": "DATE_OVERLAPS_START"
+    },
+    "POSS-004": {
+      "disposition": "POSSIBLE",
+      "reason_code": "DATE_OVERLAPS_CUTOFF"
+    },
+    "POSS-005": {
+      "disposition": "POSSIBLE",
+      "reason_code": "CATEGORY_MAPPING_NEEDED"
+    },
+    "POSS-006": {
+      "disposition": "POSSIBLE",
+      "reason_code": "POSSIBLE_DUPLICATE"
+    },
+    "POSS-007": {
+      "disposition": "POSSIBLE",
+      "reason_code": "MISSING_PERIOD_END"
+    },
+    "OUT-EMP-001-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-001-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-001-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-002-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-002-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-002-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-003-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-003-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-003-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-004-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-004-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-004-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-005-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-005-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-005-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-006-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-006-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-006-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-007-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-007-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-007-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-008-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-008-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-008-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-009-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-009-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-009-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-010-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-010-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-010-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-011-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-011-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-011-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-012-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-012-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-012-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-013-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-013-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-013-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-014-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-014-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-014-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-015-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-015-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-015-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-016-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-016-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-016-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-017-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-017-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-017-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-018-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-018-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-018-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-019-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-019-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-019-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-020-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-020-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-020-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-021-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-021-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-021-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-022-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-022-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-022-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-023-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-023-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-023-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-024-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-024-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-024-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-025-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-025-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-025-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-026-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-026-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-026-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-027-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-027-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-027-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-028-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-028-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-028-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-029-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-029-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-029-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-030-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-030-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-030-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-031-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-031-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-031-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-032-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-032-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-032-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-033-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-033-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-033-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-034-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-034-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-034-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-035-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-035-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-035-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-036-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-036-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-036-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-037-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-037-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-037-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-038-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-038-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-038-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-039-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-039-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-039-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-040-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-040-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-040-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-041-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-041-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-041-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-042-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-042-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-042-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-043-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-043-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-043-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-044-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-044-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-044-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-045-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-045-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-045-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-046-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-046-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-046-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-047-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-047-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-047-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-048-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-048-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-048-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-049-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-049-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-049-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-050-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-050-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-050-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-051-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-051-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-051-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-052-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-052-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-052-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-053-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-053-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-053-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-054-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-054-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-054-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-055-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-055-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-055-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-056-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-056-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-056-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-057-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-057-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-057-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-058-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-058-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-058-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-059-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-059-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-059-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-060-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-060-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-EMP-060-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "OUT-DATE-001-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-002-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-003-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-004-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-005-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-006-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-007-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-008-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-009-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-010-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-011-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-012-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-013-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-014-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-015-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-016-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-017-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-018-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-019-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-020-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-021-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-022-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-023-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-024-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-025-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-026-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-027-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-028-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-029-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-030-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-031-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-032-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-033-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-034-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-035-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-036-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-037-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-038-WS": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-039-TR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-DATE-040-PR": {
+      "disposition": "OUTSIDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "OUT-TYPE-001": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-002": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-003": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-004": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-005": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-006": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-007": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-008": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-009": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-010": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-011": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-012": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-013": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-014": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-015": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-016": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-017": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-018": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-019": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-020": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-021": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-022": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-023": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-024": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-025": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-026": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "OUT-TYPE-027": {
+      "disposition": "OUTSIDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    }
+  },
+  "safety_boundary": "Candidate matching is a data-minimization aid, not a legal decision about responsiveness, privilege, objections, proper service, or production."
+}

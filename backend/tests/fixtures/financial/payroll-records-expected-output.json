@@ -1,0 +1,177 @@
+{
+  "fixture_id": "served-payroll-v1",
+  "rules": {
+    "employee_match": "Exact normalized match to Audrea Barnes or employee_id E-1042",
+    "allowed_record_types": [
+      "PAYROLL_REGISTER",
+      "WAGE_STATEMENT",
+      "TIME_RECORD"
+    ],
+    "date_rule": "INCLUDE when period_start >= 2026-01-01 and period_end <= 2026-07-15; REVIEW when the record overlaps a boundary or date meaning is ambiguous; otherwise EXCLUDE",
+    "human_review_required": true,
+    "automatic_send": false,
+    "near_name_rule": "A name similar to but not exactly matching the subject (e.g., 'Audrea Barns', different employee_id) routes to REVIEW with NAME_NEAR_MATCH_NEEDS_HUMAN. Never auto-include a near match."
+  },
+  "expected_by_record_id": {
+    "PR-0001": {
+      "disposition": "REVIEW",
+      "reason_code": "PAY_DATE_IN_RANGE_PERIOD_OUT_OF_RANGE"
+    },
+    "WS-0001": {
+      "disposition": "REVIEW",
+      "reason_code": "PAY_DATE_IN_RANGE_PERIOD_OUT_OF_RANGE"
+    },
+    "TR-0001": {
+      "disposition": "REVIEW",
+      "reason_code": "PERIOD_ENDS_BEFORE_START_DATE"
+    },
+    "PR-1001": {
+      "disposition": "INCLUDE",
+      "reason_code": "TARGET_EMPLOYEE_TYPE_AND_DATE_MATCH"
+    },
+    "WS-1001": {
+      "disposition": "INCLUDE",
+      "reason_code": "TARGET_EMPLOYEE_TYPE_AND_DATE_MATCH"
+    },
+    "TR-1001": {
+      "disposition": "INCLUDE",
+      "reason_code": "TARGET_EMPLOYEE_TYPE_AND_DATE_MATCH"
+    },
+    "PR-OLD1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "WS-OLD1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "TR-OLD1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OUTSIDE_DATE_RANGE"
+    },
+    "PR-OTHER1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "WS-OTHER1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "TR-OTHER1": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "PR-OTHER2": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "WS-OTHER2": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "TR-OTHER2": {
+      "disposition": "EXCLUDE",
+      "reason_code": "OTHER_EMPLOYEE"
+    },
+    "BNK-1001": {
+      "disposition": "EXCLUDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "HR-1001": {
+      "disposition": "EXCLUDE",
+      "reason_code": "UNREQUESTED_RECORD_TYPE"
+    },
+    "PR-D2001": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2001": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2002": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2002": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2003": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2003": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2004": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2004": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2005": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2005": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2006": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2006": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2007": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2007": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2008": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2008": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-D2009": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "WS-D2009": {
+      "disposition": "EXCLUDE",
+      "reason_code": "NOT_TARGET_EMPLOYEE"
+    },
+    "PR-NEAR1": {
+      "disposition": "REVIEW",
+      "reason_code": "NAME_NEAR_MATCH_NEEDS_HUMAN"
+    }
+  },
+  "expected_totals": {
+    "INCLUDE": 3,
+    "REVIEW": 4,
+    "EXCLUDE": 29,
+    "TOTAL": 36
+  },
+  "required_ui_copy": {
+    "heading": "Potentially responsive payroll records",
+    "review_notice": "Served matched these records to the employee, record categories, and displayed date range in the uploaded request. Review every item before exporting or sharing.",
+    "boundary_warning": "Some records may overlap the displayed date range or use a different pay-date convention. They require human review.",
+    "legal_boundary": "Served identifies potentially responsive records. It does not decide legal sufficiency, privilege, objections, proper service, or whether production is required.",
+    "primary_action": "Review selected records",
+    "export_action": "Export review packet",
+    "forbidden_action": "Do not automatically send records to a court, attorney, agency, or third party."
+  },
+  "demo_headline": "Matched 3 records for Audrea Barnes. Flagged 4 for human review. Excluded 29 - including 24 records belonging to 11 other employees and 1 near-name that only a human should judge."
+}

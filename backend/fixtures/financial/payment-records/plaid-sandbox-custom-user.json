@@ -1,0 +1,250 @@
+{
+  "version": "2",
+  "seed": "served-payments-v1",
+  "override_accounts": [
+    {
+      "type": "depository",
+      "subtype": "checking",
+      "starting_balance": 48620.55,
+      "currency": "USD",
+      "meta": {
+        "name": "John Doe's Kitchen Operating",
+        "official_name": "John Doe's Kitchen, LLC Business Checking",
+        "mask": "1042"
+      },
+      "numbers": {
+        "account": "000111122223333",
+        "ach_routing": "322271627"
+      },
+      "identity": {
+        "names": [
+          "John Doe's Kitchen, LLC"
+        ],
+        "phone_numbers": [
+          {
+            "primary": true,
+            "type": "work",
+            "data": "2135550100"
+          }
+        ],
+        "emails": [
+          {
+            "primary": true,
+            "type": "primary",
+            "data": "finance@johndoeskitchen.example"
+          }
+        ],
+        "addresses": [
+          {
+            "primary": true,
+            "data": {
+              "city": "Los Angeles",
+              "region": "CA",
+              "street": "1 World Cup Blvd",
+              "postal_code": "88888",
+              "country": "US"
+            }
+          }
+        ]
+      },
+      "transactions": [
+        {
+          "date_transacted": "2026-01-05",
+          "date_posted": "2026-01-05",
+          "amount": 1337.60,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-02-05",
+          "date_posted": "2026-02-05",
+          "amount": 2802.30,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-03-05",
+          "date_posted": "2026-03-05",
+          "amount": 2820.12,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-04-05",
+          "date_posted": "2026-04-05",
+          "amount": 3069.60,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-05-05",
+          "date_posted": "2026-05-05",
+          "amount": 2846.85,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-06-05",
+          "date_posted": "2026-06-05",
+          "amount": 2935.95,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-07-05",
+          "date_posted": "2026-07-05",
+          "amount": 2900.31,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-05-08",
+          "date_posted": "2026-05-09",
+          "amount": 2840.00,
+          "description": "CHECK #1042",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-06-20",
+          "date_posted": "2026-06-20",
+          "amount": 875.50,
+          "description": "ACH - A. BARNS",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-01-10",
+          "date_posted": "2026-01-10",
+          "amount": 845.33,
+          "description": "SUNRISE PRODUCE CO",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-01-12",
+          "date_posted": "2026-01-13",
+          "amount": 412.00,
+          "description": "PACIFIC LINEN SERVICE",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-01-31",
+          "date_posted": "2026-01-31",
+          "amount": 189.45,
+          "description": "MERCHANT POS SERVICE FEE",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-02-01",
+          "date_posted": "2026-02-01",
+          "amount": 6200.00,
+          "description": "WORLD CUP BLVD RENT",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-02-14",
+          "date_posted": "2026-02-14",
+          "amount": 742.18,
+          "description": "LOS ANGELES ELECTRIC",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-03-10",
+          "date_posted": "2026-03-11",
+          "amount": 328.74,
+          "description": "SOCAL GAS BUSINESS",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-04-12",
+          "date_posted": "2026-04-12",
+          "amount": 211.09,
+          "description": "LA WATER AND POWER",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-05-09",
+          "date_posted": "2026-05-09",
+          "amount": 1239.40,
+          "description": "WEST COAST SEAFOOD SUPPLY",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-06-14",
+          "date_posted": "2026-06-15",
+          "amount": 518.00,
+          "description": "KITCHEN CLEANING SERVICES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-07-02",
+          "date_posted": "2026-07-02",
+          "amount": 920.55,
+          "description": "METRO BEVERAGE DISTRIBUTOR",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-01-20",
+          "date_posted": "2026-01-20",
+          "amount": 1276.80,
+          "description": "PAYROLL ACH - MIGUEL SANTOS",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-02-20",
+          "date_posted": "2026-02-20",
+          "amount": 2705.38,
+          "description": "PAYROLL ACH - PRIYA SHAH",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-03-20",
+          "date_posted": "2026-03-20",
+          "amount": 2556.40,
+          "description": "PAYROLL ACH - DARIO OKAFOR",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-04-20",
+          "date_posted": "2026-04-20",
+          "amount": 2340.80,
+          "description": "PAYROLL ACH - LENA VEGA",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-05-20",
+          "date_posted": "2026-05-20",
+          "amount": 2956.80,
+          "description": "PAYROLL ACH - TOM NAKAMURA",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-06-20",
+          "date_posted": "2026-06-20",
+          "amount": 1848.00,
+          "description": "PAYROLL ACH - SOFIA PETROV",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2026-07-10",
+          "date_posted": "2026-07-10",
+          "amount": 2522.52,
+          "description": "PAYROLL ACH - MARCUS LINDGREN",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2025-11-05",
+          "date_posted": "2025-11-05",
+          "amount": 1304.16,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        },
+        {
+          "date_transacted": "2025-12-20",
+          "date_posted": "2025-12-20",
+          "amount": 1337.60,
+          "description": "PAYROLL ACH - AUDREA BARNES",
+          "currency": "USD"
+        }
+      ]
+    }
+  ]
+}
