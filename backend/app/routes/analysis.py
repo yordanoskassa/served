@@ -146,7 +146,7 @@ def _saved_analysis_payload(result: AnalysisResponse) -> dict:
 @router.get("/samples/{sample_id}", response_class=FileResponse)
 async def sample_document(sample_id: str) -> FileResponse:
     sample = sample_id.upper()
-    if sample not in {"D1", "D2", "D3"}:
+    if sample not in {"D1", "D2", "D3", "D4"}:
         raise HTTPException(status_code=404, detail="Sample document not found.")
     path = FIXTURES / f"{sample}.pdf"
     if not path.is_file():

@@ -1,18 +1,27 @@
 from datetime import UTC, datetime
 
+from bson import ObjectId
 from fastapi import APIRouter, Header, HTTPException, status
+from pydantic import ValidationError
 
 from app.config import settings
 from app.db import get_db
 from app.routes.auth import _verify_google_token
+from app.schemas.analysis import AnalysisResponse
 from app.schemas.plaid import (
+    PaymentMatchRequest,
+    PaymentMatchResponse,
     PlaidConnectionStatus,
     PlaidExchangeRequest,
     PlaidLinkTokenResponse,
     PlaidTransaction,
-    PlaidTransactionsResponse,
 )
 from app.services import plaid as plaid_service
+from app.services.financial_matcher import (
+    FinancialEligibilityError,
+    extract_payment_request,
+    match_payment_transactions,
+)
 from app.services.plaid import PlaidAPIError, PlaidNotConfiguredError
 
 
@@ -40,11 +49,72 @@ def _provider_error(exc: Exception) -> HTTPException:
     )
 
 
-@router.get("/status", response_model=PlaidConnectionStatus)
+async def _eligible_analysis(analysis_id: str, profile):
+    if not ObjectId.is_valid(analysis_id):
+        raise HTTPException(status_code=404, detail="Saved analysis not found.")
+    try:
+        record = await get_db().analyses.find_one({
+            "_id": ObjectId(analysis_id),
+            "google_subject": profile.subject,
+        })
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Saved analysis is temporarily unavailable.",
+        ) from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Saved analysis not found.")
+    try:
+        analysis = AnalysisResponse.model_validate(record.get("analysis"))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Financial tools stay locked because this analysis is incomplete.",
+        ) from exc
+    if analysis.verdict != "verified":
+        raise HTTPException(
+            status_code=409,
+            detail="Financial tools stay locked until this request is verified.",
+        )
+    try:
+        target_payee, start_date = extract_payment_request(analysis)
+    except FinancialEligibilityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return record, analysis, target_payee, start_date
+
+
+def _parse_transactions(result: dict) -> list[PlaidTransaction]:
+    parsed: list[PlaidTransaction] = []
+    for item in result.get("transactions") or []:
+        category = item.get("personal_finance_category") or {}
+        try:
+            parsed.append(PlaidTransaction(
+                transaction_id=item["transaction_id"],
+                account_id=item["account_id"],
+                name=item.get("name") or item.get("original_description") or "Transaction",
+                merchant_name=item.get("merchant_name"),
+                date=item["date"],
+                amount=item["amount"],
+                currency=item.get("iso_currency_code") or item.get("unofficial_currency_code"),
+                pending=bool(item.get("pending")),
+                category_primary=category.get("primary"),
+                category_detailed=category.get("detailed"),
+            ))
+        except (KeyError, TypeError, ValueError, ValidationError) as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="Plaid returned a transaction that could not be safely evaluated.",
+            ) from exc
+    return parsed
+
+
+@router.get("/analyses/{analysis_id}/status", response_model=PlaidConnectionStatus)
 async def connection_status(
+    analysis_id: str,
     authorization: str = Header(default=""),
 ) -> PlaidConnectionStatus:
     profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
     configured = plaid_service.is_configured()
     if not configured:
         return PlaidConnectionStatus(
@@ -71,11 +141,13 @@ async def connection_status(
     )
 
 
-@router.post("/link-token", response_model=PlaidLinkTokenResponse)
+@router.post("/analyses/{analysis_id}/link-token", response_model=PlaidLinkTokenResponse)
 async def link_token(
+    analysis_id: str,
     authorization: str = Header(default=""),
 ) -> PlaidLinkTokenResponse:
     profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
     try:
         result = await plaid_service.create_link_token(profile.subject)
         return PlaidLinkTokenResponse.model_validate(result)
@@ -83,12 +155,14 @@ async def link_token(
         raise _provider_error(exc) from None
 
 
-@router.post("/exchange", response_model=PlaidConnectionStatus)
+@router.post("/analyses/{analysis_id}/exchange", response_model=PlaidConnectionStatus)
 async def exchange_token(
+    analysis_id: str,
     body: PlaidExchangeRequest,
     authorization: str = Header(default=""),
 ) -> PlaidConnectionStatus:
     profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
     try:
         result = await plaid_service.exchange_public_token(body.public_token)
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
@@ -131,11 +205,14 @@ async def exchange_token(
     )
 
 
-@router.get("/transactions", response_model=PlaidTransactionsResponse)
-async def transactions(
+@router.post("/analyses/{analysis_id}/match", response_model=PaymentMatchResponse)
+async def match_transactions(
+    analysis_id: str,
+    body: PaymentMatchRequest,
     authorization: str = Header(default=""),
-) -> PlaidTransactionsResponse:
+) -> PaymentMatchResponse:
     profile = _authenticate(authorization)
+    record, _, target_payee, start_date = await _eligible_analysis(analysis_id, profile)
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": profile.subject},
@@ -154,31 +231,18 @@ async def transactions(
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
         raise _provider_error(exc) from None
 
-    parsed: list[PlaidTransaction] = []
-    for item in result["transactions"]:
-        category = item.get("personal_finance_category") or {}
-        try:
-            parsed.append(PlaidTransaction(
-                transaction_id=item["transaction_id"],
-                account_id=item["account_id"],
-                name=item.get("name") or item.get("original_description") or "Transaction",
-                merchant_name=item.get("merchant_name"),
-                date=item["date"],
-                amount=item["amount"],
-                currency=item.get("iso_currency_code") or item.get("unofficial_currency_code"),
-                pending=bool(item.get("pending")),
-                category_primary=category.get("primary"),
-                category_detailed=category.get("detailed"),
-            ))
-        except (KeyError, TypeError, ValueError):
-            continue
-    parsed.sort(key=lambda item: (item.date, item.transaction_id), reverse=True)
-    return PlaidTransactionsResponse(
-        transactions=parsed[:250],
-        total=len(parsed),
-        initial_update_complete=result["initial_update_complete"],
-        historical_update_complete=result["historical_update_complete"],
-    )
+    parsed = _parse_transactions(result)
+    try:
+        return match_payment_transactions(
+            parsed,
+            analysis_id=analysis_id,
+            source_document=record.get("filename") or "Uploaded document",
+            target_payee=target_payee,
+            start_date=start_date,
+            cutoff_date=body.cutoff_date,
+        )
+    except FinancialEligibilityError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.delete("/connection", status_code=status.HTTP_204_NO_CONTENT)

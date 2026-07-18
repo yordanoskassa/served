@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import type { EntryIntent } from "@/lib/entry"
 
 const letters = [
-  { id: "D1" as const, title: "Letter 1", note: "Sample case D1", rotate: -5 },
-  { id: "D2" as const, title: "Letter 2", note: "Sample case D2", rotate: 1.5 },
-  { id: "D3" as const, title: "Letter 3", note: "Sample case D3", rotate: 5 },
+  { id: "D4" as const, title: "Payment subpoena", note: "Hero demo · search bank payments", rotate: -5 },
+  { id: "D1" as const, title: "Payroll subpoena", note: "Verified request · match payroll records", rotate: 1.5 },
+  { id: "D2" as const, title: "Altered case number", note: "Uncertain request · records stay locked", rotate: 5 },
+  { id: "D3" as const, title: "Gift-card demand", note: "Scam signals · no financial access", rotate: -2 },
 ]
 
 function FlyingLetter({ letter, index, onSelect, buttonRef }: {
@@ -31,7 +32,7 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
       whileHover={reduceMotion ? undefined : { y: -10, rotate: 0, scale: 1.025 }}
       whileTap={reduceMotion ? undefined : { scale: .98 }}
       onClick={() => onSelect(letter.id)}
-      className={`group relative aspect-[1.45/1] min-w-0 overflow-hidden rounded-[10px] border border-black/10 bg-[#fffdf6] p-3 text-left shadow-[0_10px_24px_rgba(37,40,33,.1)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:col-span-1 sm:w-auto sm:rounded-[14px] sm:p-5 ${index === 2 ? "col-span-2 w-[calc(50%-4px)] justify-self-center" : ""}`}
+      className="group relative aspect-[1.45/1] min-w-0 overflow-hidden rounded-[10px] border border-black/10 bg-[#fffdf6] p-3 text-left shadow-[0_10px_24px_rgba(37,40,33,.1)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:rounded-[14px] sm:p-5"
     >
       <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full text-black/[.08]" viewBox="0 0 300 190" preserveAspectRatio="none">
         <path d="M1 188 112 87c22-20 54-20 76 0l111 101" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -90,7 +91,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
             <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.07em] text-[#fffaf1]">Served</p>
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.28em] text-white/55 sm:text-[9px]">the small-business legal mailroom</p>
+            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena response</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
@@ -101,8 +102,8 @@ function ServedMailbox({ open, onOpen, onSelect }: {
 
       <AnimatePresence>
         {open && <motion.div initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={reduceMotion ? { duration: 0 } : { delay: .58, duration: .35 }} className="absolute bottom-[48px] left-1/2 z-30 -translate-x-1/2 sm:bottom-[56px]">
-          <Button type="button" aria-label="Upload your own legal letter" onClick={() => onSelect("upload")} className="h-10 whitespace-nowrap border border-black/15 bg-[#fffaf1] px-4 text-[#1a1a1a] hover:bg-white sm:px-5">
-            <Upload size={15} /> Upload your own
+          <Button type="button" aria-label="Upload your own financial subpoena" onClick={() => onSelect("upload")} className="h-10 whitespace-nowrap border border-black/15 bg-[#fffaf1] px-4 text-[#1a1a1a] hover:bg-white sm:px-5">
+            <Upload size={15} /> Upload your subpoena
           </Button>
         </motion.div>}
       </AnimatePresence>
@@ -132,14 +133,14 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">Evidence-first legal-mail triage for small businesses</motion.p>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">Financial subpoena response for independent restaurants</motion.p>
       <AnimatePresence mode="wait">
         <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
           <h1 className="font-display text-[clamp(2.75rem,6.2vw,6rem)] font-medium leading-[.9] tracking-[-.07em] text-[#1a1a1a]">
-            {open ? <>Three letters.<br /><span className="text-[#8e8e8e]">Three evidence trails.</span></> : <>You’ve got legal mail.<br /><span className="text-[#8e8e8e]">Open it carefully.</span></>}
+            {open ? <>Two record sources.<br /><span className="text-[#8e8e8e]">One safety gate.</span></> : <>A financial subpoena landed.<br /><span className="text-[#8e8e8e]">Find the exact records.</span></>}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
-            {open ? "Choose a sample letter, or use the button on the mailbox to bring your own. You’ll sign in before anything is analyzed." : "Open the red Served mailbox to explore three sample cases—then follow the facts from the letter to the record."}
+            {open ? "A verified payroll request unlocks payroll matching. A verified payment request unlocks bank matching. Anything uncertain keeps sensitive sources locked." : "Built for immigrant-owned restaurants without legal, HR, or finance teams. Verify the request, search the correct source, and review only the records it actually describes."}
           </p>
         </motion.div>
       </AnimatePresence>
@@ -150,7 +151,7 @@ export function Hero({ open, onOpen, onSelect }: {
       className={`relative z-10 mx-auto w-full max-w-6xl px-3 sm:px-8 ${open ? "mt-3 h-[650px] sm:h-[610px]" : "-mt-2 h-[390px] sm:-mt-5 sm:h-[420px]"}`}
     >
       <AnimatePresence>
-        {open && <motion.div id="served-letter-choices" role="group" aria-label="Choose a sample letter" className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,850px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-6">
+        {open && <motion.div id="served-letter-choices" role="group" aria-label="Choose a sample letter" className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,1050px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-5">
           {letters.map((letter, index) => <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} buttonRef={index === 0 ? firstLetter : undefined} />)}
         </motion.div>}
       </AnimatePresence>
@@ -163,8 +164,8 @@ export function Hero({ open, onOpen, onSelect }: {
       </motion.div>
     </div>
 
-    <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose Letter 1, Letter 2, Letter 3, or upload your own document." : "Mailbox closed."}</p>
+    <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose D4, D1, D2, D3, or upload your own subpoena." : "Mailbox closed."}</p>
     <span className="absolute bottom-6 left-6 z-20 text-[10px] tracking-wide text-zinc-500 md:left-16">{new Date().getFullYear()}</span>
-    <span className="absolute right-6 bottom-6 z-20 text-[10px] tracking-wide text-zinc-500 md:right-16">three agents · one code-decided verdict</span>
+    <span className="absolute right-6 bottom-6 z-20 text-[10px] tracking-wide text-zinc-500 md:right-16">verify first · access records second</span>
   </section>
 }

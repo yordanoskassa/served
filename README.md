@@ -4,11 +4,11 @@
 
 [Try the demo](https://servedai.netlify.app/) · [Architecture](docs/multi-agent-architecture.md) · [Safety corpus](backend/app/corpus/README.md) · [UPL boundary](docs/product-safety/UPL.md)
 
-**Served is the evidence-first legal mailroom for small businesses without legal staff.** A federal subpoena, a wage-garnishment notice, or a “pay now or else” demand can land at a restaurant, shop, or family business with no lawyer on call. Some documents are real and time-sensitive. Others are scams designed to look official. Telling the difference can become a $500-an-hour question.
+**Served is a financial subpoena response workspace for immigrant-owned restaurants without legal, HR, or finance staff.** A records request can arrive with a strict deadline and ask for payroll, wage, time, payment, or bank records spread across systems an owner rarely has time to search. Served verifies the referenced case before touching sensitive data, unlocks only the requested source, and prepares a review-ready candidate manifest.
 
-Served gives the recipient an evidence-backed first answer in about 30 seconds.
+The product is not just a document explainer. It carries the owner from subpoena to review-ready records while keeping unrelated employees, vendors, and transactions outside the response.
 
-In our demo, John — a restaurant owner who moved from Mexico and whose business is already having a rough month — finds an official-looking federal subpoena in the mail, addressed to his restaurant, John Doe’s Kitchen LLC: it demands payroll records for a former employee’s wage lawsuit. His English is fine; legal English is the foreign language, as it is for almost everyone. **He is not being sued — but the document never explains that in plain language.** Served reads the letter, checks the referenced case against the public federal docket, and shows him what the document says, what evidence could be verified, and when the result needs human review.
+In our demo, John, a restaurant owner who moved from Mexico, receives a financial subpoena addressed to John Doe’s Kitchen LLC. Served explains the request, checks the referenced case against the public federal docket, extracts the named person and date range, and then opens the correct record path. D1 matches payroll records. D4 searches authenticated business-bank transactions and produces the demo’s 7 include, 2 review, and 19 exclude result. D2 and D3 show why uncertain or suspicious requests must fail closed before financial access.
 Three narrowly scoped AI agents gather and explain the document evidence. An optional fourth worker, COOK, retrieves authenticated business-bank records after the document result. A small deterministic code policy—not an AI model—selects the legal-mail outcome.
 
 ```text
@@ -141,13 +141,14 @@ Legal passages explain an already-computed outcome. They never decide authentici
 
 ## Demo fixtures
 
-The release fixtures make the three branches easy to inspect:
+The release fixtures make the four branches easy to inspect:
 
 | Fixture | Scenario | Expected outcome |
 |---|---|---|
 | `D1.pdf` | Referenced federal case is found and parties match | `VERIFIED` |
 | `D2.pdf` | The case number is altered, so the required match is not established | `CANNOT_CONFIRM` |
 | `D3.pdf` | Two or more countable, sourced warning signs are supported by the letter text | `SCAM` |
+| `D4.pdf` | Verified request for payment and bank records for Audrea Barnes | `VERIFIED`, then 7 include / 2 review / 19 exclude |
 
 The specimens are training fixtures, not valid legal documents. Personal, attorney, and contact details are fictionalized. Expected outcomes and golden agent outputs live in [`backend/fixtures/`](backend/fixtures/), so the demo contract does not depend on a live API response remaining unchanged.
 
@@ -188,7 +189,7 @@ The frontend falls back to the deployed EasyPanel API. For local backend work, s
 backend/app/corpus/                  sourced, versioned ground truth
 backend/app/engine/                  schemas, Grounding Guard, verdict policy
 backend/app/services/                agents and external integrations
-backend/fixtures/                    D1/D2/D3 and golden expected results
+backend/fixtures/                    D1/D2/D3/D4 and golden expected results
 backend/tests/                       deterministic backend tests
 docs/multi-agent-architecture.md     full engineering contract
 docs/product-safety/UPL.md           legal-information boundary copy

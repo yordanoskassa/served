@@ -17,7 +17,7 @@ const ENTRY_STORAGE_KEY = "served_entry_intent"
 function storedEntryIntent(): EntryIntent | null {
   try {
     const value = sessionStorage.getItem(ENTRY_STORAGE_KEY)
-    return value === "D1" || value === "D2" || value === "D3" || value === "upload" ? value : null
+    return value === "D1" || value === "D2" || value === "D3" || value === "D4" || value === "upload" ? value : null
   } catch {
     return null
   }
@@ -70,5 +70,5 @@ export function App() {
   if (clientIdLoading) return landing
   if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader></DialogContent></Dialog>
 
-  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Sign in with Google to open {entryLabel(entryIntent)} in your evidence workspace.</DialogDescription><LoginPage destination={entryLabel(entryIntent)} /></DialogContent></Dialog></GoogleOAuthProvider>
+  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Sign in with Google to open {entryLabel(entryIntent)} in your financial subpoena workspace.</DialogDescription><LoginPage destination={entryLabel(entryIntent)} /></DialogContent></Dialog></GoogleOAuthProvider>
 }

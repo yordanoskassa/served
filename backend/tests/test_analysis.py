@@ -137,8 +137,9 @@ def test_analyze_requires_sign_in_before_provider_work() -> None:
     analyzer.assert_not_awaited()
 
 
-def test_sample_document_is_available() -> None:
-    response = TestClient(app).get("/api/documents/samples/D3")
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "application/pdf"
-    assert response.content.startswith(b"%PDF")
+def test_sample_documents_are_available() -> None:
+    for sample in ("D1", "D2", "D3", "D4"):
+        response = TestClient(app).get(f"/api/documents/samples/{sample}")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.content.startswith(b"%PDF")

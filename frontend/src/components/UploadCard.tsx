@@ -22,7 +22,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   onTraceEvent?: (event: TraceEvent) => void
   onViewPipeline?: () => void
   onReset?: () => void
-  initialSample?: "D1" | "D2" | "D3"
+  initialSample?: "D1" | "D2" | "D3" | "D4"
 }) {
   const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
@@ -46,7 +46,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
         setAnalysis(undefined)
       })
       .catch((cause) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "Sample letter could not be prepared.")
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Sample request could not be prepared.")
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -57,7 +57,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   async function submit() {
     if (!file) return input.current?.click()
     if (!credential) {
-      setError("Sign in again before analyzing this letter.")
+      setError("Sign in again before analyzing this request.")
       onAnalysisStateChange?.("error")
       return
     }
@@ -84,9 +84,9 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     }
   }
 
-  async function useSample(sample: "D1" | "D2" | "D3") {
+  async function useSample(sample: "D1" | "D2" | "D3" | "D4") {
     if (!credential) {
-      setError("Sign in again before analyzing this letter.")
+      setError("Sign in again before analyzing this request.")
       onAnalysisStateChange?.("error")
       return
     }
@@ -135,8 +135,8 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   return <Card className="h-fit self-start overflow-hidden">
     <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">
       <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={21} /> : file ? <FileImage size={21} /> : <Camera size={21} />}</div>
-      <h2 className="font-display text-xl font-medium tracking-[-.035em]">{file ? "Ready to analyze" : "Upload the letter"}</h2>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-muted-foreground">{file ? "Your selected file is shown below." : "Use a clear, well-lit photo with the entire page visible."}</p>
+      <h2 className="font-display text-xl font-medium tracking-[-.035em]">{file ? "Ready to verify" : "Upload the financial subpoena"}</h2>
+      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-muted-foreground">{file ? "Served will extract and independently verify the request before any record source can unlock." : "Start with the subpoena. Payroll and banking data stay locked until its request is understood and verified."}</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
       {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
@@ -145,18 +145,19 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       </div>}
       {error && <Alert variant="destructive" className="mt-3 rounded-xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       <div className="mt-4 flex justify-center gap-2">
-        <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile} disabled={loading}><Camera size={17} /> {loading ? "Three-agent analysis…" : file ? "Analyze letter" : "Choose a file"}</Button>
+        <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile} disabled={loading}><Camera size={17} /> {loading ? "Verifying request…" : file ? "Verify request" : "Choose a file"}</Button>
       </div>
     </div>
     <div className="px-5 py-4 sm:px-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Run a real sample analysis</p>
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
-          <Button aria-label="Analyze sample letter D1" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D1")}><span className="sm:hidden">D1</span><span className="hidden sm:inline">Analyze D1</span></Button>
-          <Button aria-label="Analyze sample letter D2" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D2")}><span className="sm:hidden">D2</span><span className="hidden sm:inline">Analyze D2</span></Button>
-          <Button aria-label="Analyze sample letter D3" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D3")}><span className="sm:hidden">D3</span><span className="hidden sm:inline">Analyze D3</span></Button>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Choose a financial subpoena path</p>
+        <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Button aria-label="Analyze verified payment records request D4" className="h-9 px-2 text-xs sm:px-3" disabled={loading} onClick={() => useSample("D4")}><span className="sm:hidden">D4</span><span className="hidden sm:inline">Payment subpoena</span></Button>
+          <Button aria-label="Analyze verified payroll subpoena D1" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D1")}><span className="sm:hidden">D1</span><span className="hidden sm:inline">Payroll subpoena</span></Button>
+          <Button aria-label="Analyze uncertain request D2" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D2")}><span className="sm:hidden">D2</span><span className="hidden sm:inline">Uncertain</span></Button>
+          <Button aria-label="Analyze scam demand D3" className="h-9 px-2 text-xs sm:px-3" variant="outline" disabled={loading} onClick={() => useSample("D3")}><span className="sm:hidden">D3</span><span className="hidden sm:inline">Scam demand</span></Button>
         </div>
-        <p className="mt-2 text-[11px] text-zinc-400">Each sample uses the same live analysis path as an uploaded letter.</p>
+        <p className="mt-2 text-[11px] text-zinc-400">D4 is the hero bank-payment demo. D1 shows payroll matching. D2 and D3 prove sensitive sources stay locked.</p>
       </div>
       <Separator className="my-3" />
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><ShieldCheck size={14} /> The analysis is saved; uploaded file bytes are not</div>

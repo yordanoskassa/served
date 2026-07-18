@@ -1,0 +1,163 @@
+import {
+  CheckCircle2,
+  FileSpreadsheet,
+  LockKeyhole,
+  LoaderCircle,
+  ShieldCheck,
+  Upload,
+} from "lucide-react"
+import { useRef, useState } from "react"
+
+import { useAuth } from "@/AuthContext"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  loadSamplePayroll,
+  matchPayrollRecords,
+  type Analysis,
+  type PayrollCandidate,
+  type PayrollMatchResponse,
+  type PayrollRecordType,
+} from "@/lib/api"
+
+
+const recordLabels: Record<PayrollRecordType, string> = {
+  payroll_record: "Payroll record",
+  wage_statement: "Wage statement",
+  time_record: "Time record",
+}
+
+function dateRange(record: PayrollCandidate): string {
+  return `${record.period_start} to ${record.period_end}`
+}
+
+function requestLooksLikePayroll(analysis: Analysis): boolean {
+  const text = [analysis.summary, ...(analysis.breakdown?.requested_actions ?? [])].join(" ").toLowerCase()
+  return analysis.breakdown?.case_number === "5:25-cv-02108-KK-SP"
+    || ["payroll", "wage statement", "time record"].some((word) => text.includes(word))
+}
+
+export function PayrollRecordsCard({ analysis, analysisId }: { analysis: Analysis; analysisId?: string }) {
+  const { credential } = useAuth()
+  const input = useRef<HTMLInputElement>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [result, setResult] = useState<PayrollMatchResponse | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const isPayroll = requestLooksLikePayroll(analysis)
+
+  if (analysis.verdict !== "verified") {
+    return <section className="mt-5 rounded-2xl border border-black/10 bg-white/75 p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-black/5"><LockKeyhole size={18} /></span>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Business records locked</p>
+          <h3 className="mt-1 font-display text-lg tracking-[-.03em]">No payroll or bank access requested</h3>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-500">
+            {analysis.verdict === "cannot_confirm"
+              ? "Verify the request through an official source before connecting or uploading sensitive business records."
+              : "This letter shows scam indicators. Served will not ask for financial access or employee records."}
+          </p>
+        </div>
+      </div>
+    </section>
+  }
+
+  if (!isPayroll) return null
+
+  const runMatch = async (nextFile: File) => {
+    setFile(nextFile)
+    setResult(null)
+    setError(null)
+    if (!analysisId || !credential) {
+      setError("Save this verified analysis and sign in again before matching payroll records.")
+      return
+    }
+    setBusy(true)
+    try {
+      setResult(await matchPayrollRecords(analysisId, nextFile, credential))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Payroll records could not be matched.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const useDemo = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const sample = await loadSamplePayroll()
+      await runMatch(sample)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The demo payroll export could not be prepared.")
+      setBusy(false)
+    }
+  }
+
+  return <section className="mt-5 overflow-hidden rounded-2xl border border-black/10 bg-[#111] text-white">
+    <div className="p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10"><FileSpreadsheet size={18} /></span>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Step 2 · Payroll records</p>
+            <h3 className="mt-1 font-display text-lg tracking-[-.03em]">Find candidate records for this request</h3>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-white/55">Upload a CSV export from payroll. Served compares only the named employee, requested record types, and displayed date range.</p>
+          </div>
+        </div>
+        <Badge className="bg-brand-green text-black">REQUEST VERIFIED</Badge>
+      </div>
+
+      {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Records stayed locked</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
+
+      {!result && <div className="mt-5 rounded-2xl border border-white/10 bg-white/[.04] p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button className="bg-white text-black hover:bg-white/90" disabled={busy} onClick={() => { void useDemo() }}>
+            {busy ? <LoaderCircle className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+            Use demo payroll export
+          </Button>
+          <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => input.current?.click()}>
+            <Upload size={16} /> Upload payroll CSV
+          </Button>
+          <input
+            ref={input}
+            className="sr-only"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => {
+              const nextFile = event.target.files?.[0]
+              if (nextFile) void runMatch(nextFile)
+            }}
+          />
+        </div>
+        <p className="mt-3 text-[10px] leading-4 text-white/40">Demo export: John Doe&apos;s Kitchen · 17 records · no payroll credentials required</p>
+      </div>}
+
+      {result && <div className="mt-5 space-y-4">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="rounded-2xl bg-brand-green p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.strong}</p><p className="mt-1 text-xs font-medium">strong candidate records</p></div>
+          <div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.possible}</p><p className="mt-1 text-xs text-white/60">possible, needs review</p></div>
+          <div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.outside_criteria}</p><p className="mt-1 text-xs text-white/60">kept outside candidate set</p></div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/40">Request criteria</p>
+          <p className="mt-2 text-sm font-semibold">{result.criteria.employee_name} · from {result.criteria.start_date}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">{result.criteria.record_types.map((type) => <Badge className="bg-white/10 text-white" key={type}>{recordLabels[type]}</Badge>)}</div>
+        </div>
+
+        <div className="space-y-2">
+          {result.strong_matches.map((record) => <article className="rounded-2xl bg-white p-4 text-black" key={record.record_id}>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold">{recordLabels[record.record_type]}</p><p className="mt-1 text-xs text-zinc-500">{dateRange(record)} · {record.source}</p></div><Badge>{record.match_strength.toUpperCase()}</Badge></div>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{record.match_reason}</p>
+          </article>)}
+        </div>
+
+        <div className="flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Human review required.</strong> {result.manifest_note} {result.privacy_note}</p></div>
+        <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => { setResult(null); setFile(null) }}>Choose another export{file ? ` · ${file.name}` : ""}</Button>
+      </div>}
+    </div>
+  </section>
+}

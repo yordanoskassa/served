@@ -59,7 +59,7 @@ export function WorkspaceActivity({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-400">{showRun ? "Analysis pipeline" : "Workspace activity"}</p>
-          <h2 className="mt-1.5 font-display text-xl tracking-[-.035em]">{runActive ? "Your letter is being checked" : runStopped ? "This run stopped early" : "Recent analyses"}</h2>
+          <h2 className="mt-1.5 font-display text-xl tracking-[-.035em]">{runActive ? "Your request is being verified" : runStopped ? "This run stopped early" : "Recent subpoena checks"}</h2>
         </div>
         <Button
           variant="outline"
@@ -94,7 +94,7 @@ export function WorkspaceActivity({
         </div>
         <Separator className="my-3" />
         <div className="grid gap-2 sm:grid-cols-2">
-          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>Saved documents <ArrowRight size={14} /></Button>
+          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>Saved requests <ArrowRight size={14} /></Button>
           <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenPipeline} disabled={!traceEvents.length}>Latest run trace <Activity size={14} /></Button>
         </div>
       </>}

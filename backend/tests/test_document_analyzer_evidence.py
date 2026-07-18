@@ -163,11 +163,12 @@ def test_fixture_expectations_use_existing_api_verdict_values() -> None:
         "D1": VerdictState.VERIFIED.value,
         "D2": VerdictState.CANNOT_CONFIRM.value,
         "D3": VerdictState.SCAM.value,
+        "D4": VerdictState.VERIFIED.value,
     }
     assert all((fixture_root / "documents" / f"{name}.pdf").is_file() for name in manifest)
 
 
-@pytest.mark.parametrize("case_name", ["D1", "D2", "D3"])
+@pytest.mark.parametrize("case_name", ["D1", "D2", "D3", "D4"])
 def test_golden_agent_outputs_replay_through_validation_and_code_policy(case_name: str) -> None:
     """Replay saved agent outputs without invoking OpenAI or CourtListener."""
     fixture_root = Path(__file__).resolve().parents[1] / "fixtures"

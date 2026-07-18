@@ -6,7 +6,7 @@ import { BrandMark } from "@/components/BrandMark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
-export function LoginPage({ destination = "your document" }: { destination?: string }) {
+export function LoginPage({ destination = "your financial subpoena" }: { destination?: string }) {
   const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -35,7 +35,7 @@ export function LoginPage({ destination = "your document" }: { destination?: str
         <p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Secure workspace</p>
         <h1 className="font-display text-3xl font-medium tracking-[-.04em] text-[#1a1a1a]">Continue to {destination}</h1>
         <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-zinc-500">
-          Sign in first, then review the selected letter inside your private evidence workspace.
+          Sign in first, then verify the selected request inside your private financial subpoena workspace.
         </p>
 
         {error && (
@@ -56,7 +56,7 @@ export function LoginPage({ destination = "your document" }: { destination?: str
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
         </Button>
-        <p className="mt-6 text-[11px] leading-5 text-zinc-400">Your document history stays tied to your verified Google account.</p>
+        <p className="mt-6 text-[11px] leading-5 text-zinc-400">Your request history stays tied to your verified Google account.</p>
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ import {
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
+import { PayrollRecordsCard } from "@/components/PayrollRecordsCard"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,11 +46,16 @@ function savedAt(value: string): string {
   return `Saved ${date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`
 }
 
+function isPaymentRecordRequest(analysis: Analysis): boolean {
+  const text = [analysis.summary, ...(analysis.breakdown?.requested_actions ?? [])].join(" ").toLowerCase()
+  return text.includes("bank record") && text.includes("payment")
+}
+
 export function AnalysisDetail({
   analysis,
   documentName,
   createdAt,
-  backLabel = "Check another letter",
+  backLabel = "Check another request",
   onBack,
   onViewPipeline,
   savedAnalysisId,
@@ -106,7 +112,7 @@ export function AnalysisDetail({
       </div>}
       <Badge variant={verdict.variant}>{verdict.label}</Badge>
       <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
-      <h2 className="mt-1.5 font-display text-xl font-medium tracking-[-.035em]">What this letter says</h2>
+      <h2 className="mt-1.5 font-display text-xl font-medium tracking-[-.035em]">What this request says</h2>
       <p className="mt-2 text-sm leading-5 text-muted-foreground">{analysis.summary}</p>
 
       {analysis.trace && <AnalysisPipeline className="mt-4" events={analysis.trace.steps} runState="complete" compact />}
@@ -123,7 +129,7 @@ export function AnalysisDetail({
           {detailItems.length > 0 && <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Key details</p><div className="mt-3 grid items-start gap-2 sm:grid-cols-2 xl:grid-cols-3">{detailItems.map(({ label, value, icon: Icon }) => <div className="h-fit rounded-xl border border-black/5 bg-white/80 p-3" key={label}><div className="flex items-center gap-2 text-zinc-500"><Icon size={13} /><span className="text-[11px]">{label}</span></div><p className="mt-1.5 break-words text-sm font-medium">{value}</p></div>)}</div></section>}
           {(breakdown.parties.length > 0 || breakdown.requested_actions.length > 0) && <div className={`grid items-start gap-3 ${breakdown.parties.length > 0 && breakdown.requested_actions.length > 0 ? "lg:grid-cols-2" : ""}`}>
             {breakdown.parties.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-3"><div className="flex items-center gap-2"><Users size={14} /><p className="text-sm font-semibold">People and organizations named</p></div><div className="mt-2.5 flex flex-wrap gap-2">{breakdown.parties.map((party) => <Badge variant="secondary" key={party}>{party}</Badge>)}</div></section>}
-            {breakdown.requested_actions.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-3"><div className="flex items-center gap-2"><ListChecks size={14} /><p className="text-sm font-semibold">What the letter asks you to do</p></div><ul className="mt-2.5 space-y-1.5">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-5 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
+            {breakdown.requested_actions.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-3"><div className="flex items-center gap-2"><ListChecks size={14} /><p className="text-sm font-semibold">Records and actions requested</p></div><ul className="mt-2.5 space-y-1.5">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-5 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
           </div>}
           {!detailItems.length && !breakdown.parties.length && !breakdown.requested_actions.length && <p className="py-6 text-center text-sm text-zinc-400">No additional details were extracted.</p>}
         </TabsContent>
@@ -147,7 +153,11 @@ export function AnalysisDetail({
 
       <GuidedClerkCall analysis={analysis} />
       <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
-      <BankEvidenceCard />
+      {analysis.verdict === "verified" && isPaymentRecordRequest(analysis)
+        ? savedAnalysisId
+          ? <BankEvidenceCard analysisId={savedAnalysisId} cutoffDate={breakdown.document_date} />
+          : <Alert className="mt-5 rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>Save this verified request before connecting financial data.</AlertDescription></Alert>
+        : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} />}
       <div className="mt-5 flex flex-wrap gap-2">
         <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
         {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} />}

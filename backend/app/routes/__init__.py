@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.routes import agents, analysis, auth, dashboard, health, plaid, public_config
+from app.routes import agents, analysis, auth, dashboard, health, payroll, plaid, public_config
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -9,6 +9,7 @@ api_router.include_router(auth.router)
 api_router.include_router(public_config.router)
 api_router.include_router(agents.router)
 api_router.include_router(dashboard.router)
+api_router.include_router(payroll.router)
 api_router.include_router(plaid.router)
 
 __all__ = ["api_router"]

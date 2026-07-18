@@ -201,6 +201,80 @@ export type PlaidTransactionsResponse = {
   historical_update_complete: boolean
 }
 
+export type PaymentReasonCode = "PAYEE_AND_DATE_MATCH" | "UNNAMED_INSTRUMENT_NEEDS_HUMAN" | "NAME_NEAR_MATCH_NEEDS_HUMAN" | "NOT_TARGET_PAYEE" | "OUTSIDE_DATE_RANGE"
+
+export type PaymentMatchRecord = {
+  record_id: string
+  disposition: "INCLUDE" | "REVIEW"
+  reason_code: PaymentReasonCode
+  date: string
+  amount: number
+  description: string
+  currency: string | null
+}
+
+export type PaymentMatchResponse = {
+  criteria_snapshot: {
+    analysis_id: string
+    source_document: string
+    target_payee: string
+    start_date: string
+    cutoff_date: string
+    requested_category: "payment_and_bank_records"
+  }
+  summary: {
+    total_searched: number
+    include: number
+    review: number
+    exclude: number
+    excluded_by_reason: Partial<Record<PaymentReasonCode, number>>
+  }
+  include: PaymentMatchRecord[]
+  review: PaymentMatchRecord[]
+  excluded_audit: { record_id: string; disposition: "EXCLUDE"; reason_code: PaymentReasonCode }[]
+  review_notice: string
+  boundary_warning: string
+  legal_boundary: string
+  human_review_required: true
+  automatic_send: false
+}
+
+export type PayrollRecordType = "payroll_record" | "wage_statement" | "time_record"
+
+export type PayrollCandidate = {
+  record_id: string
+  employee_name: string
+  record_type: PayrollRecordType
+  period_start: string
+  period_end: string
+  gross_pay: string | null
+  hours: string | null
+  source: string
+  match_strength: "strong" | "possible"
+  match_reason: string
+}
+
+export type PayrollMatchResponse = {
+  criteria: {
+    employee_name: string
+    start_date: string
+    end_date: string | null
+    record_types: PayrollRecordType[]
+    source_text: string
+  }
+  summary: {
+    strong: number
+    possible: number
+    outside_criteria: number
+    missing_record_types: PayrollRecordType[]
+  }
+  strong_matches: PayrollCandidate[]
+  possible_matches: PayrollCandidate[]
+  manifest_note: string
+  privacy_note: string
+  human_review_required: true
+}
+
 const API_URL = (
   import.meta.env.VITE_API_URL || "https://anton-served.hrvnvm.easypanel.host/api"
 ).replace(/\/$/, "")
@@ -233,10 +307,32 @@ export async function verifyGoogleToken(credential: string): Promise<UserProfile
   return res.json()
 }
 
-export async function loadSampleDocument(sample: "D1" | "D2" | "D3"): Promise<File> {
+export async function loadSampleDocument(sample: "D1" | "D2" | "D3" | "D4"): Promise<File> {
   const response = await fetch(`${API_URL}/documents/samples/${sample}`)
   if (!response.ok) throw new Error("The sample document could not be loaded.")
   return new File([await response.blob()], `${sample}.pdf`, { type: "application/pdf" })
+}
+
+export async function loadSamplePayroll(): Promise<File> {
+  const response = await fetch(`${API_URL}/payroll/samples/johns-kitchen.csv`)
+  if (!response.ok) throw new Error("The sample payroll export could not be loaded.")
+  return new File([await response.blob()], "johns-kitchen-payroll.csv", { type: "text/csv" })
+}
+
+export async function matchPayrollRecords(
+  analysisId: string,
+  file: File,
+  credential: string,
+): Promise<PayrollMatchResponse> {
+  const body = new FormData()
+  body.append("file", file)
+  const response = await fetch(`${API_URL}/payroll/analyses/${encodeURIComponent(analysisId)}/match`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}` },
+    body,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to match payroll records")
+  return response.json()
 }
 
 export async function analyzeDocument(file: File, credential: string): Promise<Analysis> {
@@ -358,10 +454,11 @@ export async function fetchAgentStatus(signal?: AbortSignal): Promise<{ agents: 
 }
 
 export async function fetchPlaidStatus(
+  analysisId: string,
   credential: string,
   signal?: AbortSignal,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/status`, {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/status`, {
     headers: { Authorization: `Bearer ${credential}` },
     signal,
   })
@@ -369,8 +466,8 @@ export async function fetchPlaidStatus(
   return response.json()
 }
 
-export async function createPlaidLinkToken(credential: string): Promise<string> {
-  const response = await fetch(`${API_URL}/plaid/link-token`, {
+export async function createPlaidLinkToken(analysisId: string, credential: string): Promise<string> {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/link-token`, {
     method: "POST",
     headers: { Authorization: `Bearer ${credential}` },
   })
@@ -380,11 +477,12 @@ export async function createPlaidLinkToken(credential: string): Promise<string> 
 }
 
 export async function exchangePlaidPublicToken(
+  analysisId: string,
   credential: string,
   publicToken: string,
   institution?: { institution_id: string; name: string } | null,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/exchange`, {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/exchange`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${credential}`,
@@ -400,14 +498,19 @@ export async function exchangePlaidPublicToken(
   return response.json()
 }
 
-export async function fetchPlaidTransactions(
+export async function matchPlaidTransactions(
+  analysisId: string,
   credential: string,
-  signal?: AbortSignal,
-): Promise<PlaidTransactionsResponse> {
-  const response = await fetch(`${API_URL}/plaid/transactions`, {
-    headers: { Authorization: `Bearer ${credential}` },
-    signal,
+  cutoffDate: string,
+): Promise<PaymentMatchResponse> {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/match`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${credential}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ cutoff_date: cutoffDate }),
   })
-  if (!response.ok) throw await responseError(response, "Unable to retrieve transactions")
+  if (!response.ok) throw await responseError(response, "Unable to match payment records")
   return response.json()
 }

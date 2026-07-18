@@ -130,6 +130,50 @@
         "scam_check_status": "complete",
         "limitations": []
       }
+    },
+    "D4": {
+      "document": "D4.pdf",
+      "reader": {
+        "doc_type": "Subpoena to produce payment and bank records",
+        "court": "United States District Court, Central District of California",
+        "case_number": "5:25-cv-02108-KK-SP",
+        "parties": [
+          "Audrea Barnes",
+          "Maximus Consulting Services"
+        ],
+        "document_date": "2026-07-16",
+        "deadline": "2026-08-14T10:00:00",
+        "demands": [
+          "All records of payments made to or for the benefit of Audrea Barnes from January 1, 2026 to the present, including payroll payments, bonuses, reimbursements, tip distributions, and bank records reflecting such payments."
+        ],
+        "visible_text": "UNITED STATES DISTRICT COURT CENTRAL DISTRICT OF CALIFORNIA\nAUDREA BARNES, Plaintiff, v. MAXIMUS CONSULTING SERVICES, Defendant.\nCase No. 5:25-cv-02108-KK-SP\nAll records of payments made to or for the benefit of Audrea Barnes from January 1, 2026 to the present, including payroll payments, bonuses, reimbursements, and tip distributions, and bank records reflecting such payments.\nDate: July 16, 2026\nSPECIMEN - TRAINING USE ONLY",
+        "readable": true
+      },
+      "checker": {
+        "docket_evidence": [
+          {
+            "case_number_normalized": "5:25-cv-02108",
+            "court_id": "cacd",
+            "case_title": "Barnes v. Maximus Consulting Services",
+            "parties": [
+              "Audrea Barnes",
+              "Maximus Consulting Services"
+            ],
+            "filing_date": "2025-09-26",
+            "docket_url": "https://www.courtlistener.com/docket/5:25-cv-02108/",
+            "source": "recap"
+          }
+        ],
+        "case_found": true,
+        "parties_match": true,
+        "near_match": null,
+        "court_lookup_status": "match",
+        "scam_signal_draft": {
+          "signals": []
+        },
+        "scam_check_status": "complete",
+        "limitations": []
+      }
     }
   }
 }
