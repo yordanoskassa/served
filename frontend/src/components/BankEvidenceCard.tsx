@@ -16,6 +16,30 @@ import {
 } from "@/lib/api"
 
 type LoadState = "loading" | "ready" | "error"
+const DEFAULT_CUTOFF_DATE = "2026-07-16"
+
+function normalizeCutoffDate(value: string | null | undefined): string {
+  const candidate = value?.trim()
+  if (!candidate) return DEFAULT_CUTOFF_DATE
+
+  const isoDate = candidate.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (isoDate) {
+    const [, year, month, day] = isoDate
+    const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+    if (
+      parsed.getUTCFullYear() === Number(year)
+      && parsed.getUTCMonth() === Number(month) - 1
+      && parsed.getUTCDate() === Number(day)
+    ) return `${year}-${month}-${day}`
+  }
+
+  const parsed = new Date(candidate)
+  if (Number.isNaN(parsed.getTime())) return DEFAULT_CUTOFF_DATE
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, "0")
+  const day = String(parsed.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
 
 function money(amount: number, currency: string | null): string {
   return new Intl.NumberFormat(undefined, {
@@ -39,14 +63,15 @@ function PaymentRow({ record }: { record: PaymentMatchRecord }) {
   </article>
 }
 
-export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { analysisId: string; cutoffDate?: string | null }) {
+export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE }: { analysisId: string; cutoffDate?: string | null }) {
   const { credential } = useAuth()
+  const normalizedCutoff = normalizeCutoffDate(cutoffDate)
   const [status, setStatus] = useState<PlaidConnectionStatus | null>(null)
   const [statusState, setStatusState] = useState<LoadState>("loading")
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirmedCutoff, setConfirmedCutoff] = useState(cutoffDate || "2026-07-16")
+  const [confirmedCutoff, setConfirmedCutoff] = useState(normalizedCutoff)
   const [records, setRecords] = useState<PaymentMatchResponse | null>(null)
   const autoMatchStarted = useRef(false)
 
@@ -62,7 +87,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
           autoMatchStarted.current = true
           setBusy(true)
           setBusyLabel("Fetching and matching transactions…")
-          void matchPlaidTransactions(analysisId, credential, cutoffDate || "2026-07-16")
+          void matchPlaidTransactions(analysisId, credential, normalizedCutoff)
             .then(setRecords)
             .catch((cause) => setError(cause instanceof Error ? cause.message : "Payment records could not be matched."))
             .finally(() => {
@@ -77,7 +102,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = "2026-07-16" }: { an
         setStatusState("error")
       })
     return () => controller.abort()
-  }, [analysisId, credential])
+  }, [analysisId, credential, normalizedCutoff])
 
   const connect = async () => {
     if (!credential || busy) return
