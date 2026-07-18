@@ -3,6 +3,7 @@ import {
   Braces,
   Check,
   CircleDot,
+  Clock3,
   FileCheck2,
   FileInput,
   Search,
@@ -154,6 +155,64 @@ function runLabel(runState: RunState, events: TraceEvent[]): string {
   return "Ready for a letter"
 }
 
+const ACTIVE_FOCUS: Partial<Record<TraceEvent["key"], string[]>> = {
+  intake: ["File type and size", "Authenticated owner", "Safe processing boundary"],
+  reader: ["Document type", "Court and case number", "Parties, dates, and deadline", "Records being requested"],
+  court_directory: ["Exact court name", "Reviewed court route", "Official contact boundary"],
+  checker: ["Public docket record", "Caption party match", "Approved warning-sign corpus"],
+  courtlistener: ["Normalized case number", "Correct court ID", "Caption parties"],
+  scam_patterns: ["Exact document excerpts", "Approved source patterns", "Countable versus context-only findings"],
+  rules: ["Countable warning signs", "Case found", "Parties matched"],
+  explainer: ["Locked code result", "Verified evidence", "Plain-language next step"],
+  legal_passages: ["Eligible source passages", "Exact approved text", "Unsupported claims to remove"],
+  result: ["Facts and evidence", "Limitations", "Supported next step"],
+}
+
+function eventMessage(event: TraceEvent): string {
+  if (event.status === "started") return event.detail || "This operation has started."
+  return event.output_summary || event.detail || "The operation finished without additional detail."
+}
+
+function eventTime(event: TraceEvent): string {
+  const date = new Date(event.at)
+  if (Number.isNaN(date.getTime())) return `Event ${event.seq}`
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })
+}
+
+function LiveActivityLog({ events }: { events: TraceEvent[] }) {
+  const visibleEvents = events.slice(-10).reverse()
+  const activeEvent = [...latestByKey(events).values()]
+    .filter((event) => event.status === "started")
+    .sort((left, right) => right.seq - left.seq)[0]
+  const focus = activeEvent ? ACTIVE_FOCUS[activeEvent.key] ?? [] : []
+
+  return <aside className="h-fit overflow-hidden rounded-2xl border border-black/[.07] bg-[#171717] text-white" aria-label="Live analysis activity">
+    <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
+      <div><p className="text-[9px] font-semibold uppercase tracking-[.18em] text-brand-green">Live activity</p><h4 className="mt-1 font-display text-lg tracking-[-.035em]">What Served is doing</h4></div>
+      <span className="mt-1 flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/45"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Streaming</span>
+    </div>
+
+    {activeEvent && <div className="border-b border-white/10 bg-white/[.04] p-4">
+      <div className="flex items-center gap-2"><CircleDot className="animate-pulse text-brand-green motion-reduce:animate-none" size={14} /><p className="text-xs font-semibold">Now: {activeEvent.label}</p></div>
+      <p className="mt-2 text-[11px] leading-5 text-white/60">{eventMessage(activeEvent)}</p>
+      {activeEvent.input_summary && <p className="mt-2 rounded-lg bg-black/25 px-2.5 py-2 text-[10px] leading-4 text-white/50"><span className="font-semibold text-white/70">Input:</span> {activeEvent.input_summary}</p>}
+      {focus.length > 0 && <div className="mt-3"><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/35">Checking for</p><ul className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">{focus.map((item) => <li className="flex items-center gap-2 text-[10px] text-white/55" key={item}><span className="size-1 rounded-full bg-brand-green" />{item}</li>)}</ul></div>}
+    </div>}
+
+    <ol className="max-h-[360px] overflow-y-auto p-2" aria-label="Backend trace events, newest first">
+      {visibleEvents.map((event) => {
+        const running = event.status === "started"
+        const limited = ["degraded", "skipped", "unavailable"].includes(event.status)
+        const failed = event.status === "failed"
+        return <motion.li initial={false} animate={{ opacity: 1 }} className="rounded-xl px-2.5 py-2.5 hover:bg-white/[.04]" key={`${event.seq}-${event.key}-${event.status}`}>
+          <div className="flex gap-2.5"><span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", running ? "animate-pulse bg-brand-green motion-reduce:animate-none" : failed ? "bg-red-400" : limited ? "bg-amber-300" : "bg-white/45")} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-medium leading-4 text-white/85">{event.label}</p><span className="shrink-0 text-[9px] text-white/25">{eventTime(event)}</span></div><p className="mt-1 text-[10px] leading-4 text-white/45">{eventMessage(event)}</p>{event.evidence_count > 0 && <p className="mt-1 text-[9px] text-brand-green/70">{event.evidence_count} evidence item{event.evidence_count === 1 ? "" : "s"} attached</p>}</div></div>
+        </motion.li>
+      })}
+    </ol>
+    <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3 text-[9px] text-white/35"><Clock3 size={11} />Verified backend events only. No hidden model reasoning is shown.</div>
+  </aside>
+}
+
 export function AnalysisPipeline({
   events,
   runState,
@@ -210,9 +269,11 @@ export function AnalysisPipeline({
         />
       </div>
 
-      <div className="relative mt-3">
+      <div className={cn("mt-3", compact && !rail && events.length > 0 && "grid items-start gap-3 lg:grid-cols-[minmax(18rem,.82fr)_minmax(0,1.45fr)]")}>
+        {compact && !rail && events.length > 0 && <LiveActivityLog events={events} />}
+        <div className="relative">
         <div className={cn("pointer-events-none absolute left-[8%] right-[8%] top-[19px] h-px bg-black/[.08]", compact ? "hidden" : "hidden xl:block")} aria-hidden="true" />
-        <ol className={cn("relative grid items-start gap-2", compact ? rail ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6")}>
+        <ol className={cn("relative grid items-start gap-2", compact ? rail ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6")}>
         {stages.map((stage) => {
           const Icon = stage.icon
           return (
@@ -254,6 +315,7 @@ export function AnalysisPipeline({
           )
         })}
         </ol>
+        </div>
       </div>
     </section>
   )

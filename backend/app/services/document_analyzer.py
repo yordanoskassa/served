@@ -878,7 +878,11 @@ async def analyze_document(
         key="reader",
         kind="agent",
         label="READER extracts visible facts",
-        detail="Extract structured fields without investigating or deciding.",
+        detail=(
+            "Read the visible document text and extract the document type, court, "
+            "case number, parties, dates, deadline, and requested records. "
+            "READER does not investigate or decide the outcome."
+        ),
     )
     reader_unavailable = False
     try:
@@ -978,7 +982,11 @@ async def analyze_document(
         key="checker",
         kind="agent",
         label="CHECKER investigates extracted facts",
-        detail="Run the independent docket and approved-pattern evidence branches.",
+        detail=(
+            "Run two independent checks: search the reviewed public-docket route "
+            "for the extracted case and parties, and compare exact document text "
+            "with the approved warning-sign corpus."
+        ),
     )
     checker_unavailable = False
     try:
@@ -1043,7 +1051,10 @@ async def analyze_document(
         key="rules",
         kind="decision",
         label="Fixed verdict policy",
-        detail="Ordinary code applies the published three-rule decision table.",
+        detail=(
+            "Ordinary code now compares three inputs: countable warning signs, "
+            "whether the case was found, and whether the caption parties matched."
+        ),
     )
     # This is the only verdict decision. It is ordinary code, not an agent or model.
     result = decide_verdict(parsed, checker)
@@ -1078,7 +1089,10 @@ async def analyze_document(
         key="explainer",
         kind="agent",
         label="EXPLAINER prepares plain language",
-        detail="Explain the immutable code outcome using the returned evidence.",
+        detail=(
+            "Turn the locked code outcome into plain language using only the "
+            "returned evidence, approved passages, and recorded limitations."
+        ),
         input_summary=f"Immutable outcome: {result.verdict.value.upper()}",
     )
     await trace.start(
@@ -1307,7 +1321,10 @@ async def analyze_document(
         key="result",
         kind="result",
         label="Analysis result assembled",
-        detail="Package the explanation, evidence, limitations, and decision provenance.",
+        detail=(
+            "Package the extracted facts, source evidence, limitations, fixed-code "
+            "decision receipt, official next step, and saved run trace."
+        ),
     )
     await trace.finish(
         key="result",
