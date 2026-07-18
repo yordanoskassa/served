@@ -95,10 +95,10 @@
         "document_date": null,
         "deadline": "within 48 hours",
         "demands": [
-          "Purchase Google Play gift cards totaling $2,400.00.",
+          "Purchase prepaid retail gift cards totaling $2,400.00.",
           "Provide the gift-card redemption codes to the payment agent."
         ],
-        "visible_text": "Purchase Google Play gift cards totaling $2,400.00 from any retail location.\nTo prevent a lawsuit and the immediate freezing of your business assets, payment in full must be received within 48 hours.\nProvide the gift-card redemption codes to the payment agent to stop legal filing.\nDo not send checks or contact your local courthouse.",
+        "visible_text": "Purchase prepaid retail gift cards totaling $2,400.00 from any retail location.\nTo prevent a lawsuit and the immediate freezing of your business assets, payment in full must be received within 48 hours.\nProvide the gift-card redemption codes to the payment agent to stop legal filing.\nDo not send checks or contact your local courthouse.",
         "readable": true
       },
       "checker": {
@@ -111,7 +111,7 @@
           "signals": [
             {
               "pattern_id": "2",
-              "document_excerpt": "Purchase Google Play gift cards totaling $2,400.00 from any retail location."
+              "document_excerpt": "Purchase prepaid retail gift cards totaling $2,400.00 from any retail location."
             },
             {
               "pattern_id": "4",

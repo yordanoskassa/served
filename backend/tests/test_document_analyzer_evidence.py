@@ -48,11 +48,11 @@ def test_agent_catalog_contains_the_four_product_agents() -> None:
 
 def test_validated_signals_require_document_excerpts_and_known_unique_ids() -> None:
     visible_text = (
-        "Purchase Google Play gift cards today. "
+        "Purchase prepaid retail gift cards today. "
         "Do not contact your local courthouse."
     )
     draft = ScamSignalDraft(signals=[
-        ScamSignal(pattern_id="2", document_excerpt="Google Play gift cards"),
+        ScamSignal(pattern_id="2", document_excerpt="prepaid retail gift cards"),
         ScamSignal(pattern_id="2", document_excerpt="gift cards today"),
         ScamSignal(pattern_id="5", document_excerpt="Do not contact your local courthouse"),
         ScamSignal(pattern_id="4", document_excerpt="immediate arrest"),
@@ -63,14 +63,14 @@ def test_validated_signals_require_document_excerpts_and_known_unique_ids() -> N
     accepted = _validated_signals(draft, visible_text)
 
     assert accepted == [
-        ScamSignal(pattern_id="2", document_excerpt="Google Play gift cards"),
+        ScamSignal(pattern_id="2", document_excerpt="prepaid retail gift cards"),
         ScamSignal(pattern_id="5", document_excerpt="Do not contact your local courthouse"),
     ]
     assert all(signal.document_excerpt in visible_text for signal in accepted)
 
 
 def test_analysis_emits_the_canonical_corpus_quote_without_rewriting() -> None:
-    excerpt = "Google Play gift cards"
+    excerpt = "prepaid retail gift cards"
     parsed = DocumentParse(
         doc_type="Payment demand",
         visible_text=f"Purchase {excerpt} immediately.",
@@ -199,7 +199,7 @@ def test_annotation_only_pattern_seven_plus_one_countable_signal_is_not_scam() -
     checker = CheckerReport(
         scam_signals=[
             ScamSignal(pattern_id="7", document_excerpt="Reference number: FILE-123"),
-            ScamSignal(pattern_id="2", document_excerpt="Purchase Google Play gift cards"),
+            ScamSignal(pattern_id="2", document_excerpt="Purchase prepaid retail gift cards"),
         ],
         scam_check_status="complete",
     )
@@ -225,12 +225,12 @@ def test_annotation_only_model_proposal_is_quarantined_before_evidence() -> None
 
 
 def test_known_pattern_id_with_semantically_wrong_exact_excerpt_is_rejected() -> None:
-    visible_text = "Purchase Google Play gift cards immediately."
+    visible_text = "Purchase prepaid retail gift cards immediately."
     draft = ScamSignalDraft(signals=[
-        ScamSignal(pattern_id="4", document_excerpt="Google Play gift cards"),
-        ScamSignal(pattern_id="2", document_excerpt="Google Play gift cards"),
+        ScamSignal(pattern_id="4", document_excerpt="prepaid retail gift cards"),
+        ScamSignal(pattern_id="2", document_excerpt="prepaid retail gift cards"),
     ])
 
     assert _validated_signals(draft, visible_text) == [
-        ScamSignal(pattern_id="2", document_excerpt="Google Play gift cards"),
+        ScamSignal(pattern_id="2", document_excerpt="prepaid retail gift cards"),
     ]
