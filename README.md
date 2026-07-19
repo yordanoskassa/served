@@ -233,7 +233,7 @@ Point the frontend’s BACKEND_URL at the private backend service URL, or its pu
 
 Google login reuses the shared OAuth configuration described above. 
 The Served production origin must be included in the client’s Authorized JavaScript origins. 
-Served uses the shared Mongo infrastructure with a separate \served` database`.
+Served uses the shared Mongo infrastructure with a separate \served` database`.](https://github.com/RexMortem/HackTheLaw)
 
 For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
 `SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
