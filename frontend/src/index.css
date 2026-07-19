@@ -1,24 +1,24 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-display: Outfit, Inter, ui-sans-serif, system-ui, sans-serif;
-  --color-brand-green: #9fff00;
-  --color-brand-soft: #dcefc2;
-  --color-bg-base: #EDEEF5;
-  --color-background: #EDEEF5;
-  --color-foreground: #252821;
-  --color-card: #fbfaf6;
-  --color-primary: #255e50;
+  --font-display: Merriweather, Georgia, "Times New Roman", serif;
+  --color-brand-green: #c5a75b;
+  --color-brand-soft: #e9dfc6;
+  --color-bg-base: #f3f0e8;
+  --color-background: #f3f0e8;
+  --color-foreground: #1f2d38;
+  --color-card: #fffdf8;
+  --color-primary: #243b53;
   --color-primary-foreground: #ffffff;
-  --color-muted: #eeebe3;
-  --color-muted-foreground: #686c63;
-  --color-border: #dedbd2;
-  --color-ring: #255e50;
-  --color-pine: #255e50;
-  --color-coral: #cf5c44;
-  --color-ink: #252821;
+  --color-muted: #e9e3d7;
+  --color-muted-foreground: #646b70;
+  --color-border: #d8d0c2;
+  --color-ring: #243b53;
+  --color-pine: #243b53;
+  --color-coral: #8a3b37;
+  --color-ink: #1f2d38;
 }
 
 @layer base {
@@ -26,6 +26,12 @@
   html { scroll-behavior: smooth; }
   body {
     @apply m-0 bg-bg-base text-zinc-900 font-sans antialiased;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  .font-display {
+    font-kerning: normal;
   }
   button, a { -webkit-tap-highlight-color: transparent; }
 }

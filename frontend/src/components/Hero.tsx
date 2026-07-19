@@ -43,7 +43,7 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
         <span className="grid size-7 place-items-center border border-dashed border-black/25 bg-brand-soft sm:size-9"><BrandMark className="size-4 sm:size-5" /></span>
       </div>
       <div className="absolute inset-x-3 bottom-3 z-10 sm:inset-x-5 sm:bottom-5">
-        <p className="truncate font-display text-sm font-medium tracking-[-.03em] text-[#1a1a1a] sm:text-lg">{letter.title}</p>
+        <p className="truncate font-display text-sm font-semibold tracking-[-.015em] text-ink sm:text-lg">{letter.title}</p>
         <p className="mt-0.5 hidden text-[10px] text-zinc-400 sm:block">{letter.note}</p>
       </div>
     </motion.button>
@@ -90,7 +90,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           </span>
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
-            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.07em] text-[#fffaf1]">Served</p>
+            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.035em] text-[#fffaf1]">Served</p>
             <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena help</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
@@ -133,11 +133,11 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-semibold uppercase tracking-[.24em] text-zinc-500">AI for small businesses without legal teams</motion.p>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="border-y border-black/10 py-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-600">Financial subpoena response workspace</motion.p>
       <AnimatePresence mode="wait">
         <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
-          <h1 className="font-display text-[clamp(2.75rem,6.2vw,6rem)] font-medium leading-[.9] tracking-[-.07em] text-[#1a1a1a]">
-            {open ? <>Payroll or bank records.<br /><span className="text-[#8e8e8e]">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="text-[#8e8e8e]">Served handles the search.</span></>}
+          <h1 className="font-display text-[clamp(2.75rem,6.2vw,5.65rem)] font-semibold leading-[1.02] tracking-[-.045em] text-ink">
+            {open ? <>Payroll or bank records.<br /><span className="font-normal text-[#77746d]">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="font-normal text-[#77746d]">Served handles the search.</span></>}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
             {open ? "A verified payroll request opens payroll matching. A verified payment request opens bank matching. If Served is not sure, your records stay locked." : "Served reads and verifies the request, searches the right payroll or bank data, and shows you what to review before the deadline."}
