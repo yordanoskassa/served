@@ -62,7 +62,7 @@ Agents cannot promote free-form model text into accepted evidence. The repositor
 | [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | IDs, sources, and verbatim quotes are guarded at runtime |
 | [`multi-agent-architecture.md`](docs/multi-agent-architecture.md) | Agent responsibilities, schemas, failure behavior, and the immutable verdict boundary | Engineering contract | Checked in |
 
-Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from.
+Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP (a Free Law Project Service) for retrieving public federal docket data. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from. 
 
 ## Grounding Guard safety contract
 
@@ -149,7 +149,7 @@ The release fixtures make the four branches easy to inspect:
 |---|---|---|
 | `D1.pdf` | Referenced federal case is found and parties match | `VERIFIED` |
 | `D2.pdf` | The case number is altered, so the required match is not established | `CANNOT_CONFIRM` |
-| `D3.pdf` | Two or more countable, sourced warning signs are supported by the letter text | `SCAM` |
+| `D3.pdf` | Two or more countable, sourced warning signs are supported by the letter text | `SCAM INDICATORS` |
 | `D4.pdf` | Verified request for payment and bank records for Audrea Barnes | `VERIFIED`, then 7 include / 2 review / 19 exclude |
 
 The specimens are training fixtures, not valid legal documents. Personal, attorney, and contact details are fictionalized. Expected outcomes and golden agent outputs live in [`backend/fixtures/`](backend/fixtures/), so the demo contract does not depend on a live API response remaining unchanged.
@@ -160,8 +160,8 @@ The runtime is configured for [**GPT-5.6 through the OpenAI Responses API**](htt
 
 Codex was used as the build partner to:
 
-- turn the product contract into the three-agent architecture and deterministic safety boundary;
-- prepare and audit the sourced corpora, D1/D2/D3 fixtures, expected outcomes, and 12-case Grounding Guard contract; and
+- turn the product contract into the scoped multi-agent and financial-worker architecture with a deterministic safety boundary;
+- prepare and audit the sourced corpora, D1–D4 document fixtures, financial-record fixtures, expected outcomes, and 12-case Grounding Guard contract; and
 - inspect the frontend/backend integration, reproduce failures, and keep implementation notes aligned with the repository.
 
 Early visual reference mocks (in references/drive/) were explored with other AI tools; all product code, architecture, corpora, and the running application were built with Codex and GPT-5.6. The final verdict is never delegated to any model.
@@ -206,6 +206,9 @@ The attorney handoff shown in the hackathon demo illustrates a future workflow. 
 
 **Hackathon prototype. Bounded coverage. Evidence before action.**
 
+## Existing infrastructure disclosure
+Served reuses team-owned OAuth and Mongo deployment infrastructure previously configured for Lumper, a separate project. Served’s application code, agents, safety corpus, fixtures, financial gating and matching workflow, and product UI are separate. Served data is isolated in its own served database.
+
 ## Deploying
 
 For EasyPanel, deploy the root `docker-compose.yml` (or the backend service
@@ -225,14 +228,14 @@ backend URL ending in `/api`, such as `https://api.example.com/api`.
 
 Deploy the root `docker-compose.yml`, or create two services using
 `backend/Dockerfile` and `frontend/Dockerfile`. Set the backend variables from
-`.env.example`; shared Lumper credentials should be copied into EasyPanel's
-secret environment settings, never committed. Point the frontend's
+`.env.example`; Set the backend variables from .env.example in EasyPanel’s secret environment settings. 
+Credentials for the shared team-owned infrastructure described above must never be committed. Point the frontend's
 `BACKEND_URL` at the private backend service URL (or its public HTTPS URL when
 the services cannot share a private network).
 
-Google login can reuse Lumper's OAuth client, but the Served production origin
-must also be added to that client's Authorized JavaScript origins in Google
-Cloud. Served uses the shared Mongo cluster with the separate `served` database.
+Google login reuses the shared OAuth configuration described above. 
+The Served production origin must be included in the client’s Authorized JavaScript origins. 
+Served uses the shared Mongo infrastructure with a separate served database.
 
 For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
 `SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
