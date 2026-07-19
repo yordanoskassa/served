@@ -62,7 +62,7 @@ Agents cannot promote free-form model text into accepted evidence. The repositor
 | [`legal-passages.json`](backend/app/corpus/legal-passages.json) | Which legal passages, short official quotations, citations, and limitations the product may display | EXPLAINER and server-side quote insertion | IDs, sources, and verbatim quotes are guarded at runtime |
 | [`multi-agent-architecture.md`](docs/multi-agent-architecture.md) | Agent responsibilities, schemas, failure behavior, and the immutable verdict boundary | Engineering contract | Checked in |
 
-Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP (a Free Law Project Service) for retrieving public federal docket data. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from. 
+Sources include the FTC, IRS, CFPB, U.S. Courts, Department of Labor, U.S. Code, official court websites, and CourtListener/RECAP (a Free Law Project service) for retrieving public federal docket data. Uploaded-document facts and external docket evidence remain separately labeled so a reviewer can trace where every claim came from. 
 
 ## Grounding Guard safety contract
 
@@ -226,16 +226,14 @@ backend URL ending in `/api`, such as `https://api.example.com/api`.
 
 ## EasyPanel
 
-Deploy the root `docker-compose.yml`, or create two services using
-`backend/Dockerfile` and `frontend/Dockerfile`. Set the backend variables from
-`.env.example`; Set the backend variables from .env.example in EasyPanel’s secret environment settings. 
-Credentials for the shared team-owned infrastructure described above must never be committed. Point the frontend's
-`BACKEND_URL` at the private backend service URL (or its public HTTPS URL when
-the services cannot share a private network).
+Deploy the root docker-compose.yml, or create two services using backend/Dockerfile and frontend/Dockerfile. 
+Set the backend variables from .env.example in EasyPanel’s secret environment settings. 
+Credentials for the shared team-owned infrastructure described above must never be committed. 
+Point the frontend’s BACKEND_URL at the private backend service URL, or its public HTTPS URL when the services cannot share a private network.
 
 Google login reuses the shared OAuth configuration described above. 
 The Served production origin must be included in the client’s Authorized JavaScript origins. 
-Served uses the shared Mongo infrastructure with a separate served database.
+Served uses the shared Mongo infrastructure with a separate \served` database`.
 
 For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
 `SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
