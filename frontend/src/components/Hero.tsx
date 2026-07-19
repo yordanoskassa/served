@@ -32,14 +32,14 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
       whileHover={reduceMotion ? undefined : { y: -10, rotate: 0, scale: 1.025 }}
       whileTap={reduceMotion ? undefined : { scale: .98 }}
       onClick={() => onSelect(letter.id)}
-      className="group relative aspect-[1.45/1] min-w-0 overflow-hidden rounded-[10px] border border-black/10 bg-[#fffdf6] p-3 text-left shadow-[0_10px_24px_rgba(37,40,33,.1)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:rounded-[14px] sm:p-5"
+      className="group relative aspect-[1.45/1] min-w-0 overflow-hidden rounded-[10px] border border-black/10 bg-card p-3 text-left shadow-[0_10px_24px_rgba(23,38,53,.08)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black sm:rounded-[14px] sm:p-5"
     >
       <svg aria-hidden="true" className="pointer-events-none absolute inset-0 size-full text-black/[.08]" viewBox="0 0 300 190" preserveAspectRatio="none">
         <path d="M1 188 112 87c22-20 54-20 76 0l111 101" fill="none" stroke="currentColor" strokeWidth="2" />
         <path d="M1 1 119 104c18 16 44 16 62 0L299 1" fill="none" stroke="currentColor" strokeWidth="2" />
       </svg>
       <div className="relative z-10 flex items-start justify-between">
-        <span className="grid size-7 place-items-center rounded-full bg-[#1a1a1a] text-[9px] font-semibold text-white sm:size-9 sm:text-[10px]">{letter.id}</span>
+        <span className="grid size-7 place-items-center rounded-full bg-ink text-[9px] font-semibold text-white sm:size-9 sm:text-[10px]">{letter.id}</span>
         <span className="grid size-7 place-items-center border border-dashed border-black/25 bg-brand-soft sm:size-9"><BrandMark className="size-4 sm:size-5" /></span>
       </div>
       <div className="absolute inset-x-3 bottom-3 z-10 sm:inset-x-5 sm:bottom-5">
@@ -90,7 +90,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           </span>
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
-            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.035em] text-[#fffaf1]">Served</p>
+            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.035em] text-white">Served</p>
             <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena help</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
@@ -102,7 +102,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
 
       <AnimatePresence>
         {open && <motion.div initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={reduceMotion ? { duration: 0 } : { delay: .58, duration: .35 }} className="absolute bottom-[48px] left-1/2 z-30 -translate-x-1/2 sm:bottom-[56px]">
-          <Button type="button" aria-label="Upload your own financial subpoena" onClick={() => onSelect("upload")} className="h-10 whitespace-nowrap border border-black/15 bg-[#fffaf1] px-4 text-[#1a1a1a] hover:bg-white sm:px-5">
+          <Button type="button" aria-label="Upload your own financial subpoena" onClick={() => onSelect("upload")} className="h-10 whitespace-nowrap border border-black/15 bg-white px-4 text-ink hover:bg-white/90 sm:px-5">
             <Upload size={15} /> Upload your subpoena
           </Button>
         </motion.div>}
@@ -127,8 +127,8 @@ export function Hero({ open, onOpen, onSelect }: {
 
   return <section id="top" className="relative min-h-[100svh] w-full overflow-hidden bg-bg-base">
     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
-      <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-35 grayscale-[15%]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-bg-base/55 to-bg-base/10" />
+      <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-25 grayscale-[40%] saturate-75" />
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-bg-base/75 to-bg-base/30" />
     </div>
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
@@ -137,9 +137,9 @@ export function Hero({ open, onOpen, onSelect }: {
       <AnimatePresence mode="wait">
         <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
           <h1 className="font-display text-[clamp(2.75rem,6.2vw,5.65rem)] font-semibold leading-[1.02] tracking-[-.045em] text-ink">
-            {open ? <>Payroll or bank records.<br /><span className="font-normal text-[#77746d]">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="font-normal text-[#77746d]">Served handles the search.</span></>}
+            {open ? <>Payroll or bank records.<br /><span className="font-normal text-muted-foreground">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="font-normal text-muted-foreground">Served handles the search.</span></>}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-zinc-500 sm:text-base">
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
             {open ? "A verified payroll request opens payroll matching. A verified payment request opens bank matching. If Served is not sure, your records stay locked." : "Served reads and verifies the request, searches the right payroll or bank data, and shows you what to review before the deadline."}
           </p>
         </motion.div>

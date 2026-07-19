@@ -4,28 +4,28 @@
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: Merriweather, Georgia, "Times New Roman", serif;
-  --color-brand-green: #c5a75b;
-  --color-brand-soft: #e9dfc6;
-  --color-bg-base: #f3f0e8;
-  --color-background: #f3f0e8;
-  --color-foreground: #1f2d38;
-  --color-card: #fffdf8;
-  --color-primary: #243b53;
+  --color-brand-green: #b9f34a;
+  --color-brand-soft: #e7f9c1;
+  --color-bg-base: #edf1f5;
+  --color-background: #edf1f5;
+  --color-foreground: #172635;
+  --color-card: #ffffff;
+  --color-primary: #172635;
   --color-primary-foreground: #ffffff;
-  --color-muted: #e9e3d7;
-  --color-muted-foreground: #646b70;
-  --color-border: #d8d0c2;
-  --color-ring: #243b53;
-  --color-pine: #243b53;
-  --color-coral: #8a3b37;
-  --color-ink: #1f2d38;
+  --color-muted: #e4eaf0;
+  --color-muted-foreground: #596775;
+  --color-border: #d3dce5;
+  --color-ring: #172635;
+  --color-pine: #172635;
+  --color-coral: #812d29;
+  --color-ink: #172635;
 }
 
 @layer base {
   * { @apply border-border; }
   html { scroll-behavior: smooth; }
   body {
-    @apply m-0 bg-bg-base text-zinc-900 font-sans antialiased;
+    @apply m-0 bg-bg-base text-foreground font-sans antialiased;
   }
   h1, h2, h3 {
     text-wrap: balance;

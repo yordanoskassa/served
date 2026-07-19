@@ -1,6 +1,6 @@
 export function BrandMark({ inverse = false, className = "size-8" }: { inverse?: boolean; className?: string }) {
-  const ink = inverse ? "#EDEEF5" : "#1a1a1a"
-  const center = inverse ? "#1a1a1a" : "#EDEEF5"
+  const ink = inverse ? "var(--color-bg-base)" : "var(--color-ink)"
+  const center = inverse ? "var(--color-ink)" : "var(--color-bg-base)"
 
   return (
     <svg aria-hidden="true" className={className} viewBox="0 0 36 36" fill="none">

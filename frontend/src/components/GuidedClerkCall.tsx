@@ -112,7 +112,7 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
     </section>
   }
 
-  return <section className="mt-4 rounded-2xl border border-black/10 bg-[#f7f8f3] p-4" aria-labelledby="clerk-call-title">
+  return <section className="mt-4 rounded-2xl border border-border bg-muted/60 p-4" aria-labelledby="clerk-call-title">
     <div className="flex items-start gap-3">
       <ShieldCheck className="mt-0.5 shrink-0 text-emerald-700" size={21} aria-hidden="true" />
       <div className="min-w-0 flex-1">

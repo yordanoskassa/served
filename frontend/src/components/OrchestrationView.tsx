@@ -299,7 +299,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
         </div>
         <Separator className="bg-black/[.06]" />
         <div className="grid items-start gap-3 p-4 sm:grid-cols-2">
-          <div className={`rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
             <div className="flex items-center justify-between gap-2">
               <Gavel size={17} className="text-[#812d29]" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${courtStatus.dotClass}`} aria-hidden="true" /><Badge variant={courtStatus.badgeVariant}>{displayStatus(courtStatus.label)}</Badge></div>
@@ -323,7 +323,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
             )}
           </div>
 
-          <div className={`rounded-2xl border border-black/[.07] bg-[#f7f7f2] p-4 ${patternEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${patternEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
             <div className="flex items-center justify-between gap-2">
               <Database size={17} className="text-[#812d29]" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${patternStatus.dotClass}`} aria-hidden="true" /><Badge variant={patternStatus.badgeVariant}>{displayStatus(patternStatus.label)}</Badge></div>
