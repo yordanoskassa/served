@@ -244,8 +244,3 @@ sender address must use a domain verified in Resend; optionally set
 `SERVED_RESEND_REPLY_TO`. Do not place any of these values in frontend or
 Netlify environment variables.
 
-For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
-`SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
-sender address must use a domain verified in Resend; optionally set
-`SERVED_RESEND_REPLY_TO`. Do not place any of these values in frontend or
-Netlify environment variables.
