@@ -9,11 +9,12 @@ import {
   ListChecks,
   Users,
 } from "lucide-react"
+import { useCallback, useState } from "react"
 
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
-import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
-import { PayrollRecordsCard } from "@/components/PayrollRecordsCard"
+import { CaseWorkflow, type EvidenceWorkflowState } from "@/components/CaseWorkflow"
+import { isPayrollRecordRequest, PayrollRecordsCard } from "@/components/PayrollRecordsCard"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -68,6 +69,23 @@ export function AnalysisDetail({
   onViewPipeline?: () => void
   savedAnalysisId?: string
 }) {
+  const [evidenceWorkflow, setEvidenceWorkflow] = useState<EvidenceWorkflowState>({
+    sourceReady: false,
+    candidatesReady: false,
+    reviewed: 0,
+    total: 0,
+    packetReady: false,
+  })
+  const updateEvidenceWorkflow = useCallback((next: EvidenceWorkflowState) => {
+    setEvidenceWorkflow((current) => (
+      current.sourceReady === next.sourceReady
+      && current.candidatesReady === next.candidatesReady
+      && current.reviewed === next.reviewed
+      && current.total === next.total
+      && current.packetReady === next.packetReady
+      && current.sourceLabel === next.sourceLabel
+    ) ? current : next)
+  }, [])
   const verdict = verdictCopy[analysis.verdict]
   const decision = decisionExplanation(analysis)
   const breakdown = analysis.breakdown ?? {
@@ -95,6 +113,7 @@ export function AnalysisDetail({
       : breakdown.court_route === "state"
         ? "State court · manual verification"
         : null
+  const hasEvidenceWorkflow = isPaymentRecordRequest(analysis) || isPayrollRecordRequest(analysis)
   const detailItems = [
     { label: "Court or issuer", value: breakdown.court || breakdown.claimed_authority, icon: Building2 },
     { label: "Court directory", value: courtStatus, icon: Building2 },
@@ -153,14 +172,14 @@ export function AnalysisDetail({
 
       <GuidedClerkCall analysis={analysis} />
       <div className="mt-5 rounded-2xl bg-bg-base p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
+      {analysis.verdict === "verified" && savedAnalysisId && hasEvidenceWorkflow && <CaseWorkflow analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} workflow={evidenceWorkflow} />}
       {analysis.verdict === "verified" && isPaymentRecordRequest(analysis)
         ? savedAnalysisId
-          ? <BankEvidenceCard analysisId={savedAnalysisId} cutoffDate={breakdown.document_date} />
+          ? <BankEvidenceCard analysisId={savedAnalysisId} cutoffDate={breakdown.document_date} onWorkflowChange={updateEvidenceWorkflow} />
           : <Alert className="mt-5 rounded-2xl border-amber-200 bg-amber-50 text-amber-900"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>Save this verified request before connecting financial data.</AlertDescription></Alert>
-        : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} />}
+        : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} onWorkflowChange={updateEvidenceWorkflow} />}
       <div className="mt-5 flex flex-wrap gap-2">
         <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
-        {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} />}
         {onViewPipeline && <Button onClick={onViewPipeline}>Open this run’s evidence pipeline <ArrowRight size={16} /></Button>}
       </div>
     </div>

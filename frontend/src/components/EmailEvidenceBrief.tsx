@@ -18,9 +18,10 @@ import { emailEvidenceBrief } from "@/lib/api"
 
 type SendState = "idle" | "sending" | "sent" | "error"
 
-export function EmailEvidenceBrief({ analysisId, documentName }: {
+export function EmailEvidenceBrief({ analysisId, documentName, compact = false }: {
   analysisId: string
   documentName?: string
+  compact?: boolean
 }) {
   const { credential, user } = useAuth()
   const [open, setOpen] = useState(false)
@@ -63,7 +64,7 @@ export function EmailEvidenceBrief({ analysisId, documentName }: {
 
   return <Dialog open={open} onOpenChange={handleOpenChange}>
     <DialogTrigger asChild>
-      <Button type="button" variant="outline"><Mail size={16} /> Email me the evidence brief</Button>
+      <Button type="button" variant="outline" className={compact ? "px-4 py-2 text-xs" : undefined}><Mail size={16} /> Email me the evidence brief</Button>
     </DialogTrigger>
     <DialogContent className="max-w-xl shadow-none">
       {sendState === "sent" ? <>
