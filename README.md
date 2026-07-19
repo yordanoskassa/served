@@ -226,14 +226,23 @@ backend URL ending in `/api`, such as `https://api.example.com/api`.
 
 ## EasyPanel
 
-Deploy the root docker-compose.yml, or create two services using backend/Dockerfile and frontend/Dockerfile. 
-Set the backend variables from .env.example in EasyPanel’s secret environment settings. 
-Credentials for the shared team-owned infrastructure described above must never be committed. 
-Point the frontend’s BACKEND_URL at the private backend service URL, or its public HTTPS URL when the services cannot share a private network.
+Deploy the root `docker-compose.yml`, or create two services using
+`backend/Dockerfile` and `frontend/Dockerfile`. Set the backend variables from
+`.env.example` in EasyPanel’s secret environment settings. Credentials for the
+shared team-owned infrastructure described above must never be committed.
+Point the frontend’s `BACKEND_URL` at the private backend service URL, or its
+public HTTPS URL when the services cannot share a private network.
 
-Google login reuses the shared OAuth configuration described above. 
-The Served production origin must be included in the client’s Authorized JavaScript origins. 
-Served uses the shared Mongo infrastructure with a separate \served` database`.](https://github.com/RexMortem/HackTheLaw)
+Google login reuses the shared OAuth configuration described above. The Served
+production origin must be included in the client’s Authorized JavaScript origins.
+Served uses the shared Mongo infrastructure with a separate database named
+`served`.
+
+For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
+`SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
+sender address must use a domain verified in Resend; optionally set
+`SERVED_RESEND_REPLY_TO`. Do not place any of these values in frontend or
+Netlify environment variables.
 
 For evidence-handoff email, set `SERVED_RESEND_API_KEY` and
 `SERVED_RESEND_FROM_EMAIL` in EasyPanel's secret environment settings. The
