@@ -314,9 +314,9 @@ export async function loadSampleDocument(sample: "D1" | "D2" | "D3" | "D4"): Pro
 }
 
 export async function loadSamplePayroll(): Promise<File> {
-  const response = await fetch(`${API_URL}/payroll/samples/johns-kitchen.csv`)
+  const response = await fetch(`${API_URL}/payroll/samples/mendoza-kitchen.csv`)
   if (!response.ok) throw new Error("The sample payroll export could not be loaded.")
-  return new File([await response.blob()], "johns-kitchen-payroll.csv", { type: "text/csv" })
+  return new File([await response.blob()], "mendoza-kitchen-payroll.csv", { type: "text/csv" })
 }
 
 export async function matchPayrollRecords(

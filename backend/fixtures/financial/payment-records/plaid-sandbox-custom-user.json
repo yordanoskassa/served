@@ -8,8 +8,8 @@
       "starting_balance": 48620.55,
       "currency": "USD",
       "meta": {
-        "name": "John Doe's Kitchen Operating",
-        "official_name": "John Doe's Kitchen, LLC Business Checking",
+        "name": "Mendoza's Kitchen Operating",
+        "official_name": "Mendoza's Kitchen, LLC Business Checking",
         "mask": "1042"
       },
       "numbers": {
@@ -18,7 +18,7 @@
       },
       "identity": {
         "names": [
-          "John Doe's Kitchen, LLC"
+          "Raul Mendoza"
         ],
         "phone_numbers": [
           {

@@ -5,7 +5,7 @@ their verdict tests. It begins only after D1 has already returned `VERIFIED`.
 
 ## Demo story
 
-D1 asks John Doe's Kitchen, LLC for:
+D1 asks Mendoza's Kitchen, LLC for:
 
 > All payroll records, wage statements, and time records for Audrea Barnes,
 > from January 1, 2026 to the present.

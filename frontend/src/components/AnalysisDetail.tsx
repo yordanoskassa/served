@@ -36,7 +36,7 @@ function decisionExplanation(analysis: Analysis): string | null {
     return `${analysis.decision.counted_signal_ids.length} unique, cited scam patterns met the SCAM rule.`
   }
   if (analysis.decision.rule === "case_and_parties_match") {
-    return "CourtListener found the case and the extracted caption parties matched."
+    return "A matching public federal docket record was found and the extracted caption parties matched."
   }
   return "Fewer than two scam signals were validated, and a case-plus-party match was not established."
 }

@@ -55,7 +55,7 @@ const STAGES: PipelineStage[] = [
     number: "03",
     owner: "CHECKER",
     title: "Check evidence",
-    description: "Checks CourtListener and the approved scam corpus.",
+    description: "Checks the public federal docket and the approved scam corpus.",
     keys: ["checker", "courtlistener", "scam_patterns"],
     summaryKey: "checker",
     icon: Search,

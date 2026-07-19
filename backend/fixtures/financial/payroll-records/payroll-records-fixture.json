@@ -1,7 +1,7 @@
 {
   "fixture_id": "served-payroll-v1",
   "fixture_only": true,
-  "company": "John Doe's Kitchen, LLC",
+  "company": "Mendoza's Kitchen, LLC",
   "subject_employee": {
     "employee_id": "E-1042",
     "name": "Audrea Barnes"

@@ -14,12 +14,12 @@ from app.services.payroll_matcher import extract_payroll_criteria, match_payroll
 
 PROFILE = UserProfile(
     subject="restaurant-owner-1",
-    email="owner@johnskitchen.example",
-    name="John Doe",
-    given_name="John",
+    email="owner@mendozaskitchen.example",
+    name="Raul Mendoza",
+    given_name="Raul",
     picture=None,
 )
-SAMPLE = Path(__file__).resolve().parents[1] / "fixtures" / "payroll" / "johns-kitchen-payroll.csv"
+SAMPLE = Path(__file__).resolve().parents[1] / "fixtures" / "payroll" / "mendoza-kitchen-payroll.csv"
 
 
 def _analysis(verdict: VerdictState = VerdictState.VERIFIED) -> AnalysisResponse:
@@ -31,7 +31,7 @@ def _analysis(verdict: VerdictState = VerdictState.VERIFIED) -> AnalysisResponse
         breakdown=LetterBreakdown(
             court="United States District Court, Central District of California",
             case_number="5:25-cv-02108-KK-SP",
-            parties=["Audrea Barnes", "John Doe's Kitchen, LLC"],
+            parties=["Audrea Barnes", "Mendoza's Kitchen, LLC"],
             requested_actions=[
                 "All payroll records, wage statements, and time records for Audrea Barnes, from January 1, 2026 to the present."
             ],

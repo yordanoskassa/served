@@ -72,7 +72,7 @@ class AgentCoordinator:
 
 coordinator = AgentCoordinator()
 coordinator.register(Agent("reader", "Reads the document and extracts facts without judging them."))
-coordinator.register(Agent("checker", "Checks CourtListener and official scam patterns without deciding a verdict."))
+coordinator.register(Agent("checker", "Checks the public federal docket and official scam patterns without deciding a verdict."))
 coordinator.register(Agent("explainer", "Explains the code-decided result in plain language with exact source quotes."))
 coordinator.register(Agent(
     "cook",

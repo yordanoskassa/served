@@ -9,7 +9,7 @@ Everything in this folder is fictional training data.
 D4 is a second AO 88B training subpoena in the same case used by D1:
 `Barnes v. Maximus Consulting Services, Inc.`,
 `5:25-cv-02108-KK-SP`, C.D. California. It arrives after the D1 payroll
-response and asks John Doe's Kitchen, LLC for records of payments made to or
+response and asks Mendoza's Kitchen, LLC for records of payments made to or
 for the benefit of Audrea Barnes, including bank records reflecting those
 payments.
 

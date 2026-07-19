@@ -53,7 +53,7 @@ const AGENTS = [
   {
     name: "checker",
     number: "02",
-    fallback: "Checks the extracted facts against CourtListener and the approved scam-pattern corpus.",
+    fallback: "Checks the extracted facts against the public federal docket and the approved scam-pattern corpus.",
     icon: Search,
   },
   {
@@ -304,7 +304,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
               <Gavel size={17} className="text-[#812d29]" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${courtStatus.dotClass}`} aria-hidden="true" /><Badge variant={courtStatus.badgeVariant}>{displayStatus(courtStatus.label)}</Badge></div>
             </div>
-            <h4 className="mt-3 text-sm font-semibold">CourtListener</h4>
+            <h4 className="mt-3 text-sm font-semibold">Public federal docket</h4>
             <p className="mt-1 text-xs leading-5 text-zinc-500">{courtEvent?.output_summary || courtEvent?.detail || missingBranchCopy("Waiting for READER facts.")}</p>
             <p className="mt-3 text-[10px] text-zinc-400">{formatDuration(courtEvent?.duration_ms)}</p>
             {courtEvent && courtEvent.status !== "started" && (

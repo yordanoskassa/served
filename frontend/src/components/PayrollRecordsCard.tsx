@@ -213,7 +213,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
             }}
           />
         </div>
-        <p className="mt-3 text-[10px] leading-4 text-white/40">Demo export: John Doe&apos;s Kitchen · 17 records · no payroll credentials required</p>
+        <p className="mt-3 text-[10px] leading-4 text-white/40">Demo export: Mendoza&apos;s Kitchen · 17 records · no payroll credentials required</p>
       </div>}
 
       {result && <div className="mt-5 space-y-4">

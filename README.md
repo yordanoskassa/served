@@ -8,7 +8,7 @@
 
 The product goes beyond explaining a document. It helps find the requested records while keeping unrelated employees, vendors, and transactions out.
 
-In our demo, John, a restaurant owner who moved from Mexico, receives a financial subpoena addressed to John Doe’s Kitchen LLC. Served explains the request, checks the referenced case against the public federal docket, extracts the named person and date range, and then opens the correct record path. D1 matches payroll records. D4 searches authenticated business-bank transactions and produces the demo’s 7 include, 2 review, and 19 exclude result. D2 and D3 show why uncertain or suspicious requests must fail closed before financial access.
+In our demo, Raul Mendoza, a restaurant owner who moved from Mexico, receives a financial subpoena addressed to Mendoza’s Kitchen, LLC. Served explains the request, checks the referenced case against the public federal docket, extracts the named person and date range, and then opens the correct record path. D1 matches payroll records. D4 searches authenticated business-bank transactions and produces the demo’s 7 include, 2 review, and 19 exclude result. D2 and D3 show why uncertain or suspicious requests must fail closed before financial access.
 Three narrowly scoped AI agents gather and explain the document evidence. An optional fourth worker, COOK, retrieves authenticated business-bank records after the document result. A small deterministic code policy—not an AI model—selects the legal-mail outcome.
 
 ```text

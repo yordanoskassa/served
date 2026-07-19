@@ -520,7 +520,7 @@ def _fallback_explanation(parsed: DocumentParse, checker: CheckerReport, verdict
         )
     if verdict is VerdictState.VERIFIED:
         return ExplanationDraft(
-            summary="The extracted case number was found in CourtListener and the named parties matched the record. This confirms the record match, not that the paper itself was issued by the court.",
+            summary="The extracted case number was found in the public federal docket and the named parties matched the record. This confirms the record match, not that the paper itself was issued by the court.",
             next_step="Open the linked court record and independently contact the court or a qualified attorney before acting.",
         )
     if checker.near_match:
@@ -570,7 +570,7 @@ async def _courtlistener_branch(
         await trace.start(
             key="courtlistener",
             kind="tool",
-            label="CourtListener record lookup",
+            label="Public federal docket lookup",
             parent_key="checker",
             parallel_group="checker_evidence",
             detail="Search the public docket source and compare caption parties.",
@@ -583,7 +583,7 @@ async def _courtlistener_branch(
                 key="courtlistener",
                 kind="tool",
                 status="skipped",
-                label="CourtListener record lookup",
+                label="Public federal docket lookup",
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 detail=limitation,
@@ -605,7 +605,7 @@ async def _courtlistener_branch(
                 key="courtlistener",
                 kind="tool",
                 status="skipped",
-                label="CourtListener record lookup",
+                label="Public federal docket lookup",
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 detail=limitation,
@@ -614,13 +614,13 @@ async def _courtlistener_branch(
             )
         return CourtBranchResult([], False, None, "not_applicable", [limitation])
     if not settings.courtlistener_api_token:
-        limitation = "CourtListener is not configured, so the case could not be checked."
+        limitation = "The public federal docket lookup is not configured, so the case could not be checked."
         if trace is not None:
             await trace.finish(
                 key="courtlistener",
                 kind="tool",
                 status="unavailable",
-                label="CourtListener record lookup",
+                label="Public federal docket lookup",
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 detail=limitation,
@@ -649,7 +649,7 @@ async def _courtlistener_branch(
                 key="courtlistener",
                 kind="tool",
                 status="complete",
-                label="CourtListener record lookup",
+                label="Public federal docket lookup",
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 input_summary=parsed.case_number,
@@ -668,13 +668,13 @@ async def _courtlistener_branch(
         return CourtBranchResult(docket, parties_match, near_match, status, [])
     except Exception:
         logger.exception("CHECKER CourtListener lookup failed")
-        limitation = "CourtListener was unavailable during this analysis."
+        limitation = "The public federal docket lookup was unavailable during this analysis."
         if trace is not None:
             await trace.finish(
                 key="courtlistener",
                 kind="tool",
                 status="unavailable",
-                label="CourtListener record lookup",
+                label="Public federal docket lookup",
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 detail=limitation,
@@ -1220,7 +1220,7 @@ async def analyze_document(
                 else "Case number found; parties did not match"
             ),
             detail=f"{item.case_title} · {item.case_number_normalized}",
-            source="CourtListener RECAP",
+            source="Public federal docket archive",
             source_url=item.docket_url,
         )
         for item in checker.docket_evidence
@@ -1231,7 +1231,7 @@ async def analyze_document(
             tool_key="courtlistener",
             label="Possible case-number typo",
             detail=f"The exact number was not found, but the same parties appear in {checker.near_match.case_number_normalized}: {checker.near_match.case_title}.",
-            source="CourtListener RECAP candidate",
+            source="Public federal docket candidate",
             source_url=checker.near_match.docket_url,
         ))
 
