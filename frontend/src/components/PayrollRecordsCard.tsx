@@ -104,7 +104,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
           <p className="type-body mt-1 max-w-2xl">
             {analysis.verdict === "cannot_confirm"
               ? "Confirm the route through an official source first."
-              : "Scam indicators detected—no financial access."}
+              : "Fraud indicators detected. Financial access remains locked."}
           </p>
         </div>
       </div>
@@ -138,7 +138,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
       const sample = await loadSamplePayroll()
       await runMatch(sample)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The demo payroll export could not be prepared.")
+      setError(cause instanceof Error ? cause.message : "The sample payroll file could not be prepared.")
       setBusy(false)
     }
   }
@@ -198,7 +198,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
         <div className="flex flex-wrap items-center gap-2">
           <Button className="bg-white text-black hover:bg-white/90" disabled={busy} onClick={() => { void useDemo() }}>
             {busy ? <LoaderCircle className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-            Use demo payroll export
+            Use sample payroll file
           </Button>
           <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => input.current?.click()}>
             <Upload size={16} /> Upload payroll CSV
@@ -214,7 +214,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
             }}
           />
         </div>
-        <p className="mt-3 text-[10px] leading-4 text-white/40">Demo export: Mendoza&apos;s Kitchen · 17 records · no payroll credentials required</p>
+        <p className="mt-3 text-[10px] leading-4 text-white/40">Mendoza&apos;s Kitchen payroll records. No live payroll account is used.</p>
       </div>}
 
       {result && <div className="mt-5 space-y-4">
@@ -247,7 +247,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
         <div className="flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Human review required.</strong> {result.manifest_note} {result.privacy_note}</p></div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
           <div><p className="text-sm font-semibold">{reviewedCount} of {candidates.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">Export only after each candidate has an owner decision.</p></div>
-          <div className="flex flex-wrap gap-2"><Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => { setResult(null); setFile(null); setPacketReady(false) }}>Choose another export</Button><Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download manifest again" : "Export counsel handoff"}</Button></div>
+          <div className="flex flex-wrap gap-2"><Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => { setResult(null); setFile(null); setPacketReady(false) }}>Choose another file</Button><Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download response list again" : "Export response list"}</Button></div>
         </div>
       </div>}
     </div>

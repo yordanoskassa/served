@@ -27,7 +27,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
         <div className="col-span-6 hidden items-center justify-end gap-3 md:col-span-3 md:flex">
           <a href="#faq" className="type-ui text-muted-foreground hover:text-foreground">FAQ</a>
-          <Button onClick={onGetStarted} className="px-4 py-2 text-sm font-medium">run the demo <span aria-hidden="true">→</span></Button>
+          <Button onClick={onGetStarted} className="px-4 py-2 text-sm font-medium">review a request <span aria-hidden="true">→</span></Button>
         </div>
         <button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((value) => !value)} className="col-span-6 flex justify-end md:hidden">
           {open ? <X size={22} /> : <Menu size={22} />}
@@ -39,8 +39,8 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="flex flex-col gap-5 py-7 text-sm">
           {links.map((link) => <a onClick={() => setOpen(false)} href={link.href} key={link.label}>{link.label}</a>)}
           <a href="#faq" onClick={() => setOpen(false)}>FAQ</a>
-          <a href="#resources" onClick={() => setOpen(false)}>the story</a>
-          <Button onClick={() => { setOpen(false); onGetStarted() }} className="w-fit px-5 py-2.5">run the demo →</Button>
+          <a href="#resources" onClick={() => setOpen(false)}>customer story</a>
+          <Button onClick={() => { setOpen(false); onGetStarted() }} className="w-fit px-5 py-2.5">review a request →</Button>
         </div>
       </motion.div>}
     </AnimatePresence>

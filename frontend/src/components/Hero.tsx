@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import type { EntryIntent } from "@/lib/entry"
 
 const letters = [
-  { id: "D4" as const, title: "Payment request", note: "D4 · bank match", rotate: -5 },
-  { id: "D1" as const, title: "Payroll request", note: "D1 · payroll match", rotate: 1.5 },
-  { id: "D2" as const, title: "Altered case number", note: "D2 · locked", rotate: 5 },
-  { id: "D3" as const, title: "Gift-card demand", note: "D3 · scam", rotate: -2 },
+  { id: "D4" as const, title: "Payment request", note: "Bank transaction review", rotate: -5 },
+  { id: "D1" as const, title: "Payroll request", note: "Payroll record review", rotate: 1.5 },
+  { id: "D2" as const, title: "Altered case number", note: "Verification required", rotate: 5 },
+  { id: "D3" as const, title: "Gift-card demand", note: "Fraud warning", rotate: -2 },
 ]
 
 const STAGE_EASE = [0.22, 1, 0.36, 1] as const
@@ -42,7 +42,7 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
     <motion.button
       type="button"
       ref={buttonRef}
-      aria-label={`Choose Letter ${index + 1}, sample ${letter.id}`}
+      aria-label={`Choose ${letter.title}`}
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 190, scale: .35, rotate: 0 }}
       animate={{ opacity: 1, y: 0, scale: 1, rotate: reduceMotion ? 0 : letter.rotate }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 80, scale: .7 }}
@@ -93,7 +93,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
         <div className="h-full w-full rounded-t-[125px] rounded-b-[22px] bg-[radial-gradient(circle_at_50%_65%,#525252_0%,#171717_68%)] sm:rounded-t-[155px]" />
         <motion.button
           type="button"
-          aria-label={open ? "Mailbox open" : "Open mailbox to choose a sample letter"}
+          aria-label={open ? "Mailbox open" : "Open mailbox to choose a sample request"}
           aria-expanded={open}
           aria-controls="served-letter-choices"
           disabled={open}
@@ -217,7 +217,7 @@ export function Hero({ open, onOpen, onSelect }: {
       </motion.div>
     </motion.div>
 
-    <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose D4, D1, D2, D3, or upload your own subpoena." : "Mailbox closed."}</p>
+    <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose a sample request or upload your own subpoena." : "Mailbox closed."}</p>
     <span className="absolute bottom-6 left-6 z-20 type-caption md:left-16">{new Date().getFullYear()}</span>
   </section>
   )

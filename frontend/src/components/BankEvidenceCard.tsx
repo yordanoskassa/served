@@ -157,7 +157,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
     setError(null)
     try {
       if (status?.environment === "sandbox") {
-        setBusyLabel("Connecting Mendoza’s Kitchen sample bank…")
+        setBusyLabel("Connecting Mendoza’s Kitchen account…")
         const nextStatus = await connectPlaidSandboxDemo(analysisId, credential)
         setStatus(nextStatus)
         setBusyLabel("Fetching Audrea Barnes transactions…")
@@ -259,9 +259,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
     setPacketReady(true)
   }
 
-  if (statusState === "loading") return <section className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-4" aria-busy="true"><div className="flex items-center gap-3"><LoaderCircle className="animate-spin text-zinc-400" size={18} /><p className="text-sm text-zinc-500">Checking D4 financial eligibility…</p></div></section>
+  if (statusState === "loading") return <section className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-4" aria-busy="true"><div className="flex items-center gap-3"><LoaderCircle className="animate-spin text-zinc-400" size={18} /><p className="text-sm text-zinc-500">Checking financial-record eligibility…</p></div></section>
   if (statusState === "error") return <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
-  if (!status?.configured) return <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Plaid Sandbox is not configured</AlertTitle><AlertDescription>The verified D4 workflow is ready, but the backend Plaid environment is unavailable.</AlertDescription></Alert>
+  if (!status?.configured) return <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Bank connection unavailable</AlertTitle><AlertDescription>The request is verified, but the bank connection is not configured.</AlertDescription></Alert>
 
   const progress = [
     { label: "Request verified", done: true },
@@ -277,8 +277,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   return <section id={`records-${analysisId}`} className="mt-5 scroll-mt-24 overflow-hidden rounded-[28px] border border-black/10 bg-[#111] text-white shadow-[0_20px_50px_rgba(0,0,0,.18)]">
     <div className="p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-black"><Zap size={20} /></span><div><h3 className="type-subsection text-white">Bank match (D4)</h3><p className="type-caption mt-1 text-white/55">Plaid fetch + payment match for Audrea Barnes.</p></div></div>
-        <Badge className="bg-white text-black">READY</Badge>
+        <div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-black"><Zap size={20} /></span><div><h3 className="type-subsection text-white">Payment records</h3><p className="type-caption mt-1 text-white/55">Bank transaction review for Audrea Barnes.</p></div></div>
+        <Badge className="bg-white text-black">VERIFIED</Badge>
       </div>
 
       <div className="mt-5 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[.04] sm:grid-cols-4">
@@ -287,8 +287,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
 
       {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Could not complete that step</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
 
-      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (status.environment === "sandbox" ? "Connect sample bank" : "Connect bank")}</Button>{status.environment === "sandbox" && <p className="type-caption mt-2 text-white/40">Plaid Sandbox connects Mendoza’s Kitchen with 28 synthetic transactions. No bank login required.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · D4 sample transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{status.environment === "sandbox" && !status.demo_fixture && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connect() }}><Landmark size={15} />Use D4 sample bank</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (status.environment === "sandbox" && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh"}</Button></div></div>
+      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (status.environment === "sandbox" ? "Connect sample account" : "Connect bank account")}</Button>{status.environment === "sandbox" && <p className="type-caption mt-2 text-white/40">Uses a secure sample business account. No real financial data is used.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking</p>}</div></div><div className="flex flex-wrap items-end gap-2">{status.environment === "sandbox" && !status.demo_fixture && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connect() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (status.environment === "sandbox" && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh records"}</Button></div></div>
         {busy && <div className="mt-4 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-white/65"><DatabaseZap className="text-brand-green" size={15} /><span>{busyLabel}</span></div>}
       </div>}
     </div>
@@ -301,7 +301,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Review before export.</strong> {records.legal_boundary} Nothing is automatically sent or shared.</p></div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
         <div><p className="text-sm font-semibold">{reviewedCount} of {candidateRecords.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">The manifest contains your decisions and matching reasons. It is not automatically sent.</p></div>
-        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download manifest again" : "Export counsel handoff"}</Button>
+        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download response list again" : "Export response list"}</Button>
       </div>
     </div>}
   </section>

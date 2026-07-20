@@ -1,11 +1,11 @@
 const stats = [
-  { value: "< 2 min", label: "Typical letter read" },
-  { value: "3 gates", label: "Before financial tools unlock" },
-  { value: "0 bytes", label: "Upload files retained" },
-  { value: "1 inbox", label: "Evidence briefs go to you only" },
+  { value: "Fast review", label: "Request facts and deadlines" },
+  { value: "Fail closed", label: "Before financial access" },
+  { value: "No retention", label: "Uploaded request files" },
+  { value: "Owner controlled", label: "Evidence delivery" },
 ] as const
 
-const integrations = ["Google sign-in", "CourtListener", "Plaid Sandbox", "OpenAI"] as const
+const integrations = ["Secure sign-in", "Court verification", "Bank connection", "Document analysis"] as const
 
 export function LandingTrustBar() {
   return (

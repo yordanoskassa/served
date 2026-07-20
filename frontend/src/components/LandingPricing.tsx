@@ -7,16 +7,16 @@ const plans = [
     id: "paygo",
     name: "Pay as you go",
     price: "$12",
-    cadence: "per letter check",
+    cadence: "per request",
     description: "For occasional requests. Sign in, upload, keep structured results in your workspace.",
     cta: "Start with a sample",
     featured: false,
     features: [
-      "Full letter read + court/scam checks",
-      "Saved analyses & run trace",
-      "Payroll match on verified D1 letters",
-      "Bank match after verified D4 + Plaid",
-      "Evidence brief to your Google email",
+      "Document and court verification",
+      "Saved analysis and evidence trace",
+      "Payroll matching for verified requests",
+      "Bank matching for verified requests",
+      "Evidence brief to your account email",
     ],
   },
   {
@@ -24,16 +24,16 @@ const plans = [
     name: "Workspace Pro",
     price: "$89",
     cadence: "per month",
-    description: "For owners who see multiple payroll or bank-record letters in a year.",
-    cta: "Run the demo",
+    description: "For owners who receive multiple payroll or bank-record requests each year.",
+    cta: "Review a sample",
     featured: true,
     features: [
-      "15 letter checks included monthly",
+      "15 request reviews included monthly",
       "$8 each additional check",
-      "Response pack & clerk call scripts",
-      "Plaid connect + disconnect in Settings",
+      "Response packet and clerk call scripts",
+      "Bank connection controls in Settings",
       "Priority email delivery for briefs",
-      "Sample letters D1–D4 for training staff",
+      "Sample requests for staff training",
     ],
   },
   {
@@ -45,7 +45,7 @@ const plans = [
     cta: "Contact sales",
     featured: false,
     features: [
-      "Volume letter packs",
+      "Volume request reviews",
       "Shared workspace (roadmap)",
       "Dedicated onboarding call",
       "Custom retention & export policy",
@@ -55,9 +55,9 @@ const plans = [
 ] as const
 
 const compareRows = [
-  ["Letter verification pipeline", "Included", "Included", "Included"],
+  ["Request verification", "Included", "Included", "Included"],
   ["Payroll record matching", "Included", "Included", "Included"],
-  ["Plaid bank matching", "Included", "Included", "Included"],
+  ["Bank transaction matching", "Included", "Included", "Included"],
   ["Monthly included checks", "—", "15", "Custom"],
   ["Disconnect bank in Settings", "Included", "Included", "Included"],
 ] as const
@@ -72,7 +72,7 @@ export function LandingPricing({ onGetStarted }: { onGetStarted: () => void }) {
             <h2 className="type-section mt-3 max-w-lg">Less than an hour of counsel time.</h2>
           </div>
           <p className="type-lead max-w-xl text-zinc-600">
-            Letter checks are priced for small businesses—not enterprise discovery budgets. Subscriptions bundle the payroll and bank workflows you reuse every quarter.
+            Request reviews are priced for small businesses, not enterprise discovery budgets. Subscriptions include the payroll and bank workflows you reuse every quarter.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export function LandingPricing({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
 
         <p className="type-caption mt-6 max-w-3xl leading-5 text-zinc-500">
-          Demo pricing reflects the intended model—not a live checkout in this build. Attorney review and court filing are out of scope; Served organizes evidence and candidate records for your team and counsel.
+          Pricing is illustrative. Attorney review and court filing are out of scope. Served organizes evidence and candidate records for your team and counsel.
         </p>
       </section>
 
@@ -151,20 +151,20 @@ export function LandingPricing({ onGetStarted }: { onGetStarted: () => void }) {
         <dl className="mt-8 grid gap-6 md:grid-cols-2">
           {[
             {
-              q: "What counts as a letter check?",
+              q: "What counts as a request review?",
               a: "One uploaded subpoena or records request through the verification pipeline, including saved structured results.",
             },
             {
               q: "Do financial tools cost extra?",
-              a: "Plaid and payroll matching are included once the letter is verified. You still control connect and disconnect in Settings.",
+              a: "Bank and payroll matching are included once the request is verified. You control bank access in Settings.",
             },
             {
               q: "Can I cancel Pro anytime?",
-              a: "Yes—monthly plans cancel at period end. Pay-as-you-go has no subscription.",
+              a: "Yes. Monthly plans cancel at period end. Pay-as-you-go has no subscription.",
             },
             {
               q: "Is there a free trial?",
-              a: "Run sample D1–D4 letters in the demo without payment to see the full workflow.",
+              a: "Review the sample requests without payment to see the full workflow.",
             },
           ].map(({ q, a }) => (
             <div className="rounded-xl border border-border bg-card p-5" key={q}>
@@ -177,9 +177,9 @@ export function LandingPricing({ onGetStarted }: { onGetStarted: () => void }) {
 
       <section className="mx-auto max-w-7xl py-12">
         <div className="rounded-2xl border border-border bg-[#111] px-6 py-10 text-center text-white sm:px-10 sm:py-12">
-          <h2 className="type-section text-white">Ready when the letter lands.</h2>
+          <h2 className="type-section text-white">Ready when the request arrives.</h2>
           <p className="type-body mx-auto mt-4 max-w-lg text-white/65">
-            Open the mailbox, pick a sample, or upload your own request—then sign in with Google to save results.
+            Open the mailbox, choose a sample, or upload your own request. Sign in to save results.
           </p>
           <Button type="button" onClick={onGetStarted} className="mt-8 h-11 bg-white px-6 text-black hover:bg-white/90">
             Get started <ArrowRight size={16} />

@@ -13,7 +13,7 @@ export function LandingFooter() {
       <div className="mx-auto flex max-w-7xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-display text-lg tracking-[-.03em]">Served</p>
-          <p className="type-caption mt-2 max-w-xs leading-5">Financial subpoena response for small businesses—not legal advice.</p>
+          <p className="type-caption mt-2 max-w-xs leading-5">Financial subpoena response for small businesses. Not legal advice.</p>
         </div>
         <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Footer">
           {links.map(({ label, href }) => (

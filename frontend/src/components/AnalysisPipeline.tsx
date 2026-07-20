@@ -152,7 +152,7 @@ function runLabel(runState: RunState, events: TraceEvent[]): string {
   if (runState === "running") return events.length ? "Live run" : "Connecting"
   if (runState === "complete") return "Run complete"
   if (runState === "error") return "Run stopped"
-  return "Ready for a letter"
+  return "Ready for a request"
 }
 
 const ACTIVE_FOCUS: Partial<Record<TraceEvent["key"], string[]>> = {

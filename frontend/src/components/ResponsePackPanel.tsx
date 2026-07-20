@@ -40,20 +40,20 @@ export function ResponsePackPanel({
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border border-black/[.08] bg-white/70 p-5">
-        <h2 className="type-ui-heading">Response pack</h2>
+        <h2 className="type-ui-heading">Response packet</h2>
         <p className="type-body mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-          Email a structured brief for counsel or payroll—what the letter asked for, court checks, record matches, and deadlines.
-          Financial matching stays on each saved letter after it clears verification.
+          Email a structured brief for counsel or payroll with the request details, court checks, record matches, and deadlines.
+          Financial matching remains attached to each verified request.
         </p>
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-black/5 bg-background p-3 text-xs leading-5 text-zinc-500">
           <Scale size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p>Open a letter for clerk verification steps and payroll or bank record matching before you produce records.</p>
+          <p>Open a request to review clerk-verification steps and payroll or bank matches before producing records.</p>
         </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
         <div className="border-b border-black/5 px-5 py-4">
-          <h3 className="text-sm font-semibold">Letters with a packable brief</h3>
+          <h3 className="text-sm font-semibold">Requests with a response brief</h3>
         </div>
         {loadState === "loading" && (
           <div className="space-y-3 px-6 py-6">
@@ -72,13 +72,13 @@ export function ResponsePackPanel({
           <div className="p-5">
             <Alert className="rounded-2xl border-black/10 bg-background">
               <AlertTitle>Response list unavailable</AlertTitle>
-              <AlertDescription>{error ?? "We could not load your saved letters."}</AlertDescription>
+              <AlertDescription>{error ?? "We could not load your saved requests."}</AlertDescription>
             </Alert>
           </div>
         )}
         {loadState === "ready" && packableItems.length === 0 && (
           <p className="px-6 py-8 text-center text-sm text-zinc-400">
-            No letters yet. Run a financial subpoena on Overview, then return here to email the brief.
+            No requests yet. Verify a financial subpoena on Overview, then return here to email the brief.
           </p>
         )}
         {loadState === "ready" && packableItems.map((item) => {
@@ -109,7 +109,7 @@ export function ResponsePackPanel({
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium sm:hidden ${badge.className}`}>{badge.label}</span>
                 <EmailEvidenceBrief analysisId={item.id} documentName={item.name} compact />
                 <Button variant="outline" className="h-9 px-3 text-xs" onClick={() => onOpenAnalysis(item.id)}>
-                  Open letter
+                  Open request
                 </Button>
               </div>
             </div>
@@ -117,13 +117,13 @@ export function ResponsePackPanel({
         })}
         {loadState === "ready" && items.length > packableItems.length && (
           <p className="border-t border-black/5 px-5 py-3 text-[11px] text-zinc-400">
-            Some older letters lack a full brief. Re-upload from Requests to regenerate payroll and bank context.
+            Some earlier requests lack a full brief. Re-upload the document to regenerate payroll and bank context.
           </p>
         )}
         {loadState === "ready" && packableItems.length > 0 && (
           <div className="border-t border-black/5 p-5 text-center">
             <Button variant="outline" onClick={onOpenDocuments}>
-              All saved letters
+              All saved requests
             </Button>
           </div>
         )}

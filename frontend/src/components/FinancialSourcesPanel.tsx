@@ -11,15 +11,15 @@ type LoadState = "loading" | "ready" | "error"
 function gateStatus(agents: AgentStatus[], loadState: LoadState) {
   const reader = agents.find((item) => item.name === "reader")
   const checker = agents.find((item) => item.name === "checker")
-  if (loadState === "loading") return { label: "Checking", variant: "outline" as const, dot: "bg-zinc-300", detail: "Confirming letter-read and docket services." }
+  if (loadState === "loading") return { label: "Checking", variant: "outline" as const, dot: "bg-zinc-300", detail: "Confirming document and court-verification services." }
   if (loadState === "error") return { label: "Unavailable", variant: "warning" as const, dot: "bg-neutral-500", detail: "Could not load verification services." }
   const ready = Boolean(reader?.enabled && checker?.enabled)
-  if (!ready) return { label: "Not configured", variant: "destructive" as const, dot: "bg-neutral-600", detail: "Letter checks cannot run until services are configured." }
+  if (!ready) return { label: "Not configured", variant: "destructive" as const, dot: "bg-neutral-600", detail: "Request verification cannot run until services are configured." }
   return {
     label: "Ready",
     variant: "default" as const,
     dot: "bg-brand-green",
-    detail: "Reads the subpoena letter and checks docket + scam signals before any financial tool unlocks.",
+    detail: "Reviews the subpoena and checks the court record and fraud indicators before financial access is allowed.",
   }
 }
 
@@ -54,9 +54,9 @@ export function FinancialSourcesPanel({
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border border-black/[.08] bg-white/70 p-5">
-        <h2 className="type-ui-heading">Financial sources</h2>
+        <h2 className="type-ui-heading">Financial records</h2>
         <p className="type-caption mt-1 max-w-2xl">
-          Payroll and bank matching open only after a financial subpoena letter passes verification—not for scam or uncertain letters.
+          Payroll and bank records open only after a financial subpoena passes verification. Unverified or suspicious requests remain locked.
         </p>
         {onRefresh && (
           <Button variant="outline" className="mt-4 h-9 px-3 text-xs" onClick={onRefresh} disabled={loadState === "loading"}>
@@ -73,14 +73,14 @@ export function FinancialSourcesPanel({
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-medium">Letter verification gate</p>
+                <p className="text-sm font-medium">Request verification</p>
                 <span className={`size-2 rounded-full ${gate.dot}`} aria-hidden="true" />
                 <Badge variant={gate.variant} className="text-[10px]">{gate.label}</Badge>
               </div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">{gate.detail}</p>
               {summaryState === "ready" && (
                 <p className="mt-2 text-[11px] text-zinc-400">
-                  {verified} saved letter{verified === 1 ? "" : "s"} eligible for payroll or bank tools.
+                  {verified} verified request{verified === 1 ? "" : "s"} eligible for financial-record review.
                 </p>
               )}
               {summaryState === "loading" && <Skeleton className="mt-2 h-3 w-48 bg-black/5" />}
@@ -97,11 +97,11 @@ export function FinancialSourcesPanel({
                 <Badge variant="secondary" className="text-[10px]">In-app matching</Badge>
               </div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Upload or sample payroll files and review candidates against the person and dates named in a verified letter (e.g. D1).
+                Review payroll files against the person, record types, and dates named in a verified request.
               </p>
               {onOpenDocuments && (
                 <Button variant="outline" className="mt-3 h-9 px-3 text-xs" onClick={onOpenDocuments}>
-                  Open verified letters
+                  Open verified requests
                 </Button>
               )}
             </div>
@@ -118,12 +118,12 @@ export function FinancialSourcesPanel({
                 <Badge variant={plaid.variant} className="text-[10px]">{plaid.label}</Badge>
               </div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Plaid Link runs from a verified bank-record letter—match payments to the named employee and period (D4 demo).
+                Connect a business account and match payments to the person and period named in a verified request.
               </p>
               {!cook?.enabled && loadState === "ready" && (
                 <Alert className="mt-3 rounded-xl border-black/10 bg-background">
                   <AlertTitle>Bank connect unavailable</AlertTitle>
-                  <AlertDescription>Plaid is not configured on this backend. Payroll matching may still work on verified letters.</AlertDescription>
+                  <AlertDescription>The bank connection is not configured. Payroll matching remains available for verified requests.</AlertDescription>
                 </Alert>
               )}
             </div>

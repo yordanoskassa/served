@@ -56,7 +56,7 @@ export function WorkspaceActivity({
     <div className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="type-ui-heading">{runActive ? "Running analysis" : runStopped ? "Run stopped" : "Recent checks"}</h2>
+          <h2 className="type-ui-heading">{runActive ? "Verifying request" : runStopped ? "Verification stopped" : "Recent requests"}</h2>
         </div>
         <Button
           variant="outline"
@@ -72,7 +72,7 @@ export function WorkspaceActivity({
 
       {showRun ? <div className="pt-4">
         <AnalysisPipeline events={traceEvents} runState={runStopped ? "error" : "running"} compact rail />
-        <p className="type-caption mt-3">{traceEvents.length} event{traceEvents.length === 1 ? "" : "s"} · pipeline updates here during the run</p>
+        <p className="type-caption mt-3">Verification activity updates here while the request is processing.</p>
       </div> : <>
         <div className="mt-4">
           {summaryState === "loading" && <div className="space-y-4">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-2/3 bg-black/5" /><Skeleton className="h-2 w-1/3 bg-black/5" /></div></div>)}</div>}
@@ -86,10 +86,10 @@ export function WorkspaceActivity({
               <Badge variant={badge.variant} className="px-2.5 py-1 text-[9px]">{badge.label}</Badge><ChevronRight className="shrink-0 text-zinc-300" size={15} />
             </button>
           })}
-          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No checks yet</p><p className="type-caption mt-1">Completed analyses appear here.</p></div></div>}
+          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No requests yet</p><p className="type-caption mt-1">Completed reviews appear here.</p></div></div>}
         </div>
         <Separator className="my-3" />
-        <Button className="mt-1 h-9 w-full px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>All letters <ArrowRight size={14} /></Button>
+        <Button className="mt-1 h-9 w-full px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>All requests <ArrowRight size={14} /></Button>
       </>}
     </div>
   </Card>

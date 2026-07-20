@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button"
 
 export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
   const workflow = [
-    { icon: FileSearch, title: "Understand", text: "Pull the person, record types, dates, deadline, and court from the letter." },
+    { icon: FileSearch, title: "Understand", text: "Identify the person, record types, dates, deadline, and court named in the request." },
     { icon: Scale, title: "Check", text: "Compare against official sources. If anything is uncertain, financial data stays locked." },
-    { icon: FileCheck2, title: "Find", text: "Search payroll or the connected bank using only what the letter names." },
+    { icon: FileCheck2, title: "Find", text: "Search payroll or the connected bank using only what the request names." },
     { icon: ListChecks, title: "Review", text: "See matches and exclusions before you prepare anything." },
   ]
 
@@ -39,13 +39,13 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
           <h2 className="type-section max-w-2xl">Connect once. Match from live data.</h2>
         </div>
         <div>
-          <p className="type-body max-w-2xl text-base leading-7">After D4 clears verification, Plaid Link connects the account, the backend fetches transactions, and matching runs against the named person and dates—not a canned screen.</p>
-          <Button onClick={onGetStarted} className="mt-5">Try the live flow <ArrowRight size={15} /></Button>
+          <p className="type-body max-w-2xl text-base leading-7">After the request clears verification, a secure bank connection retrieves transactions and matches them against the named person and dates.</p>
+          <Button onClick={onGetStarted} className="mt-5">Review a sample request <ArrowRight size={15} /></Button>
         </div>
       </div>
 
-      <div className="mt-10 grid gap-2 sm:grid-cols-3" aria-label="Plaid Sandbox connection preview">
-        {[{ icon: Landmark, title: "First Platypus Bank", note: "Sandbox institution" }, { icon: DatabaseZap, title: "Seeded checking", note: "28 transactions" }, { icon: ShieldCheck, title: "Demo only", note: "No real money" }].map(({ icon: Icon, title, note }) => (
+      <div className="mt-10 grid gap-2 sm:grid-cols-3" aria-label="Bank connection workflow">
+        {[{ icon: Landmark, title: "Business account", note: "Secure connection" }, { icon: DatabaseZap, title: "Transaction search", note: "Scoped to the request" }, { icon: ShieldCheck, title: "Owner review", note: "Nothing sent automatically" }].map(({ icon: Icon, title, note }) => (
           <div className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card px-4" key={title}>
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted"><Icon size={16} /></span>
             <div><p className="type-ui font-medium">{title}</p><p className="type-caption mt-1">{note}</p></div>
@@ -58,11 +58,11 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
           <div className="flex items-start gap-3">
             <span className="grid size-12 place-items-center rounded-lg bg-white text-black"><Zap size={20} /></span>
             <div>
-              <h3 className="type-subsection text-white">Real Plaid Link</h3>
-              <p className="type-caption mt-2 text-white/55">Token exchange, fetch, and match happen in the app.</p>
+              <h3 className="type-subsection text-white">Secure bank connection</h3>
+              <p className="type-caption mt-2 text-white/55">Account access, retrieval, and matching happen inside Served.</p>
             </div>
           </div>
-          <span className="type-label rounded-full border border-white/20 px-3 py-1 text-white/70">SANDBOX</span>
+          <span className="type-label rounded-full border border-white/20 px-3 py-1 text-white/70">READ ONLY</span>
         </div>
         <div className="mt-6 grid overflow-hidden rounded-lg border border-white/10 sm:grid-cols-4">
           {[{ icon: ShieldCheck, label: "Verified" }, { icon: Landmark, label: "Connected" }, { icon: DatabaseZap, label: "Fetched" }, { icon: CheckCircle2, label: "Explained" }].map(({ icon: Icon, label }, index) => (
@@ -77,9 +77,9 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
 
     <section id="record-matching" className="mx-auto grid max-w-7xl gap-8 border-t border-border py-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
       <div>
-        <h2 className="type-section max-w-2xl">7 include · 2 review · 19 excluded</h2>
-        <p className="type-body mt-5 max-w-xl text-base leading-7">The D4 demo for Audrea Barnes: suppliers, other employees, and out-of-range payments stay out of the candidate set.</p>
-        <Button onClick={onGetStarted} className="mt-6">Run D4 <ArrowUpRight size={15} /></Button>
+        <h2 className="type-section max-w-2xl">Find the requested records. Exclude the rest.</h2>
+        <p className="type-body mt-5 max-w-xl text-base leading-7">Payments for Audrea Barnes are separated from suppliers, other employees, and transactions outside the requested period.</p>
+        <Button onClick={onGetStarted} className="mt-6">Review the result <ArrowUpRight size={15} /></Button>
       </div>
       <div className="overflow-hidden rounded-lg border border-border bg-primary p-6 text-white">
         <div className="flex items-center justify-between">
@@ -97,7 +97,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
     <section id="privacy" className="mx-auto max-w-7xl rounded-lg border border-border bg-card p-8 sm:p-12">
       <h2 className="type-section max-w-2xl">No verification, no access.</h2>
       <div className="mt-5 grid gap-8 md:grid-cols-2 md:items-end">
-        <p className="type-body max-w-2xl text-base leading-7">D1 unlocks payroll. D4 unlocks bank payments. Everything else fails closed.</p>
+        <p className="type-body max-w-2xl text-base leading-7">Verified payroll requests unlock payroll records. Verified payment requests unlock bank records. Everything else remains locked.</p>
         <div className="flex items-start gap-3 rounded-lg bg-black p-5 text-white">
           <LockKeyhole className="mt-0.5 shrink-0 text-white" size={18} />
           <p className="type-body text-white/70"><strong className="font-medium text-white">Nothing ships automatically.</strong> You review candidates; the product does not decide what to share.</p>
@@ -107,14 +107,14 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
 
     <section id="resources" className="mx-auto grid max-w-7xl gap-10 border-b border-border py-20 md:grid-cols-2">
       <div>
-        <h2 className="type-section">Raul runs a restaurant—not a legal department.</h2>
-        <p className="type-body mt-3 max-w-xl">A financial letter arrives with a deadline and a former employee’s name. The demo shows how to understand it, verify it, and pull the right records without exposing the rest.</p>
-        <Button variant="outline" onClick={onGetStarted} className="mt-6">Start the story →</Button>
+        <h2 className="type-section">Raul runs a restaurant, not a legal department.</h2>
+        <p className="type-body mt-3 max-w-xl">A financial subpoena arrives with a deadline and a former employee’s name. Served helps him verify it and review the requested records without exposing the rest.</p>
+        <Button variant="outline" onClick={onGetStarted} className="mt-6">Review the request →</Button>
       </div>
       <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-6">
         <AccordionItem value="why-restaurants"><AccordionTrigger className="type-ui font-medium">Why a restaurant?</AccordionTrigger><AccordionContent className="type-body leading-6">Hourly payroll and wage records make the small-business problem concrete. The same flow applies to other employers.</AccordionContent></AccordionItem>
-        <AccordionItem value="record-match"><AccordionTrigger className="type-ui font-medium">Does a match mean you must share?</AccordionTrigger><AccordionContent className="type-body leading-6">No. A match fits the letter’s criteria. You still decide next steps, ideally with qualified help when stakes are high.</AccordionContent></AccordionItem>
-        <AccordionItem value="bank"><AccordionTrigger className="type-ui font-medium">When does bank access open?</AccordionTrigger><AccordionContent className="type-body leading-6">Only after a verified D4-style payment request. D1 uses payroll instead.</AccordionContent></AccordionItem>
+        <AccordionItem value="record-match"><AccordionTrigger className="type-ui font-medium">Does a match mean you must share?</AccordionTrigger><AccordionContent className="type-body leading-6">No. A match fits the request criteria. You still decide next steps, ideally with qualified help when stakes are high.</AccordionContent></AccordionItem>
+        <AccordionItem value="bank"><AccordionTrigger className="type-ui font-medium">When does bank access open?</AccordionTrigger><AccordionContent className="type-body leading-6">Only after a payment-record request is verified. Payroll requests use payroll records instead.</AccordionContent></AccordionItem>
         <AccordionItem value="legal-advice" className="border-b-0"><AccordionTrigger className="type-ui font-medium">Is this legal advice?</AccordionTrigger><AccordionContent className="type-body leading-6">No. It organizes evidence and candidate records—not legal judgment.</AccordionContent></AccordionItem>
       </Accordion>
     </section>

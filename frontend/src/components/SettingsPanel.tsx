@@ -43,9 +43,9 @@ function formatConnectedAt(value: string | null | undefined): string {
 }
 
 function plaidEnvironmentLabel(environment: PlaidConnectionStatus["environment"]): string {
-  if (environment === "sandbox") return "Plaid Sandbox"
-  if (environment === "production") return "Plaid Production"
-  return "Plaid Development"
+  if (environment === "sandbox") return "Sample connection"
+  if (environment === "production") return "Live connection"
+  return "Test connection"
 }
 
 export function SettingsPanel({
@@ -154,7 +154,7 @@ export function SettingsPanel({
       onRefresh()
       setDeleteOpen(false)
     } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : "Could not delete saved letters.")
+      setDeleteError(cause instanceof Error ? cause.message : "Could not delete saved requests.")
     } finally {
       setDeleting(false)
     }
@@ -167,7 +167,7 @@ export function SettingsPanel({
       <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
         <div className="border-b border-black/5 px-5 py-4">
           <h2 className="type-ui-heading">Settings</h2>
-          <p className="type-caption mt-1">Account, bank access, and saved letter data.</p>
+          <p className="type-caption mt-1">Account, bank access, and saved request data.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 px-5 py-4">
           <Avatar className="size-12">
@@ -199,7 +199,7 @@ export function SettingsPanel({
         <div className="space-y-4 px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium">Saved letters</p>
+              <p className="text-sm font-medium">Saved requests</p>
               <p className="text-xs text-zinc-500">
                 {summaryState === "loading" ? "Loading counts…" : `${letterCount} on your account`}
               </p>
@@ -209,7 +209,7 @@ export function SettingsPanel({
                 <RefreshCw className={summaryState === "loading" ? "animate-spin" : ""} size={14} /> Refresh
               </Button>
               <Button type="button" variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
-                Open letters
+                Open requests
               </Button>
             </div>
           </div>
@@ -221,8 +221,8 @@ export function SettingsPanel({
               onChange={toggleSampleTips}
             />
             <span className="text-left text-xs leading-5 text-zinc-600">
-              <span className="font-medium text-foreground">Sample letter hints</span>
-              <span className="block text-zinc-500">Show D1–D4 notes on the landing mailbox and upload card.</span>
+              <span className="font-medium text-foreground">Sample request hints</span>
+              <span className="block text-zinc-500">Show sample labels on the landing mailbox and upload card.</span>
             </span>
           </label>
         </div>
@@ -242,7 +242,7 @@ export function SettingsPanel({
           {disconnectSuccess && (
             <Alert className="rounded-xl border-black/10 bg-background">
               <AlertTitle>Bank disconnected</AlertTitle>
-              <AlertDescription>Served no longer has Plaid access for this account. Open a verified D4 letter to connect again.</AlertDescription>
+              <AlertDescription>Served no longer has access to this account. Open a verified payment-record request to connect again.</AlertDescription>
             </Alert>
           )}
           {bankState === "loading" && <Skeleton className="h-24 w-full rounded-xl bg-black/5" />}
@@ -258,17 +258,17 @@ export function SettingsPanel({
           {bankState === "ready" && bank && (
             <>
               {!bank.configured && (
-                <p className="text-xs leading-5 text-zinc-500">Plaid is not configured on this backend. Bank matching is unavailable until Plaid credentials are set.</p>
+                <p className="text-xs leading-5 text-zinc-500">The bank connection is not configured. Bank matching is currently unavailable.</p>
               )}
               {bank.configured && !bank.connected && (
                 <div className="rounded-xl border border-dashed border-black/15 bg-background p-4">
                   <Badge variant="secondary" className="text-[10px]">Not connected</Badge>
                   <p className="mt-3 text-sm font-medium text-zinc-800">No bank linked</p>
                   <p className="mt-2 text-xs leading-5 text-zinc-500">
-                    Connect through Plaid Link on a <strong className="font-medium text-zinc-700">verified</strong> letter that requests bank records (D4 sample or your own).
+                    Connect an account from a <strong className="font-medium text-zinc-700">verified</strong> request for bank records.
                   </p>
                   <Button type="button" variant="outline" className="mt-3 h-9 px-3 text-xs" onClick={onOpenDocuments}>
-                    Open saved letters
+                    Open saved requests
                   </Button>
                 </div>
               )}
@@ -283,7 +283,7 @@ export function SettingsPanel({
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">Linked {formatConnectedAt(bank.connected_at)}</p>
                   <p className="mt-4 text-xs leading-5 text-zinc-600">
-                    Served can fetch transactions for payment matching on verified bank-record letters. Disconnect here when you want to revoke that access.
+                    Served can retrieve transactions for verified payment-record requests. Disconnect here to revoke access.
                   </p>
                   <Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
                     <DialogTrigger asChild>
@@ -295,8 +295,8 @@ export function SettingsPanel({
                       <DialogHeader>
                         <DialogTitle>Disconnect {bank.institution_name ?? "this bank"}?</DialogTitle>
                         <DialogDescription className="space-y-2 text-left leading-6">
-                          <span className="block">This removes the Plaid item from Served and deletes the stored access token on our backend.</span>
-                          <span className="block">Saved letter analyses stay on your account. To match payments again, open a verified D4 letter and run Plaid Link.</span>
+                          <span className="block">This removes the bank connection from Served and deletes the stored access token.</span>
+                          <span className="block">Saved request analyses remain on your account. Open a verified payment-record request to connect again.</span>
                         </DialogDescription>
                       </DialogHeader>
                       {bankError && disconnectOpen && (
@@ -328,7 +328,7 @@ export function SettingsPanel({
           <h3 className="text-sm font-semibold">Data & privacy</h3>
         </div>
         <ul className="space-y-2 px-5 py-4 text-xs leading-5 text-zinc-600">
-          <li>Uploaded letter files are not kept after analysis.</li>
+          <li>Uploaded request files are not kept after analysis.</li>
           <li>Your account stores structured results, evidence, decisions, and run traces.</li>
           <li>Payroll CSVs and Plaid transactions are used for matching only during your session workflows.</li>
         </ul>
@@ -336,14 +336,14 @@ export function SettingsPanel({
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline" className="h-9 border-red-200 text-xs text-red-700 hover:bg-red-50">
-                <Trash2 size={14} /> Delete all saved letters
+                <Trash2 size={14} /> Delete all saved requests
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md shadow-none">
               <DialogHeader>
-                <DialogTitle>Delete all saved letters?</DialogTitle>
+                <DialogTitle>Delete all saved requests?</DialogTitle>
                 <DialogDescription>
-                  This removes every saved analysis on your account ({letterCount} letter{letterCount === 1 ? "" : "s"}). Bank connection stays until you disconnect it. This cannot be undone.
+                  This removes every saved analysis on your account ({letterCount} request{letterCount === 1 ? "" : "s"}). Your bank connection remains until you disconnect it. This cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               {deleteError && (
