@@ -148,8 +148,8 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     </div>
     <div className="px-5 py-4 sm:px-6">
       <div className="rounded-2xl bg-[#111] p-4 text-white">
-        <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-black"><Zap size={16} /></span><div><p className="type-label text-white/55">D4 demo</p><p className="type-ui mt-1 font-semibold text-white">Bank connect + live match</p></div></div>
-        <Button aria-label="Analyze D4 and unlock the Plaid bank connection" className="mt-4 h-10 w-full bg-white text-sm font-medium text-black hover:bg-white/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Run D4</Button>
+        <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-black"><Zap size={16} /></span><div><p className="type-label text-white/55">Featured request · D4</p><p className="type-ui mt-1 font-semibold text-white">Payment and bank records</p></div></div>
+        <Button aria-label="Analyze the D4 payment and bank records request" className="mt-4 h-10 w-full bg-white text-sm font-medium text-black hover:bg-white/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Run payment request</Button>
       </div>
       <div className="mt-4">
         <p className="type-label">Samples</p>

@@ -310,7 +310,13 @@ export async function verifyGoogleToken(credential: string): Promise<UserProfile
 export async function loadSampleDocument(sample: "D1" | "D2" | "D3" | "D4"): Promise<File> {
   const response = await fetch(`${API_URL}/documents/samples/${sample}`)
   if (!response.ok) throw new Error("The sample document could not be loaded.")
-  return new File([await response.blob()], `${sample}.pdf`, { type: "application/pdf" })
+  const names = {
+    D1: "D1_payroll_records_request.pdf",
+    D2: "D2_altered_case_number_request.pdf",
+    D3: "D3_gift_card_payment_demand.pdf",
+    D4: "D4_payment_and_bank_records_request.pdf",
+  } as const
+  return new File([await response.blob()], names[sample], { type: "application/pdf" })
 }
 
 export async function loadSamplePayroll(): Promise<File> {
