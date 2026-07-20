@@ -50,6 +50,7 @@ class RunTraceCollector:
         self.corpus_version = corpus_version
         self.corpus_versions = corpus_versions or {"ftc_patterns": corpus_version}
         self.policy_version = policy_version
+        self.fact_extraction_basis = "model_assisted_document_read"
         self.pattern_text_basis = "model_assisted_transcription"
         self._emit = emit
         self._run_started = perf_counter()
@@ -223,6 +224,7 @@ class RunTraceCollector:
             corpus_version=self.corpus_version,
             corpus_versions=dict(self.corpus_versions),
             policy_version=self.policy_version,
+            fact_extraction_basis=self.fact_extraction_basis,
             pattern_text_basis=self.pattern_text_basis,
             steps=sorted(self._events, key=lambda event: event.seq),
             model_usage=list(self._model_usage),

@@ -313,8 +313,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
-          <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-3">
-            {["1 · Verify request", "2 · Find records", "3 · Review response"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
+          <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-4">
+            {["1 · Verify request", "2 · Connect sample bank", "3 · Review candidate records", "4 · Generate packet"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 3 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>

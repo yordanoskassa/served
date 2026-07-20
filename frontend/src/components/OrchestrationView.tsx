@@ -413,7 +413,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
           <p><span className="font-medium text-zinc-800">Policy:</span> {analysis.trace.policy_version}</p>
           <p><span className="font-medium text-zinc-800">Evidence:</span> {analysis.trace.metrics.evidence_items} item(s)</p>
           <p><span className="font-medium text-zinc-800">Verdict authority:</span> fixed code</p>
-          <p><span className="font-medium text-zinc-800">Document facts:</span> model-assisted · human review required</p>
+          <p><span className="font-medium text-zinc-800">Document facts:</span> {analysis.trace.fact_extraction_basis === "reviewed_sample_fixture" ? "reviewed sample fixture" : "model-assisted"} · human review required</p>
           <p><span className="font-medium text-zinc-800">Pattern text:</span> {analysis.trace.pattern_text_basis === "native_pdf_text" ? "native PDF text" : "model-assisted transcription"}</p>
         </div>
       )}

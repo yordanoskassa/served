@@ -41,7 +41,7 @@ export type AnalysisRunTrace = {
   corpus_versions: Record<string, string>
   policy_version: string
   verdict_authority: "deterministic_policy"
-  fact_extraction_basis: "model_assisted_document_read"
+  fact_extraction_basis: "model_assisted_document_read" | "reviewed_sample_fixture"
   pattern_text_basis: "native_pdf_text" | "model_assisted_transcription"
   scope: "analysis_execution"
   human_review_required: boolean
@@ -368,13 +368,17 @@ export async function analyzeDocumentStream(
   credential: string,
   onTrace?: (event: TraceEvent) => void,
   signal?: AbortSignal,
+  sampleId?: "D1" | "D2" | "D3" | "D4",
 ): Promise<Analysis> {
   const body = new FormData()
   body.append("file", file)
   const response = await fetch(`${API_URL}/documents/analyze/stream`, {
     method: "POST",
     body,
-    headers: { Authorization: `Bearer ${credential}` },
+    headers: {
+      Authorization: `Bearer ${credential}`,
+      ...(sampleId ? { "X-Served-Sample-ID": sampleId } : {}),
+    },
     signal,
   })
   if (!response.ok) throw await responseError(response, "We couldn’t analyze that photo. Please try again.")

@@ -5,6 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 from fastapi import UploadFile
@@ -56,6 +57,11 @@ logger = logging.getLogger(__name__)
 READER_PROMPT_VERSION = "reader-2026-07-16.1"
 CHECKER_PROMPT_VERSION = "checker-2026-07-16.1"
 EXPLAINER_PROMPT_VERSION = "explainer-2026-07-16.1"
+REVIEWED_SAMPLE_OUTPUTS = (
+    Path(__file__).resolve().parents[2]
+    / "fixtures"
+    / "golden-agent-outputs.json"
+)
 
 READER_PROMPT = """You are READER. Extract only visible facts from this legal-looking document.
 Return the document type, claimed court, any other organization claiming government or
@@ -109,6 +115,18 @@ class PatternBranchResult:
     reviews: list[ScamSignalReview]
     status: str
     limitations: list[str]
+
+
+def _reviewed_sample_outputs(sample_id: str) -> tuple[DocumentParse, CheckerReport]:
+    payload = json.loads(REVIEWED_SAMPLE_OUTPUTS.read_text(encoding="utf-8"))
+    case = payload["cases"][sample_id]
+    parsed = DocumentParse.model_validate(case["reader"])
+    checker_payload = dict(case["checker"])
+    draft = ScamSignalDraft.model_validate(checker_payload.pop("scam_signal_draft"))
+    signals, reviews = _validate_signals(draft, parsed.visible_text)
+    checker_payload["scam_signals"] = signals
+    checker_payload["signal_reviews"] = reviews
+    return parsed, CheckerReport.model_validate(checker_payload)
 
 
 def _claimed_authority(parsed: DocumentParse) -> str | None:
@@ -843,6 +861,7 @@ async def analyze_document(
     file: UploadFile,
     *,
     emit: TraceEmitter | None = None,
+    trusted_sample_id: str | None = None,
 ) -> AnalysisResponse:
     trace = RunTraceCollector(
         model_alias=settings.openai_model,
@@ -884,19 +903,28 @@ async def analyze_document(
             "READER does not investigate or decide the outcome."
         ),
     )
+    reviewed_sample = (
+        _reviewed_sample_outputs(trusted_sample_id)
+        if trusted_sample_id
+        else None
+    )
     reader_unavailable = False
-    try:
-        parsed = await coordinator.run(
-            "reader",
-            data=data,
-            mime_type=file.content_type or "image/jpeg",
-            trace=trace,
-            raise_on_error=True,
-        )
-    except AgentUnavailableError:
-        logger.exception("READER failed")
-        parsed = None
-        reader_unavailable = True
+    if reviewed_sample:
+        parsed = reviewed_sample[0]
+        trace.fact_extraction_basis = "reviewed_sample_fixture"
+    else:
+        try:
+            parsed = await coordinator.run(
+                "reader",
+                data=data,
+                mime_type=file.content_type or "image/jpeg",
+                trace=trace,
+                raise_on_error=True,
+            )
+        except AgentUnavailableError:
+            logger.exception("READER failed")
+            parsed = None
+            reader_unavailable = True
     if parsed is None:
         parsed = DocumentParse(doc_type="Legal correspondence", readable=False)
         reader_unavailable = True
@@ -909,6 +937,9 @@ async def analyze_document(
         output_summary=(
             "READER provider unavailable"
             if reader_unavailable
+            else
+            f"Loaded reviewed {trusted_sample_id} sample facts"
+            if reviewed_sample
             else
             f"Extracted {parsed.doc_type}; {len(parsed.parties)} caption party name(s)"
             if parsed.readable
@@ -989,17 +1020,64 @@ async def analyze_document(
         ),
     )
     checker_unavailable = False
-    try:
-        checker = await coordinator.run(
-            "checker",
-            parsed=checker_input,
-            trace=trace,
-            raise_on_error=True,
+    if reviewed_sample:
+        checker = reviewed_sample[1]
+        await trace.start(
+            key="courtlistener",
+            kind="tool",
+            label="Reviewed sample docket evidence",
+            parent_key="checker",
+            parallel_group="checker_evidence",
+            detail="Load the versioned docket result reviewed for this bundled sample.",
+            input_summary=parsed.case_number or trusted_sample_id,
         )
-    except AgentUnavailableError:
-        logger.exception("CHECKER failed")
-        checker = None
-        checker_unavailable = True
+        await trace.finish(
+            key="courtlistener",
+            kind="tool",
+            status="complete" if checker.court_lookup_status != "not_applicable" else "skipped",
+            label="Reviewed sample docket evidence",
+            parent_key="checker",
+            parallel_group="checker_evidence",
+            output_summary=(
+                "Case and caption parties matched"
+                if checker.case_found and checker.parties_match
+                else "Reviewed sample has no applicable docket match"
+            ),
+            evidence_count=len(checker.docket_evidence),
+            evidence_ids=[_docket_evidence_id(item) for item in checker.docket_evidence],
+        )
+        await trace.start(
+            key="scam_patterns",
+            kind="tool",
+            label="Reviewed sample warning-sign evidence",
+            parent_key="checker",
+            parallel_group="checker_evidence",
+            detail="Load the versioned warning-sign review for this bundled sample.",
+            input_summary=trusted_sample_id,
+        )
+        await trace.finish(
+            key="scam_patterns",
+            kind="tool",
+            status="complete" if checker.scam_check_status == "complete" else "skipped",
+            label="Reviewed sample warning-sign evidence",
+            parent_key="checker",
+            parallel_group="checker_evidence",
+            output_summary=f"Loaded {len(checker.scam_signals)} reviewed warning sign(s)",
+            evidence_count=len(checker.scam_signals),
+            evidence_ids=[f"pattern:{signal.pattern_id}" for signal in checker.scam_signals],
+        )
+    else:
+        try:
+            checker = await coordinator.run(
+                "checker",
+                parsed=checker_input,
+                trace=trace,
+                raise_on_error=True,
+            )
+        except AgentUnavailableError:
+            logger.exception("CHECKER failed")
+            checker = None
+            checker_unavailable = True
     if checker is None:
         checker_unavailable = True
         checker = CheckerReport(
@@ -1245,7 +1323,11 @@ async def analyze_document(
             or file.filename
             or "Uploaded document"
         ),
-        source="READER transcription of uploaded document",
+        source=(
+            "Versioned reviewed sample facts"
+            if reviewed_sample
+            else "READER transcription of uploaded document"
+        ),
     )
     directory_items = []
     if _claimed_authority(parsed):
@@ -1280,7 +1362,11 @@ async def analyze_document(
 
     limitations = list(checker.limitations)
     limitations.append(
-        "READER facts are model-assisted. Check critical names, numbers, dates, and wording against the original before acting."
+        "This bundled sample uses versioned reviewed facts. Personal uploads use "
+        "the live document reader and verification tools."
+        if reviewed_sample
+        else "READER facts are model-assisted. Check critical names, numbers, dates, "
+        "and wording against the original before acting."
     )
     if not native_pdf_text:
         limitations.append(

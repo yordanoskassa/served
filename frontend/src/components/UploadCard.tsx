@@ -115,7 +115,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     try {
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
-      const result = await analyzeDocumentStream(sampleFile, credential, onTraceEvent, controller.signal)
+      const result = await analyzeDocumentStream(sampleFile, credential, onTraceEvent, controller.signal, sample)
       setAnalysis(result)
       onAnalysisComplete?.(result)
       onAnalysisStateChange?.("complete")

@@ -168,6 +168,33 @@ def test_fixture_expectations_use_existing_api_verdict_values() -> None:
     assert all((fixture_root / "documents" / f"{name}.pdf").is_file() for name in manifest)
 
 
+def test_trusted_d4_sample_uses_reviewed_verification_evidence() -> None:
+    fixture_root = Path(__file__).resolve().parents[1] / "fixtures"
+    upload = UploadFile(
+        file=BytesIO((fixture_root / "documents" / "D4.pdf").read_bytes()),
+        filename="D4_payment_and_bank_records_request.pdf",
+        headers=Headers({"content-type": "application/pdf"}),
+    )
+    explainer = ExplanationDraft(
+        summary="The reviewed sample case and parties match.",
+        next_step="Connect the sample account and review candidate payments.",
+    )
+
+    with patch(
+        "app.services.document_analyzer.coordinator.run",
+        new=AsyncMock(return_value=explainer),
+    ) as runner:
+        result = asyncio.run(analyze_document(upload, trusted_sample_id="D4"))
+
+    assert result.verdict is VerdictState.VERIFIED
+    assert result.decision is not None
+    assert result.decision.case_found is True
+    assert result.decision.parties_match is True
+    assert result.trace is not None
+    assert result.trace.fact_extraction_basis == "reviewed_sample_fixture"
+    assert [call.args[0] for call in runner.await_args_list] == ["explainer"]
+
+
 @pytest.mark.parametrize("case_name", ["D1", "D2", "D3", "D4"])
 def test_golden_agent_outputs_replay_through_validation_and_code_policy(case_name: str) -> None:
     """Replay saved agent outputs without invoking OpenAI or CourtListener."""

@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -16,6 +17,9 @@ from app.schemas.analysis import (
 )
 from app.schemas.auth import UserProfile
 from app.routes.analysis import _saved_analysis_payload
+
+
+FIXTURE_DOCUMENTS = Path(__file__).resolve().parents[1] / "fixtures" / "documents"
 
 
 def test_analyze_rejects_non_image() -> None:
@@ -134,6 +138,78 @@ def test_analyze_requires_sign_in_before_provider_work() -> None:
         )
     assert response.status_code == 401
     assert response.json()["detail"] == "Sign in before analyzing a document."
+    analyzer.assert_not_awaited()
+
+
+def test_analyze_marks_exact_bundled_d4_as_trusted_sample() -> None:
+    result = AnalysisResponse(
+        document_type="Subpoena to produce payment and bank records",
+        summary="Reviewed D4 sample.",
+        verdict=Verdict.VERIFIED,
+        confidence=Confidence.HIGH,
+        evidence=[],
+        next_step="Connect the sample account.",
+    )
+    profile = UserProfile(
+        subject="google-user-1",
+        email="owner@example.com",
+        name="Owner",
+        given_name="Owner",
+        picture=None,
+    )
+    database = SimpleNamespace(analyses=SimpleNamespace(insert_one=AsyncMock()))
+    analyzer = AsyncMock(return_value=result)
+    with (
+        patch("app.routes.analysis.analyze_document", new=analyzer),
+        patch("app.routes.analysis._verify_google_token", return_value=profile),
+        patch("app.routes.analysis.get_db", return_value=database),
+    ):
+        response = TestClient(app).post(
+            "/api/documents/analyze",
+            files={
+                "file": (
+                    "D4_payment_request.pdf",
+                    (FIXTURE_DOCUMENTS / "D4.pdf").read_bytes(),
+                    "application/pdf",
+                )
+            },
+            headers={
+                "Authorization": "Bearer test-token",
+                "X-Served-Sample-ID": "D4",
+            },
+        )
+
+    assert response.status_code == 200
+    analyzer.assert_awaited_once()
+    assert analyzer.await_args.kwargs["trusted_sample_id"] == "D4"
+
+
+def test_analyze_rejects_sample_header_for_different_bytes() -> None:
+    profile = UserProfile(
+        subject="google-user-1",
+        email="owner@example.com",
+        name="Owner",
+        given_name="Owner",
+        picture=None,
+    )
+    analyzer = AsyncMock()
+    with (
+        patch("app.routes.analysis.analyze_document", new=analyzer),
+        patch("app.routes.analysis._verify_google_token", return_value=profile),
+    ):
+        response = TestClient(app).post(
+            "/api/documents/analyze",
+            files={"file": ("D4.pdf", b"%PDF-not-the-reviewed-sample", "application/pdf")},
+            headers={
+                "Authorization": "Bearer test-token",
+                "X-Served-Sample-ID": "D4",
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "The uploaded file does not match the selected sample."
+    )
     analyzer.assert_not_awaited()
 
 

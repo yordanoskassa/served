@@ -1,8 +1,8 @@
 import asyncio
+import hashlib
 import json
-from pathlib import Path
-
 from datetime import UTC, datetime
+from pathlib import Path
 
 from bson import ObjectId
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
@@ -16,6 +16,7 @@ from app.services.document_analyzer import analyze_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "documents"
+SAMPLE_IDS = {"D1", "D2", "D3", "D4"}
 
 
 def _matches_declared_type(data: bytes, content_type: str) -> bool:
@@ -61,6 +62,29 @@ async def _authorize_upload(file: UploadFile, authorization: str):
             detail="Sign in before analyzing a document.",
         )
     return _verify_google_token(token)
+
+
+async def _verified_sample_id(file: UploadFile, claimed_sample_id: str | None) -> str | None:
+    """Trust a sample label only when the upload exactly matches our bundled PDF."""
+    if not claimed_sample_id:
+        return None
+    sample_id = claimed_sample_id.upper()
+    if sample_id not in SAMPLE_IDS:
+        raise HTTPException(status_code=400, detail="Unknown sample request.")
+    fixture = FIXTURES / f"{sample_id}.pdf"
+    uploaded = await file.read()
+    await file.seek(0)
+    fixture_digest = (
+        hashlib.sha256(fixture.read_bytes()).digest()
+        if fixture.is_file()
+        else None
+    )
+    if fixture_digest is None or hashlib.sha256(uploaded).digest() != fixture_digest:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file does not match the selected sample.",
+        )
+    return sample_id
 
 
 async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) -> str:
@@ -158,9 +182,14 @@ async def sample_document(sample_id: str) -> FileResponse:
 async def analyze(
     file: UploadFile = File(...),
     authorization: str = Header(default=""),
+    x_served_sample_id: str | None = Header(default=None),
 ) -> AnalysisResponse:
     profile = await _authorize_upload(file, authorization)
-    result = await analyze_document(file)
+    sample_id = await _verified_sample_id(file, x_served_sample_id)
+    if sample_id:
+        result = await analyze_document(file, trusted_sample_id=sample_id)
+    else:
+        result = await analyze_document(file)
     await _save_analysis(profile, file, result)
     return result
 
@@ -169,9 +198,11 @@ async def analyze(
 async def analyze_stream(
     file: UploadFile = File(...),
     authorization: str = Header(default=""),
+    x_served_sample_id: str | None = Header(default=None),
 ) -> StreamingResponse:
     """Stream observable workflow events, followed by the normal analysis payload."""
     profile = await _authorize_upload(file, authorization)
+    sample_id = await _verified_sample_id(file, x_served_sample_id)
 
     async def event_stream():
         queue: asyncio.Queue[dict] = asyncio.Queue()
@@ -181,7 +212,14 @@ async def analyze_stream(
 
         async def run_analysis() -> None:
             try:
-                result = await analyze_document(file, emit=emit)
+                if sample_id:
+                    result = await analyze_document(
+                        file,
+                        emit=emit,
+                        trusted_sample_id=sample_id,
+                    )
+                else:
+                    result = await analyze_document(file, emit=emit)
                 await _save_analysis(profile, file, result)
                 await queue.put({
                     "type": "result",

@@ -125,7 +125,10 @@ class AnalysisRunTrace(BaseModel):
     corpus_versions: dict[str, str] = Field(default_factory=dict)
     policy_version: str
     verdict_authority: Literal["deterministic_policy"] = "deterministic_policy"
-    fact_extraction_basis: Literal["model_assisted_document_read"] = "model_assisted_document_read"
+    fact_extraction_basis: Literal[
+        "model_assisted_document_read",
+        "reviewed_sample_fixture",
+    ] = "model_assisted_document_read"
     pattern_text_basis: Literal["native_pdf_text", "model_assisted_transcription"] = "model_assisted_transcription"
     scope: Literal["analysis_execution"] = "analysis_execution"
     human_review_required: bool = True
