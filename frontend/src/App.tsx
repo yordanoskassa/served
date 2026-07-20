@@ -51,9 +51,6 @@ export function App() {
     }
   }, [])
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
-  if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
-
   const openMailbox = useCallback((opts?: { scroll?: boolean }) => {
     setMailboxOpen(true)
     if (opts?.scroll === false) return
@@ -72,6 +69,10 @@ export function App() {
       stage.scrollIntoView({ behavior, block: "nearest" })
     }, delay)
   }, [])
+
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
+  if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
+
   const startAuth = (intent: EntryIntent) => {
     setEntryIntent(intent)
     try {
