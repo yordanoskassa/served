@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
@@ -74,6 +75,24 @@ async def create_link_token(client_user_id: str) -> dict[str, Any]:
 
 async def exchange_public_token(public_token: str) -> dict[str, Any]:
     return await _post("/item/public_token/exchange", {"public_token": public_token})
+
+
+async def create_sandbox_public_token(custom_user: dict[str, Any]) -> dict[str, Any]:
+    """Create the deterministic D4 Item through Plaid's Sandbox API."""
+    if settings.plaid_environment != "sandbox":
+        raise PlaidAPIError("SANDBOX_ONLY")
+    return await _post("/sandbox/public_token/create", {
+        "institution_id": "ins_109508",
+        "initial_products": ["transactions"],
+        "options": {
+            "override_username": "user_custom",
+            "override_password": json.dumps(custom_user, separators=(",", ":")),
+            "transactions": {
+                "start_date": "2025-11-01",
+                "end_date": "2026-07-19",
+            },
+        },
+    })
 
 
 async def remove_item(access_token: str) -> None:

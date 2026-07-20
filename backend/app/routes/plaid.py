@@ -1,4 +1,6 @@
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 from bson import ObjectId
 from fastapi import APIRouter, Header, HTTPException, status
@@ -26,6 +28,13 @@ from app.services.plaid import PlaidAPIError, PlaidNotConfiguredError
 
 
 router = APIRouter(prefix="/plaid", tags=["plaid"])
+D4_PLAID_FIXTURE = (
+    Path(__file__).resolve().parents[2]
+    / "fixtures"
+    / "financial"
+    / "payment-records"
+    / "plaid-sandbox-custom-user.json"
+)
 
 
 def _authenticate(authorization: str):
@@ -119,7 +128,7 @@ async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": subject},
-            {"institution_name": 1, "connected_at": 1},
+            {"institution_name": 1, "connected_at": 1, "demo_fixture": 1},
         )
     except Exception as exc:
         raise HTTPException(
@@ -132,6 +141,53 @@ async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
         environment=settings.plaid_environment,
         institution_name=connection.get("institution_name") if connection else None,
         connected_at=connection.get("connected_at") if connection else None,
+        demo_fixture=bool(connection and connection.get("demo_fixture")),
+    )
+
+
+async def _save_connection(
+    *,
+    subject: str,
+    provider_result: dict,
+    institution_id: str | None,
+    institution_name: str | None,
+    demo_fixture: bool,
+) -> PlaidConnectionStatus:
+    access_token = provider_result.get("access_token")
+    item_id = provider_result.get("item_id")
+    if not access_token or not item_id:
+        raise HTTPException(status_code=502, detail="Plaid returned an incomplete connection.")
+
+    connected_at = datetime.now(UTC)
+    try:
+        await get_db().bank_connections.update_one(
+            {"google_subject": subject},
+            {"$set": {
+                "google_subject": subject,
+                "access_token": access_token,
+                "item_id": item_id,
+                "institution_id": institution_id,
+                "institution_name": institution_name,
+                "environment": settings.plaid_environment,
+                "demo_fixture": demo_fixture,
+                "connected_at": connected_at,
+                "updated_at": connected_at,
+            }},
+            upsert=True,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The bank connected, but Served could not save the connection.",
+        ) from exc
+
+    return PlaidConnectionStatus(
+        configured=True,
+        connected=True,
+        environment=settings.plaid_environment,
+        institution_name=institution_name,
+        connected_at=connected_at,
+        demo_fixture=demo_fixture,
     )
 
 
@@ -179,41 +235,40 @@ async def exchange_token(
         result = await plaid_service.exchange_public_token(body.public_token)
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
         raise _provider_error(exc) from None
-
-    access_token = result.get("access_token")
-    item_id = result.get("item_id")
-    if not access_token or not item_id:
-        raise HTTPException(status_code=502, detail="Plaid returned an incomplete connection.")
-
-    connected_at = datetime.now(UTC)
-    try:
-        await get_db().bank_connections.update_one(
-            {"google_subject": profile.subject},
-            {"$set": {
-                "google_subject": profile.subject,
-                "access_token": access_token,
-                "item_id": item_id,
-                "institution_id": body.institution_id,
-                "institution_name": body.institution_name,
-                "environment": settings.plaid_environment,
-                "connected_at": connected_at,
-                "updated_at": connected_at,
-            }},
-            upsert=True,
-        )
-    except Exception as exc:
-        # The access token is unusable by the client and is not returned.
-        raise HTTPException(
-            status_code=503,
-            detail="The bank connected, but Served could not save the connection.",
-        ) from exc
-
-    return PlaidConnectionStatus(
-        configured=True,
-        connected=True,
-        environment=settings.plaid_environment,
+    return await _save_connection(
+        subject=profile.subject,
+        provider_result=result,
+        institution_id=body.institution_id,
         institution_name=body.institution_name,
-        connected_at=connected_at,
+        demo_fixture=False,
+    )
+
+
+@router.post("/analyses/{analysis_id}/sandbox-connect", response_model=PlaidConnectionStatus)
+async def connect_d4_sandbox(
+    analysis_id: str,
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    """Connect D4 to its deterministic Plaid Sandbox business account."""
+    profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
+    if settings.plaid_environment != "sandbox":
+        raise HTTPException(status_code=404, detail="The sample bank is available only in Sandbox.")
+    try:
+        custom_user = json.loads(D4_PLAID_FIXTURE.read_text())
+        public_token_result = await plaid_service.create_sandbox_public_token(custom_user)
+        public_token = public_token_result.get("public_token")
+        if not public_token:
+            raise PlaidAPIError("INVALID_PLAID_RESPONSE")
+        provider_result = await plaid_service.exchange_public_token(public_token)
+    except (OSError, ValueError, PlaidAPIError, PlaidNotConfiguredError) as exc:
+        raise _provider_error(exc) from None
+    return await _save_connection(
+        subject=profile.subject,
+        provider_result=provider_result,
+        institution_id="ins_109508",
+        institution_name="First Platypus Bank",
+        demo_fixture=True,
     )
 
 

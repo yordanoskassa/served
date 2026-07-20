@@ -21,6 +21,7 @@ class PlaidConnectionStatus(BaseModel):
     environment: str
     institution_name: str | None = None
     connected_at: datetime | None = None
+    demo_fixture: bool = False
 
 
 class PlaidTransaction(BaseModel):

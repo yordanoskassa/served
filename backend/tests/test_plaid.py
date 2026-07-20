@@ -106,6 +106,7 @@ def test_financial_routes_require_google_authentication() -> None:
 
     assert client.get(f"/api/plaid/analyses/{analysis_id}/status").status_code == 401
     assert client.post(f"/api/plaid/analyses/{analysis_id}/link-token").status_code == 401
+    assert client.post(f"/api/plaid/analyses/{analysis_id}/sandbox-connect").status_code == 401
     assert client.post(
         f"/api/plaid/analyses/{analysis_id}/match",
         json={"cutoff_date": "2026-07-16"},
@@ -194,11 +195,57 @@ def test_exchange_keeps_access_token_server_side_after_rechecking_gate() -> None
 
     assert response.status_code == 200
     assert response.json()["connected"] is True
+    assert response.json()["demo_fixture"] is False
     assert "access_token" not in response.json()
     query, update = connections.update_one.await_args.args
     assert query == {"google_subject": PROFILE.subject}
     assert update["$set"]["access_token"] == "access-sandbox-private"
     assert connections.update_one.await_args.kwargs == {"upsert": True}
+
+
+def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
+    analysis_id = ObjectId()
+    analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
+    connections = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
+    exchange = AsyncMock(return_value={
+        "access_token": "access-d4-seeded",
+        "item_id": "item-d4-seeded",
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch("app.routes.plaid.plaid_service.create_sandbox_public_token", new=create_public_token),
+        patch("app.routes.plaid.plaid_service.exchange_public_token", new=exchange),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/sandbox-connect",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["institution_name"] == "First Platypus Bank"
+    assert response.json()["demo_fixture"] is True
+    custom_user = create_public_token.await_args.args[0]
+    descriptions = [
+        item["description"]
+        for item in custom_user["override_accounts"][0]["transactions"]
+    ]
+    exact_audrea = [
+        item
+        for item in custom_user["override_accounts"][0]["transactions"]
+        if item["description"] == "PAYROLL ACH - AUDREA BARNES"
+    ]
+    assert len(exact_audrea) == 9
+    assert len([item for item in exact_audrea if item["date_transacted"] >= "2026-01-01"]) == 7
+    assert "CHECK #1042" in descriptions
+    assert "ACH - A. BARNS" in descriptions
+    exchange.assert_awaited_once_with("public-d4-seeded")
+    _, update = connections.update_one.await_args.args
+    assert update["$set"]["demo_fixture"] is True
+    assert update["$set"]["access_token"] == "access-d4-seeded"
 
 
 def test_payment_matcher_reconciles_every_gold_record_to_7_2_19() -> None:
@@ -304,3 +351,24 @@ def test_official_link_token_payload_requests_transactions() -> None:
     assert payload["transactions"] == {"days_requested": 180}
     assert payload["user"] == {"client_user_id": "google-user-plaid"}
     assert "secret" not in payload
+
+
+def test_sandbox_public_token_payload_uses_custom_d4_user() -> None:
+    custom_user = json.loads(PAYMENT_FIXTURE.read_text())
+    post = AsyncMock(return_value={"public_token": "public-d4"})
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        asyncio.run(plaid_service.create_sandbox_public_token(custom_user))
+
+    path, payload = post.await_args.args
+    assert path == "/sandbox/public_token/create"
+    assert payload["institution_id"] == "ins_109508"
+    assert payload["initial_products"] == ["transactions"]
+    assert payload["options"]["override_username"] == "user_custom"
+    assert json.loads(payload["options"]["override_password"]) == custom_user
+    assert payload["options"]["transactions"] == {
+        "start_date": "2025-11-01",
+        "end_date": "2026-07-19",
+    }

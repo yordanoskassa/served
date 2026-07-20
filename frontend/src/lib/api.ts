@@ -179,6 +179,7 @@ export type PlaidConnectionStatus = {
   environment: "sandbox" | "development" | "production"
   institution_name: string | null
   connected_at: string | null
+  demo_fixture: boolean
 }
 
 export type PlaidTransaction = {
@@ -514,6 +515,18 @@ export async function createPlaidLinkToken(analysisId: string, credential: strin
   if (!response.ok) throw await responseError(response, "Unable to start Plaid Link")
   const data = await response.json() as { link_token: string }
   return data.link_token
+}
+
+export async function connectPlaidSandboxDemo(
+  analysisId: string,
+  credential: string,
+): Promise<PlaidConnectionStatus> {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}` },
+  })
+  if (!response.ok) throw await responseError(response, "Unable to connect the D4 sample bank")
+  return response.json()
 }
 
 export async function exchangePlaidPublicToken(

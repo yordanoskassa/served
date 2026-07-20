@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  connectPlaidSandboxDemo,
   createPlaidLinkToken,
   exchangePlaidPublicToken,
   fetchPlaidStatus,
@@ -126,7 +127,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       .then((nextStatus) => {
         setStatus(nextStatus)
         setStatusState("ready")
-        if (nextStatus.connected && !autoMatchStarted.current) {
+        const readyForMatch = nextStatus.connected
+          && (nextStatus.environment !== "sandbox" || nextStatus.demo_fixture)
+        if (readyForMatch && !autoMatchStarted.current) {
           autoMatchStarted.current = true
           setBusy(true)
           setBusyLabel("Fetching and matching transactions…")
@@ -153,6 +156,15 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
     setBusyLabel("Opening secure bank connection…")
     setError(null)
     try {
+      if (status?.environment === "sandbox") {
+        setBusyLabel("Connecting Mendoza’s Kitchen sample bank…")
+        const nextStatus = await connectPlaidSandboxDemo(analysisId, credential)
+        setStatus(nextStatus)
+        setBusyLabel("Fetching Audrea Barnes transactions…")
+        setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
+        autoMatchStarted.current = true
+        return
+      }
       const linkToken = await createPlaidLinkToken(analysisId, credential)
       if (!window.Plaid) throw new Error("Plaid Link did not load. Refresh and try again.")
       let handler: PlaidLinkHandler | null = null
@@ -275,8 +287,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
 
       {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Could not complete that step</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
 
-      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || "Connect bank"}</Button>{status.environment === "sandbox" && <p className="type-caption mt-2 text-white/40">Sandbox: <strong className="text-white/70">415-555-0010</strong> · <strong className="text-white/70">123456</strong></p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p></div></div><div className="flex flex-wrap items-end gap-2"><label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh"}</Button></div></div>
+      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (status.environment === "sandbox" ? "Connect sample bank" : "Connect bank")}</Button>{status.environment === "sandbox" && <p className="type-caption mt-2 text-white/40">Plaid Sandbox connects Mendoza’s Kitchen with 28 synthetic transactions. No bank login required.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · D4 sample transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{status.environment === "sandbox" && !status.demo_fixture && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connect() }}><Landmark size={15} />Use D4 sample bank</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (status.environment === "sandbox" && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh"}</Button></div></div>
         {busy && <div className="mt-4 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-white/65"><DatabaseZap className="text-brand-green" size={15} /><span>{busyLabel}</span></div>}
       </div>}
     </div>
