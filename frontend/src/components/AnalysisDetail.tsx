@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
   Building2,
@@ -10,7 +9,6 @@ import {
 } from "lucide-react"
 import { useCallback, useState } from "react"
 
-import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
 import { CaseWorkflow, type EvidenceWorkflowState } from "@/components/CaseWorkflow"
@@ -132,14 +130,11 @@ export function AnalysisDetail({
       <h2 className="type-ui-heading mt-1.5">What this request says</h2>
       <p className="type-body mt-2">{analysis.summary}</p>
 
-      {analysis.trace && <AnalysisPipeline className="mt-4" events={analysis.trace.steps} runState="complete" compact />}
-
       <Tabs defaultValue="breakdown" className="mt-4">
-        <TabsList className={`grid h-auto w-full rounded-[22px] bg-black/5 p-1 ${analysis.trace ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+        <TabsList className="grid h-auto w-full grid-cols-3 rounded-[22px] bg-black/5 p-1">
           <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="breakdown">Breakdown</TabsTrigger>
           <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="evidence">Evidence</TabsTrigger>
           <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="checks">Checks</TabsTrigger>
-          {analysis.trace && <TabsTrigger className="rounded-full py-2 text-xs data-[state=active]:bg-white" value="run">Run trace</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="breakdown" className="mt-4 space-y-4">
@@ -162,10 +157,6 @@ export function AnalysisDetail({
           {(analysis.checks?.length ?? 0) > 0 ? <div className="space-y-2">{analysis.checks.map((check) => <div className="flex items-center gap-3 rounded-xl bg-background px-3 py-2.5" key={check.key}><span className={`size-2 rounded-full ${check.status === "complete" ? "bg-brand-soft" : "bg-neutral-400"}`} /><p className="text-sm text-zinc-600">{check.label}</p></div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No check trace was returned.</p>}
         </TabsContent>
 
-        {analysis.trace && <TabsContent value="run" className="mt-4 space-y-4">
-          <section className="rounded-2xl border border-black/5 bg-white/80 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><Activity size={15} /><p className="text-sm font-semibold">Saved orchestration trace</p></div><Badge variant="secondary">Run {analysis.trace.run_id.slice(0, 8)}</Badge></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4"><div><p className="text-[10px] uppercase tracking-wider text-zinc-400">Model calls</p><p className="mt-1 text-sm font-semibold">{analysis.trace.metrics.model_calls}</p></div><div><p className="text-[10px] uppercase tracking-wider text-zinc-400">Tool calls</p><p className="mt-1 text-sm font-semibold">{analysis.trace.metrics.tool_calls}</p></div><div><p className="text-[10px] uppercase tracking-wider text-zinc-400">Evidence</p><p className="mt-1 text-sm font-semibold">{analysis.trace.metrics.evidence_items}</p></div><div><p className="text-[10px] uppercase tracking-wider text-zinc-400">Duration</p><p className="mt-1 text-sm font-semibold">{(analysis.trace.metrics.total_duration_ms / 1000).toFixed(1)}s</p></div></div><p className="mt-4 text-[10px] text-zinc-400">Policy {analysis.trace.policy_version} · Corpus {analysis.trace.corpus_version}</p></section>
-          <ol className="space-y-2" aria-label="Saved analysis run steps">{analysis.trace.steps.map((step) => <li className="rounded-2xl bg-background p-4" key={`${step.seq}-${step.key}`}><div className="flex items-start gap-3"><span className={`mt-1.5 size-2 shrink-0 rounded-full ${step.status === "complete" ? "bg-brand-green" : step.status === "failed" ? "bg-red-500" : "bg-neutral-400"}`} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{step.label}</p><span className="text-[10px] uppercase tracking-wider text-zinc-400">{step.status}{step.duration_ms != null ? ` · ${step.duration_ms}ms` : ""}</span></div>{(step.output_summary || step.detail) && <p className="mt-1 text-xs leading-5 text-zinc-500">{step.output_summary || step.detail}</p>}</div></div></li>)}</ol>
-        </TabsContent>}
       </Tabs>
 
       <GuidedClerkCall analysis={analysis} />
