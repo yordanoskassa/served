@@ -175,7 +175,7 @@ export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
 
   return <aside className="h-fit overflow-hidden rounded-2xl border border-black/[.07] bg-[#171717] text-white" aria-label="Live analysis activity">
     <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
-      <div><h4 className="type-ui-heading text-white">What Served is doing</h4></div>
+      <div><h4 className="type-ui-heading !text-white">What Served is doing</h4></div>
       <span className="mt-1 flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/45"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Live</span>
     </div>
 
