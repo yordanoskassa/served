@@ -179,7 +179,7 @@ function eventTime(event: TraceEvent): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })
 }
 
-function LiveActivityLog({ events }: { events: TraceEvent[] }) {
+export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
   const visibleEvents = events.slice(-10).reverse()
   const activeEvent = [...latestByKey(events).values()]
     .filter((event) => event.status === "started")
@@ -188,8 +188,8 @@ function LiveActivityLog({ events }: { events: TraceEvent[] }) {
 
   return <aside className="h-fit overflow-hidden rounded-2xl border border-black/[.07] bg-[#171717] text-white" aria-label="Live analysis activity">
     <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
-      <div><h4 className="type-ui-heading text-white">Live trace</h4></div>
-      <span className="mt-1 flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/45"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Streaming</span>
+      <div><h4 className="type-ui-heading text-white">What Served is doing</h4></div>
+      <span className="mt-1 flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/45"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Live</span>
     </div>
 
     {activeEvent && <div className="border-b border-white/10 bg-white/[.04] p-4">
@@ -200,6 +200,7 @@ function LiveActivityLog({ events }: { events: TraceEvent[] }) {
     </div>}
 
     <ol className="max-h-[360px] overflow-y-auto p-2" aria-label="Backend trace events, newest first">
+      {!visibleEvents.length && <li className="flex items-center gap-2.5 rounded-xl px-2.5 py-4 text-[11px] text-white/50"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Connecting to secure intake…</li>}
       {visibleEvents.map((event) => {
         const running = event.status === "started"
         const limited = ["degraded", "skipped", "unavailable"].includes(event.status)

@@ -317,9 +317,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             {["1 · Subpoena letter", "2 · Payroll or bank", "3 · Match & pack"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
-          <section className={`grid items-start gap-4 ${latestAnalysis ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
+          <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
             <UploadCard
               initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined}
+              traceEvents={traceEvents}
               onAnalysisComplete={(analysis) => {
                 setLatestAnalysis(analysis)
                 setRefreshKey((value) => value + 1)
@@ -345,7 +346,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 setTraceEvents([])
               }}
             />
-            {!latestAnalysis && <WorkspaceActivity
+            {!latestAnalysis && analysisRunState !== "running" && <WorkspaceActivity
               summary={summary}
               summaryState={summaryState}
               runState={analysisRunState}

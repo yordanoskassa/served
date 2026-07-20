@@ -2,6 +2,7 @@ import { AlertTriangle, Camera, FileImage, Landmark, LoaderCircle, ShieldCheck, 
 import { useEffect, useRef, useState } from "react"
 
 import { AnalysisDetail } from "@/components/AnalysisDetail"
+import { LiveActivityLog } from "@/components/AnalysisPipeline"
 import { SAMPLE_TIPS_KEY } from "@/components/SettingsPanel"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -17,12 +18,13 @@ function formatFileSize(bytes: number): string {
 
 export type AnalysisRunState = "idle" | "running" | "complete" | "error"
 
-export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onReset, initialSample }: {
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onReset, initialSample, traceEvents = [] }: {
   onAnalysisComplete?: (analysis: Analysis) => void
   onAnalysisStateChange?: (state: AnalysisRunState) => void
   onTraceEvent?: (event: TraceEvent) => void
   onReset?: () => void
   initialSample?: "D1" | "D2" | "D3" | "D4"
+  traceEvents?: TraceEvent[]
 }) {
   const { credential } = useAuth()
   const input = useRef<HTMLInputElement>(null)
@@ -148,8 +150,8 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   return <Card className="h-fit self-start overflow-hidden">
     <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">
       <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={21} /> : file ? <FileImage size={21} /> : <Camera size={21} />}</div>
-      <h2 className="type-ui-heading">{file ? "Ready to run" : "Upload the letter"}</h2>
-      <p className="type-body mx-auto mt-2 max-w-sm">{file ? "Analysis runs before payroll or bank tools unlock." : "Financial sources stay locked until the letter clears checks."}</p>
+      <h2 className="type-ui-heading">{loading ? "Analyzing the request" : file ? "Ready to run" : "Upload the letter"}</h2>
+      <p className="type-body mx-auto mt-2 max-w-sm">{loading ? "Verified backend activity appears below." : file ? "Analysis runs before payroll or bank tools unlock." : "Financial sources stay locked until the letter clears checks."}</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
       {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
@@ -161,8 +163,9 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
         <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile} disabled={loading}><Camera size={17} /> {loading ? "Running…" : file ? "Run analysis" : "Choose file"}</Button>
       </div>
     </div>
+    {loading && <div className="border-b border-dashed border-black/15 p-4 sm:p-5"><LiveActivityLog events={traceEvents} /></div>}
     <div className="px-5 py-4 sm:px-6">
-      {showSampleTips && <>
+      {!loading && showSampleTips && <>
       <div className="rounded-2xl bg-[#111] p-4 text-white">
         <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-black"><Zap size={16} /></span><div><p className="type-label text-white/55">Featured request · D4</p><p className="type-ui mt-1 font-semibold text-white">Payment and bank records</p></div></div>
         <Button aria-label="Analyze the D4 payment and bank records request" className="mt-4 h-10 w-full bg-white text-sm font-medium text-black hover:bg-white/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Run payment request</Button>
