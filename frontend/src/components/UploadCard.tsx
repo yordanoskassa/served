@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, FileImage, Landmark, LoaderCircle, ShieldCheck, Zap } from "lucide-react"
+import { AlertTriangle, Camera, FileImage, Landmark, ShieldCheck, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { AnalysisDetail } from "@/components/AnalysisDetail"
@@ -147,11 +147,13 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     savedAnalysisId={analysis.saved_analysis_id ?? undefined}
   />
 
+  if (loading) return <LiveActivityLog events={traceEvents} />
+
   return <Card className="h-fit self-start overflow-hidden">
     <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">
-      <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{loading ? <LoaderCircle className="animate-spin" size={21} /> : file ? <FileImage size={21} /> : <Camera size={21} />}</div>
-      <h2 className="type-ui-heading">{loading ? "Reviewing the request" : file ? "Ready for review" : "Upload a financial subpoena"}</h2>
-      <p className="type-body mx-auto mt-2 max-w-sm">{loading ? "Verification progress appears below." : file ? "Verification runs before financial records become available." : "Financial records remain locked until the request is verified."}</p>
+      <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{file ? <FileImage size={21} /> : <Camera size={21} />}</div>
+      <h2 className="type-ui-heading">{file ? "Ready for review" : "Upload a financial subpoena"}</h2>
+      <p className="type-body mx-auto mt-2 max-w-sm">{file ? "Verification runs before financial records become available." : "Financial records remain locked until the request is verified."}</p>
       <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
       {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
@@ -160,12 +162,11 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       </div>}
       {error && <Alert variant="destructive" className="mt-3 rounded-xl border-red-200 bg-red-50 text-left text-red-700"><AlertTriangle size={16} /><AlertTitle>Analysis failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       <div className="mt-4 flex justify-center gap-2">
-        <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile} disabled={loading}><Camera size={17} /> {loading ? "Reviewing…" : file ? "Verify request" : "Choose file"}</Button>
+        <Button className="h-10 px-4 py-2 text-sm" onClick={file ? submit : chooseFile}><Camera size={17} /> {file ? "Verify request" : "Choose file"}</Button>
       </div>
     </div>
-    {loading && <div className="border-b border-dashed border-black/15 p-4 sm:p-5"><LiveActivityLog events={traceEvents} /></div>}
     <div className="px-5 py-4 sm:px-6">
-      {!loading && showSampleTips && <>
+      {showSampleTips && <>
       <div className="rounded-2xl bg-[#111] p-4 text-white">
         <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-black"><Zap size={16} /></span><div><p className="type-label text-white/55">Payment records request</p><p className="type-ui mt-1 font-semibold text-white">Bank transaction review</p></div></div>
         <Button aria-label="Review the payment and bank records request" className="mt-4 h-10 w-full bg-white text-sm font-medium text-black hover:bg-white/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Review payment request</Button>

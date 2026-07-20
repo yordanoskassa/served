@@ -91,17 +91,17 @@ function ServedMailbox({ open, onOpen, onSelect }: {
             <span className={`absolute -top-1/2 -left-1/3 h-[190%] w-1/3 -rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 ${reduceMotion ? "" : "transition-all duration-700 group-hover/mailbox:left-full group-hover/mailbox:opacity-100"}`} />
           </span>
           <div className="absolute inset-x-8 top-[42%] h-px bg-white/10" />
-          <div className="absolute inset-x-0 top-[40%] flex flex-col items-center text-center font-sans">
+          <div className="absolute inset-x-0 top-[23%] flex flex-col items-center text-center font-sans">
             <span className="grid size-[3.25rem] place-items-center rounded-full border border-white/20 bg-white/[.06] sm:size-[4.25rem]">
               <BrandMark inverse className="size-10 sm:size-12" />
             </span>
-            <p className="mt-3 max-w-[12rem] text-[8px] font-medium uppercase tracking-[.28em] text-white/45 sm:text-[9px]">
+            <p className="mt-2 max-w-[12rem] text-[8px] font-medium uppercase tracking-[.28em] text-white/45 sm:text-[9px]">
               Incoming requests
             </p>
           </div>
-          {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
+          {!open && <span aria-hidden="true" className={`absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[.08] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.2em] text-white/70 group-hover/mailbox:border-white/35 group-hover/mailbox:text-white sm:bottom-5 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
-            <span className={`grid size-6 place-items-center rounded-full border border-white/25 bg-white/[.07] text-[11px] group-hover/mailbox:border-white/45 ${reduceMotion ? "" : "transition-transform duration-300 group-hover/mailbox:-translate-y-0.5 group-hover/mailbox:translate-x-0.5"}`}>↗</span>
+            <span className={`text-[11px] ${reduceMotion ? "" : "transition-transform duration-300 group-hover/mailbox:-translate-y-0.5 group-hover/mailbox:translate-x-0.5"}`}>↗</span>
           </span>}
         </motion.button>
       </div>
