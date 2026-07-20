@@ -1,4 +1,6 @@
 import { AlertTriangle, Camera, FileImage, Landmark, ShieldCheck, Zap } from "lucide-react"
+import type { PDFDocumentLoadingTask, RenderTask } from "pdfjs-dist"
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 import { useEffect, useRef, useState } from "react"
 
 import { AnalysisDetail } from "@/components/AnalysisDetail"
@@ -8,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { type Analysis, type TraceEvent, analyzeDocumentStream, loadSampleDocument } from "@/lib/api"
+import { type Analysis, type TraceEvent, analyzeDocumentStream, getDemoCredential, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
 function formatFileSize(bytes: number): string {
@@ -16,13 +18,101 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+async function holdSampleScan(startedAt: number, signal: AbortSignal): Promise<void> {
+  const remaining = Math.max(0, 4200 - (Date.now() - startedAt))
+  if (!remaining || signal.aborted) return
+  await new Promise<void>((resolve) => {
+    const timer = window.setTimeout(resolve, remaining)
+    signal.addEventListener("abort", () => {
+      window.clearTimeout(timer)
+      resolve()
+    }, { once: true })
+  })
+}
+
 export type AnalysisRunState = "idle" | "running" | "complete" | "error"
 
-export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onReset, initialSample, traceEvents = [] }: {
+function DocumentScan({ file, events }: { file?: File; events: TraceEvent[] }) {
+  const [previewUrl, setPreviewUrl] = useState<string>()
+  const [pdfReady, setPdfReady] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const latest = events[events.length - 1]
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(undefined)
+      return
+    }
+    const nextUrl = URL.createObjectURL(file)
+    setPreviewUrl(nextUrl)
+    return () => URL.revokeObjectURL(nextUrl)
+  }, [file])
+
+  useEffect(() => {
+    if (!file || file.type !== "application/pdf") {
+      setPdfReady(false)
+      return
+    }
+    let cancelled = false
+    let loadingTask: PDFDocumentLoadingTask | null = null
+    let renderTask: RenderTask | null = null
+    setPdfReady(false)
+    void file.arrayBuffer().then(async (data) => {
+      const pdfjs = await import("pdfjs-dist")
+      pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+      loadingTask = pdfjs.getDocument({ data })
+      const pdf = await loadingTask.promise
+      const page = await pdf.getPage(1)
+      const natural = page.getViewport({ scale: 1 })
+      const viewport = page.getViewport({ scale: 960 / natural.width })
+      const canvas = canvasRef.current
+      if (!canvas || cancelled) return
+      const context = canvas.getContext("2d", { alpha: false })
+      if (!context) return
+      canvas.width = Math.floor(viewport.width)
+      canvas.height = Math.floor(viewport.height)
+      renderTask = page.render({ canvas, canvasContext: context, viewport })
+      await renderTask.promise
+      if (!cancelled) setPdfReady(true)
+    }).catch(() => {
+      if (!cancelled) setPdfReady(false)
+    })
+    return () => {
+      cancelled = true
+      renderTask?.cancel()
+      void loadingTask?.destroy()
+    }
+  }, [file])
+
+  return <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-[#111] shadow-[0_24px_70px_rgba(0,0,0,.16)] lg:grid-cols-[minmax(0,1.25fr)_minmax(19rem,.75fr)]" aria-label="Scanning uploaded request">
+    <div className="border-b border-white/10 lg:border-r lg:border-b-0">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-white">
+        <div className="min-w-0"><p className="truncate text-xs font-medium">{file?.name || "Preparing request preview"}</p><p className="mt-0.5 text-[9px] uppercase tracking-[.16em] text-white/35">Secure document scan</p></div>
+        <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-[.14em] text-[#b7ff4a]"><span className="size-1.5 animate-pulse rounded-full bg-[#b7ff4a] motion-reduce:animate-none" />Reading</span>
+      </div>
+      <div className="relative h-[min(62vh,660px)] min-h-[420px] overflow-hidden bg-[#d9d6cf]">
+        {file?.type === "application/pdf" && <canvas ref={canvasRef} aria-label={`Preview of ${file.name}`} className={`absolute inset-x-0 top-0 h-auto w-full bg-white transition-opacity duration-300 ${pdfReady ? "opacity-100" : "opacity-0"}`} />}
+        {previewUrl && file && file.type !== "application/pdf" && <img alt={`Preview of ${file.name}`} className="absolute inset-0 size-full object-contain" src={previewUrl} />}
+        {(!previewUrl || (file?.type === "application/pdf" && !pdfReady)) && <div className="absolute inset-0 grid place-items-center text-sm text-black/45">Rendering document…</div>}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15" />
+        <div className="served-scan-line pointer-events-none absolute inset-x-0 top-0 z-10 h-[2px] bg-[#b7ff4a] shadow-[0_0_14px_4px_rgba(183,255,74,.72)] motion-reduce:top-1/2" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-4 pb-4 pt-12 text-white" aria-live="polite">
+          <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[#b7ff4a]">Now processing</p>
+          <p className="mt-1 text-sm font-medium">{latest?.label || "Opening the reviewed request"}</p>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-white/55">{latest?.output_summary || latest?.detail || "The request stays visible while Served reads and verifies it."}</p>
+        </div>
+      </div>
+    </div>
+    <LiveActivityLog events={events} />
+  </section>
+}
+
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onReset, onSignInRequired, initialSample, traceEvents = [] }: {
   onAnalysisComplete?: (analysis: Analysis) => void
   onAnalysisStateChange?: (state: AnalysisRunState) => void
   onTraceEvent?: (event: TraceEvent) => void
   onReset?: () => void
+  onSignInRequired?: () => void
   initialSample?: "D1" | "D2" | "D3" | "D4"
   traceEvents?: TraceEvent[]
 }) {
@@ -53,23 +143,10 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
 
   useEffect(() => {
     if (!initialSample) return
-    let cancelled = false
-    setLoading(true)
-    setError(undefined)
-    void loadSampleDocument(initialSample)
-      .then((sampleFile) => {
-        if (cancelled) return
-        setFile(sampleFile)
-        setSelectedSample(initialSample)
-        setAnalysis(undefined)
-      })
-      .catch((cause) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "Sample request could not be prepared.")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => { cancelled = true }
+    void useSample(initialSample)
+    return () => analysisController.current?.abort()
+    // The landing-page intent should start exactly once for that selected sample.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSample])
 
   async function submit() {
@@ -109,11 +186,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   }
 
   async function useSample(sample: "D1" | "D2" | "D3" | "D4") {
-    if (!credential) {
-      setError("Sign in again before analyzing this request.")
-      onAnalysisStateChange?.("error")
-      return
-    }
+    const scanStartedAt = Date.now()
     setLoading(true)
     setError(undefined)
     onAnalysisStateChange?.("running")
@@ -121,10 +194,13 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     const controller = new AbortController()
     analysisController.current = controller
     try {
+      const accessCredential = credential ?? await getDemoCredential()
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
       setSelectedSample(sample)
-      const result = await analyzeDocumentStream(sampleFile, credential, onTraceEvent, controller.signal, sample)
+      const result = await analyzeDocumentStream(sampleFile, accessCredential, onTraceEvent, controller.signal, sample)
+      await holdSampleScan(scanStartedAt, controller.signal)
+      if (controller.signal.aborted) return
       setAnalysis(result)
       onAnalysisComplete?.(result)
       onAnalysisStateChange?.("complete")
@@ -145,6 +221,10 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   }
 
   function chooseFile() {
+    if (!credential && onSignInRequired) {
+      onSignInRequired()
+      return
+    }
     if (input.current) input.current.value = ""
     setSelectedSample(undefined)
     input.current?.click()
@@ -157,7 +237,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     savedAnalysisId={analysis.saved_analysis_id ?? undefined}
   />
 
-  if (loading) return <LiveActivityLog events={traceEvents} />
+  if (loading) return <DocumentScan file={file} events={traceEvents} />
 
   return <Card className="h-fit self-start overflow-hidden">
     <div className="border-b border-dashed border-black/15 px-5 py-6 text-center sm:px-6">

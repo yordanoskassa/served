@@ -104,3 +104,18 @@
     font-kerning: normal;
   }
 }
+
+@keyframes served-document-scan {
+  0%, 100% { top: 0%; opacity: 0.55; }
+  50% { top: calc(100% - 1px); opacity: 1; }
+}
+
+.served-scan-line {
+  animation: served-document-scan 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .served-scan-line {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogOut, Scale, Settings } from "lucide-react"
+import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogIn, LogOut, Scale, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -57,9 +57,11 @@ function savedDate(value: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString()
 }
 
-export function Dashboard({ initialIntent = null, onIntentConsumed }: {
+export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = false, onExitDemo }: {
   initialIntent?: EntryIntent | null
   onIntentConsumed?: () => void
+  demoMode?: boolean
+  onExitDemo?: () => void
 }) {
   const { user, credential, logout } = useAuth()
   const [launchIntent] = useState(initialIntent)
@@ -175,7 +177,12 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
     return () => cancelAnimationFrame(frame)
   }, [activeTab, savedDetailState])
 
-  if (!user) return null
+  if (!user && !demoMode) return null
+  const workspaceUser = user ?? {
+    name: "Served Demo",
+    given_name: "Demo",
+    picture: null,
+  }
 
   const counts = summary?.counts
   const metrics = [
@@ -273,7 +280,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
+      {!demoMode && <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
         <button type="button" className="flex items-center gap-3" onClick={() => setActiveTab("overview")}>
           <BrandMark className="size-9" />
           <span className="font-display text-xl font-normal tracking-[-.03em]">Served</span>
@@ -286,31 +293,31 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           <TabsTrigger value="settings" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Settings size={16} /> Settings</TabsTrigger>
         </TabsList>
         <button type="button" onClick={logout} className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full px-4 py-2 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> Sign out</button>
-      </aside>
+      </aside>}
 
-      <main className="lg:ml-56">
+      <main className={demoMode ? "" : "lg:ml-56"}>
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
           <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg font-normal">Served</span></button>
           <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>
-          <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
-            <Avatar className="size-8"><AvatarImage src={user.picture ?? undefined} alt={user.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(user.name)}</AvatarFallback></Avatar>
-            <span className="max-w-28 truncate">{user.given_name || user.name}</span>
-          </div>
+          {demoMode ? <div className="flex items-center gap-3"><span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-medium uppercase tracking-[.12em] text-white">Demo · reviewed fixtures</span><Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button></div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
+            <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
+            <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>
+          </div>}
         </header>
 
-        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
+        {!demoMode && <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
           <TabsTrigger value="overview" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Overview</TabsTrigger>
           <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Requests</TabsTrigger>
           <TabsTrigger value="response" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Response</TabsTrigger>
           <TabsTrigger value="sources" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Records</TabsTrigger>
           <TabsTrigger value="settings" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Settings</TabsTrigger>
-        </TabsList>
+        </TabsList>}
 
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
             <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Respond with the right records.</h1><p className="type-body mt-3 max-w-xl">Verify the financial subpoena, find responsive records, and prepare them for review.</p></div>
-            <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
+            {!demoMode && <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>}
           </section>
 
           <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-4">
@@ -320,6 +327,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
             <UploadCard
               initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined}
+              onSignInRequired={demoMode ? onExitDemo : undefined}
               traceEvents={traceEvents}
               onAnalysisComplete={(analysis) => {
                 setLatestAnalysis(analysis)
@@ -346,7 +354,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 setTraceEvents([])
               }}
             />
-            {!latestAnalysis && analysisRunState !== "running" && <WorkspaceActivity
+            {!demoMode && !latestAnalysis && analysisRunState !== "running" && <WorkspaceActivity
               summary={summary}
               summaryState={summaryState}
               runState={analysisRunState}
@@ -357,13 +365,13 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             />}
           </section>
 
-          <section className="grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
+          {!demoMode && <section className="grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
             {metrics.map(([label, value, note], index) => <article className="h-fit rounded-2xl border border-black/[.08] bg-white/70 p-4" key={label}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-medium text-zinc-600">{label}</p><p className="mt-1 text-[11px] leading-4 text-zinc-500">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></div><span className={`mt-1 size-2 shrink-0 rounded-full ${index === 3 ? "bg-neutral-500" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="mt-3 h-8 w-12 rounded-lg bg-black/5" /> : <p className="mt-3 font-display text-3xl leading-none tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}</article>)}
-          </section>
+          </section>}
 
           </TabsContent>
 
-          <TabsContent value="documents" className="mt-0">
+          {!demoMode && <><TabsContent value="documents" className="mt-0">
             {savedDetailState === "idle" ? <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
               <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved requests</h2><p className="type-caption mt-1">Reopen verification, record matching, and response review.</p></div>
               <div className="divide-y divide-black/5">
@@ -409,7 +417,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
           <TabsContent value="settings" className="mt-0">
             <SettingsPanel
-              user={user}
+              user={user!}
               credential={credential!}
               summary={summary}
               summaryState={summaryState}
@@ -417,7 +425,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
               onOpenDocuments={openDocuments}
               onDataDeleted={handleDataDeleted}
             />
-          </TabsContent>
+          </TabsContent></>}
         </div>
       </main>
     </Tabs>

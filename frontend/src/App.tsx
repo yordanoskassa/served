@@ -33,6 +33,7 @@ export function App() {
   const [showAuth, setShowAuth] = useState(false)
   const [mailboxOpen, setMailboxOpen] = useState(false)
   const [entryIntent, setEntryIntent] = useState<EntryIntent | null>(storedEntryIntent)
+  const [demoIntent, setDemoIntent] = useState<Exclude<EntryIntent, "upload"> | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -70,23 +71,33 @@ export function App() {
     }, delay)
   }, [])
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
-  if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
-
-  const startAuth = (intent: EntryIntent) => {
-    setEntryIntent(intent)
+  const openUploadAuth = useCallback(() => {
+    setDemoIntent(null)
+    setEntryIntent("upload")
     try {
-      sessionStorage.setItem(ENTRY_STORAGE_KEY, intent)
+      sessionStorage.setItem(ENTRY_STORAGE_KEY, "upload")
     } catch {
       // The current page can still complete the handoff without storage.
     }
     setShowAuth(true)
+  }, [])
+
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
+  if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
+  if (demoIntent) return <Dashboard demoMode initialIntent={demoIntent} onExitDemo={openUploadAuth} />
+
+  const startEntry = (intent: EntryIntent) => {
+    if (intent !== "upload") {
+      setDemoIntent(intent)
+      return
+    }
+    openUploadAuth()
   }
   const landing = (
     <div className="min-h-screen bg-background selection:bg-foreground selection:text-background">
       <Navbar onGetStarted={openMailbox} />
       <main>
-        <Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startAuth} />
+        <Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startEntry} />
         <LandingTrustBar />
         <LandingDetails onGetStarted={openMailbox} />
         <LandingPricing onGetStarted={openMailbox} />

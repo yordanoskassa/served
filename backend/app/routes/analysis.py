@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from app.schemas.analysis import AnalysisResponse, TraceEvent
 from app.config import settings
 from app.db import get_db
-from app.routes.auth import _verify_google_token
+from app.routes.auth import _verify_google_token, is_demo_profile
 from app.services.document_analyzer import analyze_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -194,6 +194,11 @@ async def analyze(
 ) -> AnalysisResponse:
     profile = await _authorize_upload(file, authorization)
     sample_id = await _verified_sample_id(file, x_served_sample_id)
+    if is_demo_profile(profile) and not sample_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access is limited to the reviewed sample requests.",
+        )
     if sample_id:
         result = await analyze_document(file, trusted_sample_id=sample_id)
     else:
@@ -211,6 +216,11 @@ async def analyze_stream(
     """Stream observable workflow events, followed by the normal analysis payload."""
     profile = await _authorize_upload(file, authorization)
     sample_id = await _verified_sample_id(file, x_served_sample_id)
+    if is_demo_profile(profile) and not sample_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access is limited to the reviewed sample requests.",
+        )
 
     async def event_stream():
         queue: asyncio.Queue[dict] = asyncio.Queue()

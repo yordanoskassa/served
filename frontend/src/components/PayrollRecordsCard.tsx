@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  getDemoCredential,
   loadSamplePayroll,
   matchPayrollRecords,
   type Analysis,
@@ -64,6 +65,8 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
   onWorkflowChange?: (state: EvidenceWorkflowState) => void
 }) {
   const { credential } = useAuth()
+  const [demoCredential, setDemoCredential] = useState<string | null>(null)
+  const accessCredential = credential ?? demoCredential
   const input = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<PayrollMatchResponse | null>(null)
@@ -78,6 +81,20 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
   })
   const [packetReady, setPacketReady] = useState(false)
   const isPayroll = isPayrollRecordRequest(analysis)
+
+  useEffect(() => {
+    if (credential) {
+      setDemoCredential(null)
+      return
+    }
+    let active = true
+    void getDemoCredential()
+      .then((token) => { if (active) setDemoCredential(token) })
+      .catch((cause) => {
+        if (active) setError(cause instanceof Error ? cause.message : "The sample workspace is unavailable.")
+      })
+    return () => { active = false }
+  }, [credential])
 
   useEffect(() => {
     if (analysisId) localStorage.setItem(`served-payroll-review-${analysisId}`, JSON.stringify(decisions))
@@ -117,13 +134,13 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
     setFile(nextFile)
     setResult(null)
     setError(null)
-    if (!analysisId || !credential) {
+    if (!analysisId || !accessCredential) {
       setError("Save this verified analysis and sign in again before matching payroll records.")
       return
     }
     setBusy(true)
     try {
-      setResult(await matchPayrollRecords(analysisId, nextFile, credential))
+      setResult(await matchPayrollRecords(analysisId, nextFile, accessCredential))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Payroll records could not be matched.")
     } finally {

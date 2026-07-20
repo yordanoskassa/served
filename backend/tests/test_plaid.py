@@ -217,7 +217,7 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.get_db", return_value=database),
         patch("app.routes.plaid.plaid_service.create_sandbox_public_token", new=create_public_token),
-        patch("app.routes.plaid.plaid_service.exchange_public_token", new=exchange),
+        patch("app.routes.plaid.plaid_service.exchange_sandbox_public_token", new=exchange),
         patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
     ):
         response = TestClient(app).post(
@@ -246,6 +246,84 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
     _, update = connections.update_one.await_args.args
     assert update["$set"]["demo_fixture"] is True
     assert update["$set"]["access_token"] == "access-d4-seeded"
+
+
+def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> None:
+    analysis_id = ObjectId()
+    analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
+    connections = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
+    exchange = AsyncMock(return_value={
+        "access_token": "access-d4-seeded",
+        "item_id": "item-d4-seeded",
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch("app.routes.plaid.plaid_service.create_sandbox_public_token", new=create_public_token),
+        patch("app.routes.plaid.plaid_service.exchange_sandbox_public_token", new=exchange),
+        patch.object(plaid_service.settings, "plaid_environment", "development"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/sandbox-connect",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["demo_fixture"] is True
+
+
+def test_guest_d4_uses_seeded_fixture_without_plaid_credentials() -> None:
+    analysis_id = ObjectId()
+    demo_profile = UserProfile(
+        subject="demo:judge-session",
+        email="demo@served.local",
+        name="Served Demo",
+        given_name="Demo",
+    )
+    analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
+    connections = SimpleNamespace(
+        update_one=AsyncMock(),
+        find_one=AsyncMock(return_value={
+            "access_token": "served-demo-fixture:demo:judge-session",
+            "demo_fixture": True,
+        }),
+    )
+    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    create_public_token = AsyncMock()
+    sync = AsyncMock()
+
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=demo_profile),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch("app.routes.plaid.plaid_service.create_sandbox_public_token", new=create_public_token),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        connected = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/sandbox-connect",
+            headers={"Authorization": "Bearer demo-token"},
+        )
+        matched = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer demo-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert connected.status_code == 200
+    assert connected.json()["institution_name"] == "Mendoza’s Kitchen Sandbox"
+    assert connected.json()["demo_fixture"] is True
+    assert matched.status_code == 200
+    assert matched.json()["summary"] == {
+        "total_searched": 28,
+        "include": 7,
+        "review": 2,
+        "exclude": 19,
+        "excluded_by_reason": {"NOT_TARGET_PAYEE": 17, "OUTSIDE_DATE_RANGE": 2},
+    }
+    create_public_token.assert_not_awaited()
+    sync.assert_not_awaited()
 
 
 def test_payment_matcher_reconciles_every_gold_record_to_7_2_19() -> None:
@@ -284,6 +362,7 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(find_one=AsyncMock(return_value={
         "access_token": "access-sandbox-private",
+        "demo_fixture": True,
     }))
     database = SimpleNamespace(analyses=analyses, bank_connections=connections)
     sync = AsyncMock(return_value={
@@ -295,6 +374,7 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
         patch("app.routes.plaid.get_db", return_value=database),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
     ):
         response = TestClient(app).post(
             f"/api/plaid/analyses/{analysis_id}/match",
@@ -317,7 +397,10 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
     assert "description" not in payload["excluded_audit"][0]
     assert "SUNRISE PRODUCE CO" not in response.text
     assert payload["automatic_send"] is False
-    sync.assert_awaited_once_with("access-sandbox-private")
+    sync.assert_awaited_once_with(
+        "access-sandbox-private",
+        plaid_environment="sandbox",
+    )
 
 
 def test_match_fails_closed_without_a_connection() -> None:
@@ -340,6 +423,30 @@ def test_match_fails_closed_without_a_connection() -> None:
     assert response.json()["detail"] == "Connect a bank account first."
 
 
+def test_match_d4_sandbox_requires_demo_fixture_connection() -> None:
+    analysis_id = ObjectId()
+    database = SimpleNamespace(
+        analyses=SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id))),
+        bank_connections=SimpleNamespace(find_one=AsyncMock(return_value={
+            "access_token": "access-generic-boa",
+            "demo_fixture": False,
+        })),
+    )
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer google-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert response.status_code == 409
+    assert "sample account" in response.json()["detail"].lower()
+
+
 def test_official_link_token_payload_requests_transactions() -> None:
     post = AsyncMock(return_value={"link_token": "link", "expiration": "soon"})
     with patch("app.services.plaid._post", new=post):
@@ -356,13 +463,11 @@ def test_official_link_token_payload_requests_transactions() -> None:
 def test_sandbox_public_token_payload_uses_custom_d4_user() -> None:
     custom_user = json.loads(PAYMENT_FIXTURE.read_text())
     post = AsyncMock(return_value={"public_token": "public-d4"})
-    with (
-        patch("app.services.plaid._post", new=post),
-        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
-    ):
+    with patch("app.services.plaid._post", new=post):
         asyncio.run(plaid_service.create_sandbox_public_token(custom_user))
 
     path, payload = post.await_args.args
+    assert post.await_args.kwargs["plaid_environment"] == "sandbox"
     assert path == "/sandbox/public_token/create"
     assert payload["institution_id"] == "ins_109508"
     assert payload["initial_products"] == ["transactions"]

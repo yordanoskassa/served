@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button"
 import {
   connectPlaidSandboxDemo,
   createPlaidLinkToken,
+  disconnectPlaidConnection,
   exchangePlaidPublicToken,
   fetchPlaidStatus,
+  getDemoCredential,
   matchPlaidTransactions,
   type PaymentMatchRecord,
   type PaymentMatchResponse,
@@ -20,6 +22,10 @@ import {
 type LoadState = "loading" | "ready" | "error"
 type ReviewDecision = "approved" | "excluded" | "counsel"
 const DEFAULT_CUTOFF_DATE = "2026-07-16"
+
+function isDemoPlaidEnvironment(environment: PlaidConnectionStatus["environment"] | undefined): boolean {
+  return environment === "sandbox" || environment === "development"
+}
 
 function normalizeCutoffDate(value: string | null | undefined): string {
   const candidate = value?.trim()
@@ -82,6 +88,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   onWorkflowChange?: (state: EvidenceWorkflowState) => void
 }) {
   const { credential } = useAuth()
+  const [demoCredential, setDemoCredential] = useState<string | null>(null)
+  const accessCredential = credential ?? demoCredential
   const normalizedCutoff = normalizeCutoffDate(cutoffDate)
   const [status, setStatus] = useState<PlaidConnectionStatus | null>(null)
   const [statusState, setStatusState] = useState<LoadState>("loading")
@@ -99,6 +107,23 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   })
   const [packetReady, setPacketReady] = useState(false)
   const autoMatchStarted = useRef(false)
+
+  useEffect(() => {
+    if (credential) {
+      setDemoCredential(null)
+      return
+    }
+    let active = true
+    void getDemoCredential()
+      .then((token) => { if (active) setDemoCredential(token) })
+      .catch((cause) => {
+        if (active) {
+          setError(cause instanceof Error ? cause.message : "The sample workspace is unavailable.")
+          setStatusState("error")
+        }
+      })
+    return () => { active = false }
+  }, [credential])
 
   useEffect(() => {
     localStorage.setItem(`served-payment-review-${analysisId}`, JSON.stringify(decisions))
@@ -120,20 +145,20 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   }, [decisions, onWorkflowChange, packetReady, records, status])
 
   useEffect(() => {
-    if (!credential || !analysisId) return
+    if (!accessCredential || !analysisId) return
     const controller = new AbortController()
     setStatusState("loading")
-    void fetchPlaidStatus(analysisId, credential, controller.signal)
+    void fetchPlaidStatus(analysisId, accessCredential, controller.signal)
       .then((nextStatus) => {
         setStatus(nextStatus)
         setStatusState("ready")
         const readyForMatch = nextStatus.connected
-          && (nextStatus.environment !== "sandbox" || nextStatus.demo_fixture)
+          && (nextStatus.environment === "production" || nextStatus.demo_fixture)
         if (readyForMatch && !autoMatchStarted.current) {
           autoMatchStarted.current = true
           setBusy(true)
           setBusyLabel("Fetching and matching transactions…")
-          void matchPlaidTransactions(analysisId, credential, normalizedCutoff)
+          void matchPlaidTransactions(analysisId, accessCredential, normalizedCutoff)
             .then(setRecords)
             .catch((cause) => setError(cause instanceof Error ? cause.message : "Payment records could not be matched."))
             .finally(() => {
@@ -148,24 +173,45 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
         setStatusState("error")
       })
     return () => controller.abort()
-  }, [analysisId, credential, normalizedCutoff])
+  }, [accessCredential, analysisId, normalizedCutoff])
+
+  const connectSampleAccount = async () => {
+    if (!accessCredential || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (status?.connected && !status.demo_fixture) {
+        setBusyLabel("Switching to sample account…")
+        await disconnectPlaidConnection(accessCredential)
+        setStatus((current) => (current ? { ...current, connected: false, demo_fixture: false, institution_name: null } : current))
+        setRecords(null)
+        autoMatchStarted.current = false
+      }
+      setBusyLabel("Connecting Mendoza’s Kitchen sample account…")
+      const nextStatus = await connectPlaidSandboxDemo(analysisId, accessCredential)
+      setStatus(nextStatus)
+      setBusyLabel("Matching Audrea Barnes payments…")
+      setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
+      autoMatchStarted.current = true
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The sample account could not be connected.")
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
 
   const connect = async () => {
-    if (!credential || busy) return
+    if (!accessCredential || busy) return
+    if (isDemoPlaidEnvironment(status?.environment)) {
+      await connectSampleAccount()
+      return
+    }
     setBusy(true)
     setBusyLabel("Opening secure bank connection…")
     setError(null)
     try {
-      if (status?.environment === "sandbox") {
-        setBusyLabel("Connecting Mendoza’s Kitchen account…")
-        const nextStatus = await connectPlaidSandboxDemo(analysisId, credential)
-        setStatus(nextStatus)
-        setBusyLabel("Fetching Audrea Barnes transactions…")
-        setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
-        autoMatchStarted.current = true
-        return
-      }
-      const linkToken = await createPlaidLinkToken(analysisId, credential)
+      const linkToken = await createPlaidLinkToken(analysisId, accessCredential)
       if (!window.Plaid) throw new Error("Plaid Link did not load. Refresh and try again.")
       let handler: PlaidLinkHandler | null = null
       handler = window.Plaid.create({
@@ -174,10 +220,10 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
           setBusyLabel("Bank connected. Fetching transactions…")
           void (async () => {
             try {
-              const nextStatus = await exchangePlaidPublicToken(analysisId, credential, publicToken, metadata.institution)
+              const nextStatus = await exchangePlaidPublicToken(analysisId, accessCredential, publicToken, metadata.institution)
               setStatus(nextStatus)
               setBusyLabel("Matching transactions to the subpoena…")
-              setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
+              setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
               autoMatchStarted.current = true
             } catch (cause) {
               setError(cause instanceof Error ? cause.message : "The bank could not be connected.")
@@ -198,18 +244,19 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       handler.open()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The bank connection could not start.")
+    } finally {
       setBusy(false)
       setBusyLabel(null)
     }
   }
 
   const matchRecords = async () => {
-    if (!credential || busy) return
+    if (!accessCredential || busy) return
     setBusy(true)
     setBusyLabel("Refreshing transaction match…")
     setError(null)
     try {
-      setRecords(await matchPlaidTransactions(analysisId, credential, confirmedCutoff))
+      setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Payment records could not be matched.")
     } finally {
@@ -274,6 +321,16 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const reviewedCount = candidateRecords.filter((record) => Boolean(decisions[record.record_id])).length
   const reviewComplete = candidateRecords.length > 0 && reviewedCount === candidateRecords.length
 
+  const demoPlaid = isDemoPlaidEnvironment(status?.environment)
+  const wrongDemoBank = demoPlaid && status.connected && !status.demo_fixture
+  const showDemoMismatch =
+    records != null
+    && demoPlaid
+    && !status.demo_fixture
+    && records.summary.include === 0
+    && records.summary.review === 0
+    && records.summary.exclude > 0
+
   return <section id={`records-${analysisId}`} className="mt-5 scroll-mt-24 overflow-hidden rounded-[28px] border border-black/10 bg-[#111] text-white shadow-[0_20px_50px_rgba(0,0,0,.18)]">
     <div className="p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -285,15 +342,41 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
         {progress.map((step, index) => <div className={`flex items-center gap-2 px-3 py-3 text-[11px] ${index < progress.length - 1 ? "border-b border-white/10 sm:border-r sm:border-b-0" : ""}`} key={step.label}><span className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${step.done ? "bg-brand-green text-black" : "bg-white/10 text-white/40"}`}>{step.done ? "✓" : index + 1}</span><span className={step.done ? "text-white" : "text-white/40"}>{step.label}</span></div>)}
       </div>
 
+      {wrongDemoBank && (
+        <Alert className="mt-4 border-amber-400/40 bg-amber-400/10 text-white">
+          <AlertTitle>Not the D4 demo bank</AlertTitle>
+          <AlertDescription className="space-y-2 text-white/75">
+            <p>
+              Generic Plaid sandbox banks (Bank of America, American Express, etc.) do not include Audrea Barnes payments.
+              Connect the Mendoza’s Kitchen sample for 7 include, 2 review, 19 exclude.
+            </p>
+            <Button type="button" className="h-9 bg-white text-black hover:bg-white/90" disabled={busy} onClick={() => { void connectSampleAccount() }}>
+              <Landmark size={15} /> Switch to sample account
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Could not complete that step</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
 
-      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (status.environment === "sandbox" ? "Connect sample account" : "Connect bank account")}</Button>{status.environment === "sandbox" && <p className="type-caption mt-2 text-white/40">Uses a secure sample business account. No real financial data is used.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking</p>}</div></div><div className="flex flex-wrap items-end gap-2">{status.environment === "sandbox" && !status.demo_fixture && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connect() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (status.environment === "sandbox" && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh records"}</Button></div></div>
+      {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (demoPlaid ? "Connect sample account" : "Connect bank account")}</Button>{demoPlaid && <p className="type-caption mt-2 text-white/40">Loads Mendoza’s Kitchen with 28 seeded D4 transactions—not the generic bank picker.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking · 28 transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{wrongDemoBank && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connectSampleAccount() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (demoPlaid && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh records"}</Button></div></div>
         {busy && <div className="mt-4 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-white/65"><DatabaseZap className="text-brand-green" size={15} /><span>{busyLabel}</span></div>}
       </div>}
     </div>
 
     {records && <div className="border-t border-white/10 bg-white/[.04] p-4 sm:p-5">
+      {showDemoMismatch && (
+        <Alert className="mb-4 border-amber-400/40 bg-amber-400/10 text-white">
+          <AlertTitle>These counts are not the D4 demo</AlertTitle>
+          <AlertDescription className="space-y-2 text-white/75">
+            <p>Expected on sample D4: 7 include, 2 review, 19 exclude (28 transactions). Switch to the sample account to match the homepage.</p>
+            <Button type="button" className="h-9 bg-white text-black hover:bg-white/90" disabled={busy} onClick={() => { void connectSampleAccount() }}>
+              <Landmark size={15} /> Switch to sample account
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-2 sm:grid-cols-4"><div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.total_searched}</p><p className="mt-1 text-xs text-white/60">transactions searched</p></div><div className="rounded-2xl bg-brand-green p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className="mt-1 text-xs font-medium">include candidates</p></div><div className="rounded-2xl bg-neutral-300 p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.review}</p><p className="mt-1 text-xs font-medium">need review</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.exclude}</p><p className="mt-1 text-xs text-white/60">kept outside</p></div></div>
       <p className="mt-4 text-xs leading-5 text-white/55">{records.review_notice}</p>
       {records.include.length > 0 && <div className="mt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/40">Include candidates</p><button type="button" className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white/75 hover:bg-white/15" onClick={approveSuggested}>Approve {records.include.length} suggested</button></div><div className="mt-2 space-y-2">{records.include.map((record) => <PaymentRow key={record.record_id} record={record} decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />)}</div></div>}

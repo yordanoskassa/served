@@ -279,6 +279,48 @@ export type PayrollMatchResponse = {
 const API_URL = (
   import.meta.env.VITE_API_URL || "https://anton-served.hrvnvm.easypanel.host/api"
 ).replace(/\/$/, "")
+const DEMO_SESSION_KEY = "served_demo_session"
+
+type DemoSession = {
+  credential: string
+  expiresAt: number
+}
+
+let demoCredentialRequest: Promise<string> | null = null
+
+export async function getDemoCredential(): Promise<string> {
+  try {
+    const saved = sessionStorage.getItem(DEMO_SESSION_KEY)
+    if (saved) {
+      const session = JSON.parse(saved) as DemoSession
+      if (session.credential && session.expiresAt > Date.now() + 60_000) {
+        return session.credential
+      }
+    }
+  } catch {
+    // Continue with an in-memory demo session when storage is unavailable.
+  }
+
+  if (!demoCredentialRequest) {
+    demoCredentialRequest = fetch(`${API_URL}/auth/demo`, { method: "POST" })
+      .then(async (response) => {
+        if (!response.ok) throw await responseError(response, "The sample workspace is unavailable.")
+        const payload = await response.json() as { credential: string; expires_in: number }
+        const session: DemoSession = {
+          credential: payload.credential,
+          expiresAt: Date.now() + payload.expires_in * 1000,
+        }
+        try {
+          sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session))
+        } catch {
+          // The in-memory request still provides access when storage is unavailable.
+        }
+        return payload.credential
+      })
+      .finally(() => { demoCredentialRequest = null })
+  }
+  return demoCredentialRequest
+}
 
 async function responseError(res: Response, fallback: string): Promise<Error> {
   const text = await res.text()
@@ -535,7 +577,7 @@ export async function connectPlaidSandboxDemo(
   analysisId: string,
   credential: string,
 ): Promise<PlaidConnectionStatus> {
-  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
+  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${credential}` },
   })

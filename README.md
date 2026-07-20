@@ -130,6 +130,23 @@ the document-verification verdict. Production deployment
 requires a separately managed production secret and the appropriate Plaid
 production approval.
 
+### D4 sample connect — EasyPanel logs
+
+After deploy, container stdout includes structured Plaid lines (no secrets). On
+**Connect sample account**, grep for:
+
+- `Plaid startup:` — confirms `plaid_environment`, whether `client_id` and
+  `PLAID_SANDBOX_SECRET` are set (`sandbox_configured=true` required).
+- `sandbox-connect start` — fixture path exists on the image.
+- `Plaid request start env=sandbox path=/sandbox/public_token/create` then either
+  `Plaid request ok` or `Plaid API error` with `error_code`, `request_id`, and
+  Plaid’s message.
+- `sandbox-connect success` or `sandbox-connect Plaid API failure`.
+
+A uvicorn `502` on `POST …/sandbox-connect` with no `Plaid API error` line often
+means the process restarted (OOM/health) or an old image without the sandbox API
+fix is still running.
+
 ## Versioned legal sources
 
 The legal corpus is a dated source snapshot, not model memory:

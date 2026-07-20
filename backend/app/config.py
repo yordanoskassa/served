@@ -51,6 +51,13 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("SERVED_GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"),
     )
+    demo_token_secret: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices(
+            "SERVED_DEMO_TOKEN_SECRET",
+            "DEMO_TOKEN_SECRET",
+        ),
+    )
     aws_access_key_id: str = Field(
         default="",
         validation_alias=AliasChoices("SERVED_AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"),

@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 from bson import ObjectId
@@ -6,7 +7,7 @@ from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
 from app.db import get_db
-from app.routes.auth import _verify_google_token
+from app.routes.auth import _verify_google_token, is_demo_profile
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.payroll import PayrollMatchResponse
 from app.services.payroll_matcher import (
@@ -69,6 +70,17 @@ async def match_payroll_records(
         )
 
     data = await file.read(MAX_PAYROLL_CSV_BYTES + 1)
+    if is_demo_profile(profile):
+        sample = FIXTURES / "mendoza-kitchen-payroll.csv"
+        if (
+            not sample.is_file()
+            or hashlib.sha256(data).digest()
+            != hashlib.sha256(sample.read_bytes()).digest()
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Demo access is limited to the sample payroll fixture.",
+            )
     try:
         criteria = extract_payroll_criteria(analysis)
         return match_payroll_csv(data, criteria)

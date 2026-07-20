@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.db import get_db
-from app.routes.auth import _verify_google_token
+from app.routes.auth import _verify_google_token, is_demo_profile
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.plaid import (
     PaymentMatchRequest,
@@ -28,6 +29,7 @@ from app.services.plaid import PlaidAPIError, PlaidNotConfiguredError
 
 
 router = APIRouter(prefix="/plaid", tags=["plaid"])
+logger = logging.getLogger(__name__)
 D4_PLAID_FIXTURE = (
     Path(__file__).resolve().parents[2]
     / "fixtures"
@@ -44,14 +46,39 @@ def _authenticate(authorization: str):
     return _verify_google_token(token)
 
 
-def _provider_error(exc: Exception) -> HTTPException:
+def _provider_error(exc: Exception, *, context: str = "plaid") -> HTTPException:
     if isinstance(exc, PlaidNotConfiguredError):
-        return HTTPException(status_code=503, detail="Plaid Sandbox is not configured.")
+        message = str(exc).strip() or "Plaid Sandbox is not configured."
+        logger.warning("%s not configured: %s", context, message)
+        return HTTPException(status_code=503, detail=message)
     if isinstance(exc, PlaidAPIError) and exc.code == "ITEM_LOGIN_REQUIRED":
+        logger.warning("%s item login required", context)
         return HTTPException(
             status_code=409,
             detail="The bank connection needs to be repaired in Plaid Link.",
         )
+    if isinstance(exc, PlaidAPIError) and exc.code == "PLAID_UNAVAILABLE":
+        logger.warning("%s Plaid unavailable (transport)", context)
+        return HTTPException(
+            status_code=503,
+            detail="Plaid is temporarily unavailable. Try again in a moment.",
+        )
+    if isinstance(exc, PlaidAPIError):
+        logger.warning(
+            "%s Plaid API failure code=%s request_id=%s message=%s",
+            context,
+            exc.code,
+            exc.request_id,
+            exc.plaid_message,
+        )
+        return HTTPException(
+            status_code=502,
+            detail=(
+                f"Plaid could not complete the request ({exc.code}). "
+                "Confirm PLAID_CLIENT_ID and PLAID_SANDBOX_SECRET in EasyPanel."
+            ),
+        )
+    logger.warning("%s unexpected error type=%s", context, type(exc).__name__)
     return HTTPException(
         status_code=502,
         detail="Plaid could not complete the request. Please try again.",
@@ -118,7 +145,7 @@ def _parse_transactions(result: dict) -> list[PlaidTransaction]:
 
 
 async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
-    configured = plaid_service.is_configured()
+    configured = subject.startswith("demo:") or plaid_service.is_configured()
     if not configured:
         return PlaidConnectionStatus(
             configured=False,
@@ -215,6 +242,11 @@ async def link_token(
     authorization: str = Header(default=""),
 ) -> PlaidLinkTokenResponse:
     profile = _authenticate(authorization)
+    if is_demo_profile(profile):
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access uses the seeded Sandbox account only.",
+        )
     await _eligible_analysis(analysis_id, profile)
     try:
         result = await plaid_service.create_link_token(profile.subject)
@@ -230,6 +262,11 @@ async def exchange_token(
     authorization: str = Header(default=""),
 ) -> PlaidConnectionStatus:
     profile = _authenticate(authorization)
+    if is_demo_profile(profile):
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access cannot connect a personal bank account.",
+        )
     await _eligible_analysis(analysis_id, profile)
     try:
         result = await plaid_service.exchange_public_token(body.public_token)
@@ -252,24 +289,90 @@ async def connect_d4_sandbox(
     """Connect D4 to its deterministic Plaid Sandbox business account."""
     profile = _authenticate(authorization)
     await _eligible_analysis(analysis_id, profile)
-    if settings.plaid_environment != "sandbox":
+    demo_profile = is_demo_profile(profile)
+    subject_hint = profile.subject[:12] + "…" if len(profile.subject) > 12 else profile.subject
+    logger.info(
+        "sandbox-connect start analysis_id=%s subject=%s plaid_environment=%s "
+        "sandbox_configured=%s fixture_path=%s fixture_exists=%s",
+        analysis_id,
+        subject_hint,
+        settings.plaid_environment,
+        plaid_service.sandbox_configured(),
+        D4_PLAID_FIXTURE,
+        D4_PLAID_FIXTURE.is_file(),
+    )
+    if not demo_profile and settings.plaid_environment not in ("sandbox", "development"):
+        logger.warning(
+            "sandbox-connect rejected: plaid_environment=%s (production)",
+            settings.plaid_environment,
+        )
         raise HTTPException(status_code=404, detail="The sample bank is available only in Sandbox.")
+    if demo_profile:
+        return await _save_connection(
+            subject=profile.subject,
+            provider_result={
+                "access_token": f"served-demo-fixture:{profile.subject}",
+                "item_id": f"served-demo-item:{profile.subject}",
+            },
+            institution_id="served_demo_fixture",
+            institution_name="Mendoza’s Kitchen Sandbox",
+            demo_fixture=True,
+        )
     try:
-        custom_user = json.loads(D4_PLAID_FIXTURE.read_text())
+        raw_fixture = D4_PLAID_FIXTURE.read_text()
+        custom_user = json.loads(raw_fixture)
+        logger.info(
+            "sandbox-connect fixture loaded bytes=%s accounts=%s",
+            len(raw_fixture),
+            len(custom_user.get("override_accounts") or []),
+        )
         public_token_result = await plaid_service.create_sandbox_public_token(custom_user)
         public_token = public_token_result.get("public_token")
         if not public_token:
+            logger.warning("sandbox-connect missing public_token in Plaid response keys=%s", list(public_token_result))
             raise PlaidAPIError("INVALID_PLAID_RESPONSE")
-        provider_result = await plaid_service.exchange_public_token(public_token)
-    except (OSError, ValueError, PlaidAPIError, PlaidNotConfiguredError) as exc:
-        raise _provider_error(exc) from None
-    return await _save_connection(
+        logger.info("sandbox-connect public_token received, exchanging")
+        provider_result = await plaid_service.exchange_sandbox_public_token(public_token)
+        item_id = provider_result.get("item_id")
+        logger.info("sandbox-connect exchange ok item_id=%s", item_id)
+    except OSError as exc:
+        logger.exception(
+            "sandbox-connect fixture IO error path=%s analysis_id=%s",
+            D4_PLAID_FIXTURE,
+            analysis_id,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=f"D4 bank demo fixture is missing on the server ({D4_PLAID_FIXTURE.name}).",
+        ) from exc
+    except ValueError as exc:
+        logger.warning(
+            "sandbox-connect invalid fixture JSON path=%s analysis_id=%s error=%s",
+            D4_PLAID_FIXTURE,
+            analysis_id,
+            exc,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="D4 bank demo fixture is invalid JSON on the server.",
+        ) from exc
+    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
+        raise _provider_error(exc, context="sandbox-connect") from None
+    status = await _save_connection(
         subject=profile.subject,
         provider_result=provider_result,
         institution_id="ins_109508",
         institution_name="First Platypus Bank",
         demo_fixture=True,
     )
+    logger.info(
+        "sandbox-connect success analysis_id=%s subject=%s demo_fixture=%s institution=%s",
+        analysis_id,
+        subject_hint,
+        status.demo_fixture,
+        status.institution_name,
+    )
+    return status
 
 
 @router.post("/analyses/{analysis_id}/match", response_model=PaymentMatchResponse)
@@ -283,7 +386,7 @@ async def match_transactions(
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": profile.subject},
-            {"access_token": 1},
+            {"access_token": 1, "demo_fixture": 1},
         )
     except Exception as exc:
         raise HTTPException(
@@ -293,10 +396,71 @@ async def match_transactions(
     if not connection or not connection.get("access_token"):
         raise HTTPException(status_code=409, detail="Connect a bank account first.")
 
+    plaid_api_env = "sandbox" if connection.get("demo_fixture") else None
+
+    filename = str(record.get("filename") or "")
+    if (
+        settings.plaid_environment != "production"
+        and not connection.get("demo_fixture")
+        and "D4" in filename.upper()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Connect the Mendoza’s Kitchen sample account for the D4 demo "
+                "(7 include, 2 review, 19 exclude). Generic sandbox banks such as "
+                "Bank of America or American Express do not contain Audrea Barnes payments."
+            ),
+        )
+
     try:
-        result = await plaid_service.sync_transactions(connection["access_token"])
+        logger.info(
+            "plaid match sync start analysis_id=%s demo_fixture=%s plaid_api_env=%s",
+            analysis_id,
+            bool(connection.get("demo_fixture")),
+            plaid_api_env or settings.plaid_environment,
+        )
+        if is_demo_profile(profile) and connection.get("demo_fixture"):
+            fixture = json.loads(D4_PLAID_FIXTURE.read_text())
+            transactions = fixture["override_accounts"][0]["transactions"]
+            result = {
+                "transactions": [
+                    {
+                        "transaction_id": f"DEMO-{index:03d}",
+                        "account_id": "demo-business-checking",
+                        "name": item["description"],
+                        "merchant_name": None,
+                        "date": item["date_transacted"],
+                        "amount": item["amount"],
+                        "iso_currency_code": item["currency"],
+                        "pending": False,
+                        "personal_finance_category": None,
+                    }
+                    for index, item in enumerate(transactions, start=1)
+                ],
+                "initial_update_complete": True,
+                "historical_update_complete": True,
+            }
+        else:
+            result = await plaid_service.sync_transactions(
+                connection["access_token"],
+                plaid_environment=plaid_api_env,
+            )
+        logger.info(
+            "plaid match sync ok analysis_id=%s transactions=%s initial=%s historical=%s",
+            analysis_id,
+            len(result.get("transactions") or []),
+            result.get("initial_update_complete"),
+            result.get("historical_update_complete"),
+        )
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        logger.exception("demo fixture transaction load failed analysis_id=%s", analysis_id)
+        raise HTTPException(
+            status_code=503,
+            detail="The seeded D4 transaction fixture is unavailable.",
+        ) from exc
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
-        raise _provider_error(exc) from None
+        raise _provider_error(exc, context=f"match:{analysis_id}") from None
 
     parsed = _parse_transactions(result)
     try:
@@ -321,10 +485,18 @@ async def disconnect(
     try:
         connection = await collection.find_one(
             {"google_subject": profile.subject},
-            {"access_token": 1},
+            {"access_token": 1, "demo_fixture": 1},
         )
-        if connection and connection.get("access_token"):
-            await plaid_service.remove_item(connection["access_token"])
+        if (
+            connection
+            and connection.get("access_token")
+            and not is_demo_profile(profile)
+        ):
+            plaid_api_env = "sandbox" if connection.get("demo_fixture") else None
+            await plaid_service.remove_item(
+                connection["access_token"],
+                plaid_environment=plaid_api_env,
+            )
         await collection.delete_one({"google_subject": profile.subject})
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
         raise _provider_error(exc) from None

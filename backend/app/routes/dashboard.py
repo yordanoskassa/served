@@ -3,7 +3,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, status
 from pydantic import BaseModel, ValidationError
 
 from app.db import get_db
-from app.routes.auth import _verify_google_token
+from app.routes.auth import _verify_google_token, is_demo_profile
 from app.schemas.analysis import (
     AnalysisResponse,
     AnalysisEmailResponse,
@@ -35,7 +35,10 @@ def _authenticate(authorization: str):
     token = authorization.removeprefix("Bearer ").strip()
     if not token:
         raise HTTPException(status_code=401, detail="Missing bearer token.")
-    return _verify_google_token(token)
+    profile = _verify_google_token(token)
+    if is_demo_profile(profile):
+        raise HTTPException(status_code=403, detail="Sign in to access saved requests.")
+    return profile
 
 
 @router.get("/summary")
