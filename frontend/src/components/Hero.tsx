@@ -173,10 +173,10 @@ export function Hero({ open, onOpen, onSelect }: {
             transition={{ duration: reduceMotion ? 0 : 0.32, ease: STAGE_EASE }}
           >
             <h1 className="type-display">
-              {open ? "Pick a sample letter." : "Got a records request?"}
+              {open ? "Choose a financial subpoena." : "Got a financial subpoena?"}
             </h1>
             <p className="type-lead mx-auto mt-5 max-w-lg">
-              {open ? "Payroll path for D1. Bank path for D4. Uncertain or scam letters stay locked." : "Understand the letter, check the case, then open only the data it asks for."}
+              {open ? "Payment requests open bank matching. Payroll requests open payroll matching." : "Verify the request, connect the right financial source, and review only the records it asks for."}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -195,7 +195,7 @@ export function Hero({ open, onOpen, onSelect }: {
           <motion.div
             id="served-letter-choices"
             role="group"
-            aria-label="Choose a sample letter"
+            aria-label="Choose a sample financial subpoena"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
