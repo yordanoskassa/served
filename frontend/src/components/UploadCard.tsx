@@ -30,6 +30,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   const input = useRef<HTMLInputElement>(null)
   const analysisController = useRef<AbortController | null>(null)
   const [file, setFile] = useState<File>()
+  const [selectedSample, setSelectedSample] = useState<"D1" | "D2" | "D3" | "D4">()
   const [analysis, setAnalysis] = useState<Analysis>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
@@ -59,6 +60,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       .then((sampleFile) => {
         if (cancelled) return
         setFile(sampleFile)
+        setSelectedSample(initialSample)
         setAnalysis(undefined)
       })
       .catch((cause) => {
@@ -84,7 +86,13 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     const controller = new AbortController()
     analysisController.current = controller
     try {
-      const result = await analyzeDocumentStream(file, credential, onTraceEvent, controller.signal)
+      const result = await analyzeDocumentStream(
+        file,
+        credential,
+        onTraceEvent,
+        controller.signal,
+        selectedSample,
+      )
       setAnalysis(result)
       onAnalysisComplete?.(result)
       onAnalysisStateChange?.("complete")
@@ -115,6 +123,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     try {
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
+      setSelectedSample(sample)
       const result = await analyzeDocumentStream(sampleFile, credential, onTraceEvent, controller.signal, sample)
       setAnalysis(result)
       onAnalysisComplete?.(result)
@@ -130,13 +139,14 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   }
 
   function reset() {
-    setFile(undefined); setAnalysis(undefined); setError(undefined)
+    setFile(undefined); setSelectedSample(undefined); setAnalysis(undefined); setError(undefined)
     if (input.current) input.current.value = ""
     onReset?.()
   }
 
   function chooseFile() {
     if (input.current) input.current.value = ""
+    setSelectedSample(undefined)
     input.current?.click()
   }
 
@@ -154,7 +164,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand-green/20 text-black">{file ? <FileImage size={21} /> : <Camera size={21} />}</div>
       <h2 className="type-ui-heading">{file ? "Ready for review" : "Upload a financial subpoena"}</h2>
       <p className="type-body mx-auto mt-2 max-w-sm">{file ? "Verification runs before financial records become available." : "Financial records remain locked until the request is verified."}</p>
-      <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setAnalysis(undefined); setError(undefined) }} />
+      <input ref={input} className="sr-only" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => { setFile(event.target.files?.[0]); setSelectedSample(undefined); setAnalysis(undefined); setError(undefined) }} />
       {file && <div aria-live="polite" className="mx-auto mt-4 flex max-w-md items-center gap-3 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-left">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/5"><FileImage size={15} /></span>
         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-0.5 text-xs text-zinc-400">{formatFileSize(file.size)} · {file.type === "application/pdf" ? "PDF" : "Image"}</p></div>
