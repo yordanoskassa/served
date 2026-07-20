@@ -80,7 +80,7 @@ export function WorkspaceActivity({
       </div> : <>
         <div className="mt-4">
           {summaryState === "loading" && <div className="space-y-4">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-2/3 bg-black/5" /><Skeleton className="h-2 w-1/3 bg-black/5" /></div></div>)}</div>}
-          {summaryState === "error" && <Alert className="rounded-2xl border-black/10 bg-bg-base"><AlertTitle>Activity unavailable</AlertTitle><AlertDescription>Refresh to try loading your saved analyses again.</AlertDescription></Alert>}
+          {summaryState === "error" && <Alert className="rounded-2xl border-black/10 bg-background"><AlertTitle>Activity unavailable</AlertTitle><AlertDescription>Refresh to try loading your saved analyses again.</AlertDescription></Alert>}
           {summaryState === "ready" && summary?.recent.slice(0, 4).map((item) => {
             const badge = verdictBadge(item.verdict)
             const date = savedAt(item.created_at)
@@ -90,7 +90,7 @@ export function WorkspaceActivity({
               <Badge variant={badge.variant} className="px-2.5 py-1 text-[9px]">{badge.label}</Badge><ChevronRight className="shrink-0 text-zinc-300" size={15} />
             </button>
           })}
-          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-bg-base px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No saved analyses yet</p><p className="mt-1 text-xs leading-5 text-zinc-400">Your first completed check will appear here.</p></div></div>}
+          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No saved analyses yet</p><p className="mt-1 text-xs leading-5 text-zinc-400">Your first completed check will appear here.</p></div></div>}
         </div>
         <Separator className="my-3" />
         <div className="grid gap-2 sm:grid-cols-2">

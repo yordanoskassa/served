@@ -78,7 +78,7 @@ function readinessFor(agent: AgentStatus | undefined, loadState: OrchestrationVi
     return {
       label: "Unknown",
       detail: "Readiness service unavailable",
-      dotClass: "bg-orange-400",
+      dotClass: "bg-neutral-500",
       badgeVariant: "warning",
     }
   }
@@ -87,7 +87,7 @@ function readinessFor(agent: AgentStatus | undefined, loadState: OrchestrationVi
     return {
       label: "Not reported",
       detail: "No status was returned for this agent",
-      dotClass: "bg-orange-400",
+      dotClass: "bg-neutral-500",
       badgeVariant: "warning",
     }
   }
@@ -96,7 +96,7 @@ function readinessFor(agent: AgentStatus | undefined, loadState: OrchestrationVi
     return {
       label: "Not configured",
       detail: "Required service configuration is missing",
-      dotClass: "bg-orange-500",
+      dotClass: "bg-neutral-600",
       badgeVariant: "destructive",
     }
   }
@@ -105,7 +105,7 @@ function readinessFor(agent: AgentStatus | undefined, loadState: OrchestrationVi
     return {
       label: "Configured · issue seen",
       detail: "The latest attempt on this service instance reported an issue.",
-      dotClass: "bg-amber-400",
+      dotClass: "bg-neutral-400",
       badgeVariant: "warning",
     }
   }
@@ -128,16 +128,16 @@ function formatLastCheck(value: string | null | undefined): string {
 function traceStatus(value: string | undefined): { label: string; dotClass: string; badgeVariant: "default" | "warning" | "destructive" | "outline" } {
   const normalized = value?.toLowerCase().replaceAll("-", "_")
   if (normalized === "started") {
-    return { label: "Running", dotClass: "bg-[#812d29] animate-pulse motion-reduce:animate-none", badgeVariant: "warning" }
+    return { label: "Running", dotClass: "bg-foreground animate-pulse motion-reduce:animate-none", badgeVariant: "warning" }
   }
   if (["complete", "completed", "success", "passed", "ready"].includes(normalized || "")) {
     return { label: value || "Complete", dotClass: "bg-brand-green", badgeVariant: "default" }
   }
   if (["degraded", "skipped", "partial", "cannot_confirm"].includes(normalized || "")) {
-    return { label: value || "Limited", dotClass: "bg-amber-400", badgeVariant: "warning" }
+    return { label: value || "Limited", dotClass: "bg-neutral-400", badgeVariant: "warning" }
   }
   if (["error", "failed", "unavailable", "disabled"].includes(normalized || "")) {
-    return { label: value || "Unavailable", dotClass: "bg-orange-500", badgeVariant: "destructive" }
+    return { label: value || "Unavailable", dotClass: "bg-neutral-600", badgeVariant: "destructive" }
   }
   return { label: value || "Not reported", dotClass: "bg-zinc-300", badgeVariant: "outline" }
 }
@@ -202,9 +202,9 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
     const event = latest.get(eventKey)
     const status = traceStatus(event?.status)
     return (
-      <div className={`h-fit rounded-2xl border p-3.5 ${dark ? "border-[#812d29] bg-[#1a1a1a] text-white" : "border-black/[.07] bg-white/65"}`}>
+      <div className={`h-fit rounded-2xl border p-3.5 ${dark ? "border-foreground bg-[#1a1a1a] text-white" : "border-black/[.07] bg-white/65"}`}>
         <div className="flex items-center justify-between gap-3">
-          <span className={`grid size-8 place-items-center rounded-full ${dark ? "bg-[#812d29] text-brand-green" : "bg-[#812d29]/10 text-[#812d29]"}`}>
+          <span className={`grid size-8 place-items-center rounded-full ${dark ? "bg-foreground text-brand-green" : "bg-foreground/10 text-foreground"}`}>
             <Icon size={15} aria-hidden="true" />
           </span>
           <div className="flex items-center gap-2">
@@ -282,11 +282,11 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
       <div className="my-3 flex items-center gap-3 px-4" aria-hidden="true">
         <div className="h-px flex-1 bg-black/[.07]" />
         <span className="text-[9px] font-semibold uppercase tracking-[.18em] text-zinc-400">{fanOutLabel}</span>
-        <GitBranch size={14} className="text-[#812d29]" />
+        <GitBranch size={14} className="text-foreground" />
         <div className="h-px flex-1 bg-black/[.07]" />
       </div>
 
-      <Card className="overflow-hidden border-[#812d29]/20 bg-white/60">
+      <Card className="overflow-hidden border-foreground/20 bg-white/60">
         <div className="flex flex-wrap items-start justify-between gap-3 p-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Agent two</p>
@@ -299,9 +299,9 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
         </div>
         <Separator className="bg-black/[.06]" />
         <div className="grid items-start gap-3 p-4 sm:grid-cols-2">
-          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${courtEvent?.status === "started" ? "ring-2 ring-[foreground]/20" : ""}`}>
             <div className="flex items-center justify-between gap-2">
-              <Gavel size={17} className="text-[#812d29]" aria-hidden="true" />
+              <Gavel size={17} className="text-foreground" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${courtStatus.dotClass}`} aria-hidden="true" /><Badge variant={courtStatus.badgeVariant}>{displayStatus(courtStatus.label)}</Badge></div>
             </div>
             <h4 className="mt-3 text-sm font-semibold">Public federal docket</h4>
@@ -316,16 +316,16 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
                       <div><dt className="font-medium text-zinc-800">Lookup input</dt><dd className="mt-0.5 break-words">{courtEvent.input_summary || "Not reported"}</dd></div>
                       <div><dt className="font-medium text-zinc-800">Provider result</dt><dd className="mt-0.5">{courtEvent.output_summary || "No result summary"}</dd></div>
                     </dl>
-                    {courtEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-[#812d29]/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.detail}</span></a>)}
+                    {courtEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-foreground/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.detail}</span></a>)}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
             )}
           </div>
 
-          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${patternEvent?.status === "started" ? "ring-2 ring-[#812d29]/20" : ""}`}>
+          <div className={`rounded-2xl border border-border bg-muted/60 p-4 ${patternEvent?.status === "started" ? "ring-2 ring-[foreground]/20" : ""}`}>
             <div className="flex items-center justify-between gap-2">
-              <Database size={17} className="text-[#812d29]" aria-hidden="true" />
+              <Database size={17} className="text-foreground" aria-hidden="true" />
               <div className="flex items-center gap-2"><span className={`size-2 rounded-full ${patternStatus.dotClass}`} aria-hidden="true" /><Badge variant={patternStatus.badgeVariant}>{displayStatus(patternStatus.label)}</Badge></div>
             </div>
             <h4 className="mt-3 text-sm font-semibold">Approved scam corpus</h4>
@@ -338,10 +338,10 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
                   <AccordionContent>
                     {analysis?.trace?.corpus_version && <p className="mb-3 text-[10px] text-zinc-400">Corpus {analysis.trace.corpus_version}</p>}
                     <div className="space-y-2">
-                      {signalReviews.map((review, index) => <div key={`${review.pattern_id}-${index}`} className="rounded-xl border border-black/[.06] bg-white p-3 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium">Pattern {review.pattern_id}</span><Badge variant={review.accepted && review.counts_toward_verdict ? "default" : "outline"}>{review.accepted ? review.counts_toward_verdict ? "Accepted · countable" : "Accepted · context" : "Rejected"}</Badge></div><p className="mt-1 text-zinc-500">{displayStatus(review.reason)}</p>{review.document_excerpt && <p className="mt-2 border-l-2 border-[#812d29]/25 pl-2 text-zinc-600">“{review.document_excerpt}”</p>}</div>)}
+                      {signalReviews.map((review, index) => <div key={`${review.pattern_id}-${index}`} className="rounded-xl border border-black/[.06] bg-white p-3 text-xs"><div className="flex items-center justify-between gap-2"><span className="font-medium">Pattern {review.pattern_id}</span><Badge variant={review.accepted && review.counts_toward_verdict ? "default" : "outline"}>{review.accepted ? review.counts_toward_verdict ? "Accepted · countable" : "Accepted · context" : "Rejected"}</Badge></div><p className="mt-1 text-zinc-500">{displayStatus(review.reason)}</p>{review.document_excerpt && <p className="mt-2 border-l-2 border-foreground/25 pl-2 text-zinc-600">“{review.document_excerpt}”</p>}</div>)}
                       {!signalReviews.length && <p className="text-xs text-zinc-400">No model proposals required validation.</p>}
                     </div>
-                    {patternEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-[#812d29]/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.source}</span></a>)}
+                    {patternEvidence.map((item) => <a key={item.id} className="mt-3 block rounded-xl border border-black/[.06] bg-white p-3 text-xs hover:border-foreground/30" href={item.source_url ?? undefined} target="_blank" rel="noreferrer"><span className="font-medium">{item.label}</span><span className="mt-1 block text-zinc-500">{item.source}</span></a>)}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -353,7 +353,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
       <div className="my-3 flex items-center gap-3 px-4" aria-hidden="true">
         <div className="h-px flex-1 bg-black/[.07]" />
         <span className="text-[9px] font-semibold uppercase tracking-[.18em] text-zinc-400">merge validated findings</span>
-        <ArrowDown size={14} className="text-[#812d29]" />
+        <ArrowDown size={14} className="text-foreground" />
         <div className="h-px flex-1 bg-black/[.07]" />
       </div>
 
@@ -387,7 +387,7 @@ function DetailedRunTrace({ events, analysis, terminal = false }: { events: Trac
                 <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Fixed-code output</p>
                   <h4 className="mt-2 text-sm font-semibold">Decision inputs</h4>
-                  {analysis.decision ? <><p className="mt-3 text-xs leading-5 text-zinc-600">{ruleLabel(analysis.decision.rule)}</p><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Signals</dt><dd className="mt-1 font-semibold">{analysis.decision.counted_signal_ids.length}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Case</dt><dd className="mt-1 font-semibold">{analysis.decision.case_found ? "Found" : "Not found"}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Parties</dt><dd className="mt-1 font-semibold">{analysis.decision.parties_match ? "Match" : "No match"}</dd></div><div className="rounded-xl bg-bg-base p-3"><dt className="text-zinc-400">Verdict</dt><dd className="mt-1 font-semibold">{verdictLabel(analysis.verdict)}</dd></div></dl></> : <p className="mt-3 text-xs text-zinc-400">No deterministic decision record was returned.</p>}
+                  {analysis.decision ? <><p className="mt-3 text-xs leading-5 text-zinc-600">{ruleLabel(analysis.decision.rule)}</p><dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><div className="rounded-xl bg-background p-3"><dt className="text-zinc-400">Signals</dt><dd className="mt-1 font-semibold">{analysis.decision.counted_signal_ids.length}</dd></div><div className="rounded-xl bg-background p-3"><dt className="text-zinc-400">Case</dt><dd className="mt-1 font-semibold">{analysis.decision.case_found ? "Found" : "Not found"}</dd></div><div className="rounded-xl bg-background p-3"><dt className="text-zinc-400">Parties</dt><dd className="mt-1 font-semibold">{analysis.decision.parties_match ? "Match" : "No match"}</dd></div><div className="rounded-xl bg-background p-3"><dt className="text-zinc-400">Verdict</dt><dd className="mt-1 font-semibold">{verdictLabel(analysis.verdict)}</dd></div></dl></> : <p className="mt-3 text-xs text-zinc-400">No deterministic decision record was returned.</p>}
                 </section>
 
                 <section className="rounded-2xl border border-black/[.06] bg-white/75 p-4">
@@ -463,7 +463,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
             <AnalysisPipeline events={events} runState={analysisRunState} compact={analysisRunState !== "idle"} />
 
             {analysisRunState === "running" && events.length === 0 && (
-              <Alert className="rounded-[22px] border-[#812d29]/15 bg-[#812d29]/[.04]">
+              <Alert className="rounded-[22px] border-foreground/15 bg-foreground/[.04]">
                 <Activity size={16} className="animate-pulse motion-reduce:animate-none" aria-hidden="true" />
                 <AlertTitle>Connecting to the analysis trace</AlertTitle>
                 <AlertDescription className="text-zinc-500">Waiting for the first verified event from the backend.</AlertDescription>
@@ -477,7 +477,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
             {analysisRunState === "error" && (
               <div className="space-y-4">
                 {events.length > 0 && <DetailedRunTrace events={events} analysis={latestAnalysis} terminal />}
-                <Alert className="rounded-[22px] border-orange-200 bg-orange-50/70">
+                <Alert className="rounded-[22px] border-border bg-muted">
                   <TriangleAlert size={16} aria-hidden="true" />
                   <AlertTitle>The analysis did not complete</AlertTitle>
                   <AlertDescription>{events.length ? "The verified events above show where the run stopped." : "No backend trace event was returned for this attempt."}</AlertDescription>
@@ -486,7 +486,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
             )}
 
             {analysisRunState === "complete" && !latestAnalysis && (
-              <Alert className="rounded-[22px] border-amber-200 bg-amber-50/70">
+              <Alert className="rounded-[22px] border-border bg-muted">
                 <TriangleAlert size={16} aria-hidden="true" />
                 <AlertTitle>Completed trace unavailable</AlertTitle>
                 <AlertDescription>The run completed, but no analysis response is available in this session.</AlertDescription>
@@ -519,11 +519,11 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex justify-end pb-3">{onRefresh && <Tooltip><TooltipTrigger asChild><Button type="button" variant="outline" className="h-9" onClick={onRefresh}><RefreshCw size={14} aria-hidden="true" /> Refresh</Button></TooltipTrigger><TooltipContent>Refresh system setup</TooltipContent></Tooltip>}</div>
-                {loadState === "error" && <Alert className="mb-4 rounded-2xl border-orange-200 bg-orange-50/70"><TriangleAlert size={16} aria-hidden="true" /><AlertTitle>Setup status could not be checked</AlertTitle><AlertDescription>The run trace remains the source of truth for document progress.</AlertDescription></Alert>}
+                {loadState === "error" && <Alert className="mb-4 rounded-2xl border-border bg-muted"><TriangleAlert size={16} aria-hidden="true" /><AlertTitle>Setup status could not be checked</AlertTitle><AlertDescription>The run trace remains the source of truth for document progress.</AlertDescription></Alert>}
                 <ul className="grid items-start gap-3 md:grid-cols-3" aria-label="Agent system configuration">
                   {expectedAgents.map(({ name, number, fallback, icon: Icon, status }) => {
                     const readiness = readinessFor(status, loadState)
-                    return <li key={name} className="rounded-2xl border border-black/[.07] bg-white/55 p-3.5"><div className="flex items-center justify-between gap-3"><span className="grid size-8 place-items-center rounded-full bg-black/[.04] text-[10px] font-semibold">{number}</span><Badge variant={readiness.badgeVariant}>{readiness.label}</Badge></div><div className="mt-3 flex items-center gap-2"><Icon size={16} className="text-[#812d29]" aria-hidden="true" /><h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3></div><p className="mt-1.5 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p><Separator className="my-2.5 bg-black/[.06]" /><p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p></li>
+                    return <li key={name} className="rounded-2xl border border-black/[.07] bg-white/55 p-3.5"><div className="flex items-center justify-between gap-3"><span className="grid size-8 place-items-center rounded-full bg-black/[.04] text-[10px] font-semibold">{number}</span><Badge variant={readiness.badgeVariant}>{readiness.label}</Badge></div><div className="mt-3 flex items-center gap-2"><Icon size={16} className="text-foreground" aria-hidden="true" /><h3 className="text-sm font-semibold tracking-[.06em]">{name.toUpperCase()}</h3></div><p className="mt-1.5 text-xs leading-5 text-zinc-500">{status?.description || fallback}</p><Separator className="my-2.5 bg-black/[.06]" /><p className="flex items-center gap-1.5 text-[10px] text-zinc-400"><Clock3 size={11} aria-hidden="true" />{formatLastCheck(status?.last_run)}</p></li>
                   })}
                 </ul>
               </AccordionContent>
@@ -535,7 +535,7 @@ export function OrchestrationView({ agents, loadState, latestAnalysis = null, an
               </AccordionTrigger>
               <AccordionContent>
                 <div className="grid items-start gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-4"><p className="text-xs font-semibold text-orange-800">SCAM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Two or more accepted, countable scam signals.</p></div>
+                  <div className="rounded-2xl border border-border bg-muted p-4"><p className="text-xs font-semibold text-foreground">SCAM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Two or more accepted, countable scam signals.</p></div>
                   <div className="rounded-2xl border border-brand-soft bg-brand-soft/30 p-4"><p className="text-xs font-semibold">VERIFIED</p><p className="mt-2 text-xs leading-5 text-zinc-500">The case is found and the caption parties match.</p></div>
                   <div className="rounded-2xl border border-black/[.07] bg-white/60 p-4"><p className="text-xs font-semibold">CANNOT_CONFIRM</p><p className="mt-2 text-xs leading-5 text-zinc-500">Anything else, including an unavailable evidence branch.</p></div>
                 </div>

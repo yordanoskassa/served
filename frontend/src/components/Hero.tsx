@@ -59,20 +59,20 @@ function ServedMailbox({ open, onOpen, onSelect }: {
   return (
     <div className="relative h-[350px] w-[310px] sm:h-[390px] sm:w-[410px]" style={{ perspective: "900px" }}>
       <div className="absolute bottom-4 left-1/2 h-9 w-64 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md sm:w-80" />
-      <div className="absolute bottom-8 left-1/2 h-40 w-14 -translate-x-1/2 rounded-b-xl bg-[#9d3a34] shadow-[inset_-6px_0_12px_rgba(0,0,0,.08)] sm:h-44 sm:w-16" />
-      <div className="absolute bottom-5 left-1/2 h-6 w-36 -translate-x-1/2 rounded-full bg-[#7d302c] sm:w-44" />
+      <div className="absolute bottom-8 left-1/2 h-40 w-14 -translate-x-1/2 rounded-b-xl bg-neutral-700 shadow-[inset_-6px_0_12px_rgba(0,0,0,.08)] sm:h-44 sm:w-16" />
+      <div className="absolute bottom-5 left-1/2 h-6 w-36 -translate-x-1/2 rounded-full bg-neutral-800 sm:w-44" />
 
       <motion.div
         aria-hidden="true"
         animate={{ rotate: open ? 0 : -82 }}
         transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 95, damping: 14 }}
-        className="absolute right-2 bottom-[184px] z-0 h-36 w-3 origin-bottom rounded-full bg-[#812d29] sm:right-5 sm:bottom-[210px] sm:h-40"
+        className="absolute right-2 bottom-[184px] z-0 h-36 w-3 origin-bottom rounded-full bg-foreground sm:right-5 sm:bottom-[210px] sm:h-40"
       >
-        <div className="absolute -top-1 left-0 h-16 w-12 rounded-r-lg rounded-tl-lg bg-[#d75a4f]" />
+        <div className="absolute -top-1 left-0 h-16 w-12 rounded-r-lg rounded-tl-lg bg-neutral-500" />
       </motion.div>
 
-      <div className="absolute bottom-[135px] left-1/2 h-[185px] w-[270px] -translate-x-1/2 rounded-t-[135px] rounded-b-[28px] bg-[#3a2725] p-3 shadow-[0_14px_32px_rgba(78,43,38,.14)] sm:bottom-[155px] sm:h-[215px] sm:w-[330px] sm:rounded-t-[170px] sm:p-4">
-        <div className="h-full w-full rounded-t-[125px] rounded-b-[22px] bg-[radial-gradient(circle_at_50%_65%,#6e4a45_0%,#2b1c1a_68%)] sm:rounded-t-[155px]" />
+      <div className="absolute bottom-[135px] left-1/2 h-[185px] w-[270px] -translate-x-1/2 rounded-t-[135px] rounded-b-[28px] bg-neutral-900 p-3 shadow-[0_14px_32px_rgba(0,0,0,.12)] sm:bottom-[155px] sm:h-[215px] sm:w-[330px] sm:rounded-t-[170px] sm:p-4">
+        <div className="h-full w-full rounded-t-[125px] rounded-b-[22px] bg-[radial-gradient(circle_at_50%_65%,#525252_0%,#171717_68%)] sm:rounded-t-[155px]" />
         <motion.button
           type="button"
           aria-label={open ? "Served mailbox open" : "Open the Served mailbox"}
@@ -83,7 +83,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           animate={open ? { rotateX: reduceMotion ? -74 : -102, y: 20 } : { rotateX: 0, y: 0 }}
           transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 90, damping: 14 }}
           style={{ transformOrigin: "50% 100%", transformStyle: "preserve-3d" }}
-          className={`group/mailbox absolute inset-0 appearance-none rounded-t-[135px] rounded-b-[28px] border border-[#a63d35] bg-[#cf5047] p-0 text-left shadow-[inset_-10px_-8px_18px_rgba(87,24,22,.12)] sm:rounded-t-[170px] ${reduceMotion ? "" : "transition-[filter]"} ${open ? "pointer-events-none" : "cursor-pointer hover:brightness-[1.035] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/20 focus-visible:ring-offset-4 focus-visible:ring-offset-bg-base"}`}
+          className={`group/mailbox absolute inset-0 appearance-none rounded-t-[135px] rounded-b-[28px] border border-neutral-600 bg-neutral-800 p-0 text-left shadow-[inset_-10px_-8px_18px_rgba(0,0,0,.25)] sm:rounded-t-[170px] ${reduceMotion ? "" : "transition-[filter]"} ${open ? "pointer-events-none" : "cursor-pointer hover:brightness-[1.035] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/20 focus-visible:ring-offset-4 focus-visible:ring-offset-background"}`}
         >
           <span aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-[inherit]">
             <span className={`absolute -top-1/2 -left-1/3 h-[190%] w-1/3 -rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 ${reduceMotion ? "" : "transition-all duration-700 group-hover/mailbox:left-full group-hover/mailbox:opacity-100"}`} />
@@ -125,7 +125,7 @@ export function Hero({ open, onOpen, onSelect }: {
     return () => window.clearTimeout(timeout)
   }, [open, reduceMotion])
 
-  return <section id="top" className="relative min-h-[100svh] w-full overflow-hidden bg-bg-base">
+  return <section id="top" className="relative min-h-[100svh] w-full overflow-hidden bg-background">
     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
       <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-25 grayscale-[40%] saturate-75" />
       <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-bg-base/75 to-bg-base/30" />

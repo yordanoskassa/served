@@ -43,10 +43,10 @@ function savedVerdictLabel(verdict: string | null | undefined): string {
 }
 
 function savedVerdictClass(verdict: string | null | undefined): string {
-  if (verdict === "verified") return "bg-brand-soft text-black"
-  if (isScamVerdict(verdict)) return "bg-orange-100 text-orange-800"
-  if (verdict === "cannot_confirm") return "bg-amber-100 text-amber-800"
-  return "bg-zinc-100 text-zinc-600"
+  if (verdict === "verified") return "bg-foreground text-background"
+  if (isScamVerdict(verdict)) return "bg-muted text-foreground"
+  if (verdict === "cannot_confirm") return "bg-muted text-foreground"
+  return "bg-muted text-muted-foreground"
 }
 
 function savedDate(value: string | null | undefined): string {
@@ -290,7 +290,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-bg-base text-ink selection:bg-brand-soft selection:text-ink">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
         <button type="button" className="flex items-center gap-3" onClick={() => setActiveTab("overview")}>
           <BrandMark className="size-9" />
@@ -306,7 +306,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
       </aside>
 
       <main className="lg:ml-56">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-bg-base/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
           <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg">Served</span></button>
           <div className="hidden lg:block"><p className="text-xs text-zinc-500">{greeting()}</p><p className="font-display text-lg font-semibold tracking-[-.015em]">Financial subpoena workspace</p></div>
           <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
@@ -377,7 +377,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           </section>
 
           <section className="grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
-            {metrics.map(([label, value, note], index) => <article className="h-fit rounded-2xl border border-black/[.08] bg-white/70 p-4" key={label}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-medium text-zinc-600">{label}</p><p className="mt-1 text-[11px] leading-4 text-zinc-500">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></div><span className={`mt-1 size-2 shrink-0 rounded-full ${index === 3 ? "bg-orange-400" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="mt-3 h-8 w-12 rounded-lg bg-black/5" /> : <p className="mt-3 font-display text-3xl leading-none tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}</article>)}
+            {metrics.map(([label, value, note], index) => <article className="h-fit rounded-2xl border border-black/[.08] bg-white/70 p-4" key={label}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-medium text-zinc-600">{label}</p><p className="mt-1 text-[11px] leading-4 text-zinc-500">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></div><span className={`mt-1 size-2 shrink-0 rounded-full ${index === 3 ? "bg-neutral-500" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="mt-3 h-8 w-12 rounded-lg bg-black/5" /> : <p className="mt-3 font-display text-3xl leading-none tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}</article>)}
           </section>
 
           </TabsContent>
@@ -395,13 +395,13 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 })}
                 {historyState === "ready" && !historyItems.length && <p className="px-6 py-8 text-center text-sm text-zinc-400">No analyses yet. Your first completed check will appear here.</p>}
               </div>
-              {historyState === "ready" && historyError && <div className="border-t border-black/5 p-5"><Alert className="rounded-2xl border-black/10 bg-bg-base"><AlertTitle>Could not load more</AlertTitle><AlertDescription>{historyError}</AlertDescription></Alert></div>}
+              {historyState === "ready" && historyError && <div className="border-t border-black/5 p-5"><Alert className="rounded-2xl border-black/10 bg-background"><AlertTitle>Could not load more</AlertTitle><AlertDescription>{historyError}</AlertDescription></Alert></div>}
               {historyState === "ready" && historyHasMore && <div className="border-t border-black/5 p-5 text-center"><Button variant="outline" disabled={historyLoadingMore} onClick={() => { void loadMoreHistory() }}>{historyLoadingMore ? "Loading more…" : "Load more documents"}</Button></div>}
             </section> : <section ref={savedDetailRegion} tabIndex={-1} aria-label="Saved analysis detail" aria-busy={savedDetailState === "loading"} className="mx-auto max-w-5xl space-y-4 outline-none">
               {savedDetailState === "loading" && <><p role="status" className="sr-only">Loading saved analysis</p><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><div className="space-y-3 rounded-2xl border border-black/[.08] bg-white/70 p-5"><Skeleton className="h-5 w-28 bg-black/5" /><Skeleton className="h-8 w-1/2 bg-black/5" /><Skeleton className="h-16 w-full bg-black/5" /><Skeleton className="h-44 w-full bg-black/5" /></div></>}
               {savedDetailState === "error" && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><Alert className="rounded-[24px] border-black/10 bg-white/70"><AlertTitle>Analysis unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{savedDetailError ?? "We could not load this saved analysis."}</p>{selectedSavedId && <Button variant="outline" onClick={() => { void openSavedAnalysis(selectedSavedId) }}>Try again</Button>}</AlertDescription></Alert></>}
               {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} onViewPipeline={() => openPipeline(savedDetail.analysis, savedDetail.name)} savedAnalysisId={savedDetail.id} />}
-              {savedDetailState === "ready" && savedDetail && !savedDetail.analysis && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><section className="rounded-2xl border border-black/[.08] bg-white/70 p-5"><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${savedVerdictClass(savedDetail.verdict)}`}>{savedVerdictLabel(savedDetail.verdict)}</span><h2 className="mt-4 font-display text-xl tracking-[-.035em]">{savedDetail.name}</h2><p className="mt-1 text-xs text-zinc-400">{savedDate(savedDetail.created_at)}</p><Alert className="mt-4 rounded-2xl border-black/10 bg-bg-base"><AlertTitle>Earlier analysis</AlertTitle><AlertDescription>The full breakdown was not saved for this earlier analysis. Because Served does not retain uploaded file bytes, upload the document again to create a complete saved breakdown.</AlertDescription></Alert></section></>}
+              {savedDetailState === "ready" && savedDetail && !savedDetail.analysis && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><section className="rounded-2xl border border-black/[.08] bg-white/70 p-5"><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${savedVerdictClass(savedDetail.verdict)}`}>{savedVerdictLabel(savedDetail.verdict)}</span><h2 className="mt-4 font-display text-xl tracking-[-.035em]">{savedDetail.name}</h2><p className="mt-1 text-xs text-zinc-400">{savedDate(savedDetail.created_at)}</p><Alert className="mt-4 rounded-2xl border-black/10 bg-background"><AlertTitle>Earlier analysis</AlertTitle><AlertDescription>The full breakdown was not saved for this earlier analysis. Because Served does not retain uploaded file bytes, upload the document again to create a complete saved breakdown.</AlertDescription></Alert></section></>}
             </section>}
           </TabsContent>
 

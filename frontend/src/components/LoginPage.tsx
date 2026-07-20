@@ -26,27 +26,26 @@ export function LoginPage({ destination = "your financial subpoena" }: { destina
   })
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-bg-base p-2">
-      <div className="pointer-events-none absolute -top-32 -right-28 size-80 rounded-full bg-brand-green/15 blur-3xl" />
-      <div className="relative w-full rounded-[22px] border border-black/10 bg-white/75 p-8 text-center shadow-[0_12px_32px_rgba(0,0,0,.08)] backdrop-blur-2xl sm:p-10">
+    <div className="relative overflow-hidden rounded-[28px] border border-border bg-background p-2">
+      <div className="relative w-full rounded-[22px] border border-border bg-card p-8 text-center sm:p-10">
         <div className="mb-7 flex justify-center">
           <BrandMark className="size-12" />
         </div>
-        <p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Secure workspace</p>
-        <h1 className="font-display text-3xl font-medium tracking-[-.04em] text-[#1a1a1a]">Continue to {destination}</h1>
-        <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-zinc-500">
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-muted-foreground">Secure workspace</p>
+        <h1 className="font-display text-3xl tracking-[-.04em] text-foreground">Continue to {destination}</h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
           Sign in first, then verify the request and find its records inside your private Served workspace.
         </p>
 
         {error && (
-          <Alert variant="destructive" className="mt-5 rounded-2xl border-red-200 bg-red-50 text-left text-red-700"><AlertTitle>Sign-in failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
+          <Alert variant="destructive" className="mt-5 rounded-2xl border-border bg-muted text-left"><AlertTitle>Sign-in failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
         )}
 
         <Button
           type="button"
           onClick={() => googleLogin()}
           disabled={loading}
-          className="mt-7 w-full py-3.5 hover:-translate-y-0.5"
+          className="mt-7 w-full py-3.5"
         >
           <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -56,7 +55,7 @@ export function LoginPage({ destination = "your financial subpoena" }: { destina
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
         </Button>
-        <p className="mt-6 text-[11px] leading-5 text-zinc-400">Your request history stays tied to your verified Google account.</p>
+        <p className="mt-6 text-[11px] leading-5 text-muted-foreground">Your request history stays tied to your verified Google account.</p>
       </div>
     </div>
   )

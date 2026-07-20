@@ -95,16 +95,16 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
 
   if (contact.status !== "reviewed_route" || !canDial) {
     const unavailable = contact.status === "not_available"
-    return <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4" aria-labelledby="clerk-contact-title">
+    return <section className="mt-4 rounded-2xl border border-border bg-muted p-4" aria-labelledby="clerk-contact-title">
       <div className="flex items-start gap-3">
-        <FileWarning className="mt-0.5 shrink-0 text-amber-700" size={20} aria-hidden="true" />
+        <FileWarning className="mt-0.5 shrink-0 text-muted-foreground" size={20} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <Badge variant="warning">{unavailable ? "NO REVIEWED ROUTE" : "HUMAN CHECK NEEDED"}</Badge>
           <h3 id="clerk-contact-title" className="mt-2.5 font-display text-lg font-medium tracking-[-.03em]">{unavailable ? "Guided calling is not available for this route" : "Confirm the correct court office first"}</h3>
-          <p className="mt-1.5 text-sm leading-5 text-amber-950/70">{contact.reason || "The document did not provide enough reviewed routing information to select a clerk’s office safely."}</p>
-          {contact.routing_note && <p className="mt-2 text-xs leading-5 text-amber-900/65">{contact.routing_note}</p>}
-          <p className="mt-2.5 text-xs font-medium leading-5 text-amber-950">No phone number was guessed. Never use a phone number or email address printed on the letter.</p>
-          {contact.official_contact_page && <a className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-900/20 bg-white/70 px-4 py-2 text-sm font-semibold text-amber-950 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700" href={contact.official_contact_page} target="_blank" rel="noreferrer">
+          <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{contact.reason || "The document did not provide enough reviewed routing information to select a clerk’s office safely."}</p>
+          {contact.routing_note && <p className="mt-2 text-xs leading-5 text-muted-foreground">{contact.routing_note}</p>}
+          <p className="mt-2.5 text-xs font-medium leading-5 text-muted-foreground">No phone number was guessed. Never use a phone number or email address printed on the letter.</p>
+          {contact.official_contact_page && <a className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground" href={contact.official_contact_page} target="_blank" rel="noreferrer">
             Open the official contact page <ExternalLink size={15} aria-hidden="true" />
           </a>}
         </div>
@@ -159,7 +159,7 @@ export function GuidedClerkCall({ analysis }: { analysis: Analysis }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">Review your call script</p><button type="button" onClick={copyScript} className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"><Clipboard size={13} aria-hidden="true" /> {copied ? "Copied" : "Copy script"}</button></div>
                 <p className="mt-2 text-xs leading-5 text-zinc-500">The clerk may be able to confirm the case but may not have this particular paper. A paper’s absence from the public docket does not prove it is fake.</p>
-                <blockquote className="mt-3 rounded-xl border-l-2 border-brand-soft bg-bg-base px-4 py-3 text-sm leading-6 text-zinc-700">“{callScript}”</blockquote>
+                <blockquote className="mt-3 rounded-xl border-l-2 border-brand-soft bg-background px-4 py-3 text-sm leading-6 text-zinc-700">“{callScript}”</blockquote>
                 <p className="sr-only" aria-live="polite">{copied ? "Call script copied." : ""}</p>
               </div>
             </li>

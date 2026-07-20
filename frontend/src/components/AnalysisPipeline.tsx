@@ -205,7 +205,7 @@ function LiveActivityLog({ events }: { events: TraceEvent[] }) {
         const limited = ["degraded", "skipped", "unavailable"].includes(event.status)
         const failed = event.status === "failed"
         return <motion.li initial={false} animate={{ opacity: 1 }} className="rounded-xl px-2.5 py-2.5 hover:bg-white/[.04]" key={`${event.seq}-${event.key}-${event.status}`}>
-          <div className="flex gap-2.5"><span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", running ? "animate-pulse bg-brand-green motion-reduce:animate-none" : failed ? "bg-red-400" : limited ? "bg-amber-300" : "bg-white/45")} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-medium leading-4 text-white/85">{event.label}</p><span className="shrink-0 text-[9px] text-white/25">{eventTime(event)}</span></div><p className="mt-1 text-[10px] leading-4 text-white/45">{eventMessage(event)}</p>{event.evidence_count > 0 && <p className="mt-1 text-[9px] text-brand-green/70">{event.evidence_count} evidence item{event.evidence_count === 1 ? "" : "s"} attached</p>}</div></div>
+          <div className="flex gap-2.5"><span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", running ? "animate-pulse bg-brand-green motion-reduce:animate-none" : failed ? "bg-red-400" : limited ? "bg-neutral-300" : "bg-white/45")} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-medium leading-4 text-white/85">{event.label}</p><span className="shrink-0 text-[9px] text-white/25">{eventTime(event)}</span></div><p className="mt-1 text-[10px] leading-4 text-white/45">{eventMessage(event)}</p>{event.evidence_count > 0 && <p className="mt-1 text-[9px] text-brand-green/70">{event.evidence_count} evidence item{event.evidence_count === 1 ? "" : "s"} attached</p>}</div></div>
         </motion.li>
       })}
     </ol>
@@ -262,7 +262,7 @@ export function AnalysisPipeline({
 
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-black/[.06]" aria-hidden="true">
         <motion.div
-          className={cn("h-full rounded-full", runState === "error" ? "bg-orange-500" : "bg-[#812d29]")}
+          className={cn("h-full rounded-full", runState === "error" ? "bg-neutral-600" : "bg-foreground")}
           initial={false}
           animate={{ width: `${progress}%` }}
           transition={{ duration: reduceMotion ? 0 : 0.35, ease: "easeOut" }}
@@ -282,20 +282,20 @@ export function AnalysisPipeline({
               aria-current={stage.state === "active" ? "step" : undefined}
               className={cn(
                 "relative min-w-0 rounded-2xl border p-3",
-                stage.state === "active" && "border-[#812d29]/35 bg-[#812d29]/[.045]",
+                stage.state === "active" && "border-foreground/35 bg-foreground/[.045]",
                 stage.state === "complete" && "border-black/[.06] bg-white/80",
-                stage.state === "limited" && "border-amber-200 bg-amber-50/70",
-                stage.state === "failed" && "border-orange-200 bg-orange-50/70",
+                stage.state === "limited" && "border-border bg-muted",
+                stage.state === "failed" && "border-border bg-muted",
                 stage.state === "waiting" && "border-black/[.05] bg-black/[.018]",
               )}
             >
               <div className="relative flex items-center justify-between gap-2">
                 <span className={cn(
-                  "grid size-9 shrink-0 place-items-center rounded-full border bg-bg-base",
-                  stage.state === "active" && "border-[#812d29] text-[#812d29]",
+                  "grid size-9 shrink-0 place-items-center rounded-full border bg-background",
+                  stage.state === "active" && "border-foreground text-foreground",
                   stage.state === "complete" && "border-brand-green bg-brand-green/20 text-black",
-                  stage.state === "limited" && "border-amber-300 text-amber-700",
-                  stage.state === "failed" && "border-orange-300 text-orange-700",
+                  stage.state === "limited" && "border-foreground/30 text-muted-foreground",
+                  stage.state === "failed" && "border-foreground text-foreground",
                   stage.state === "waiting" && "border-black/10 text-zinc-400",
                 )}>
                   {stage.state === "failed" ? <TriangleAlert size={14} /> : stage.state === "active" ? <CircleDot className="animate-pulse motion-reduce:animate-none" size={14} /> : <Icon size={14} />}

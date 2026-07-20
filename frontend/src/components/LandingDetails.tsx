@@ -11,7 +11,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
     { icon: ListChecks, title: "Review", text: "See what matched and why before you prepare or share anything." },
   ]
 
-  return <div className="bg-bg-base px-8 pb-24 md:px-16 lg:px-20">
+  return <div className="bg-background px-8 pb-24 md:px-16 lg:px-20">
     <section id="workflow" className="mx-auto max-w-7xl border-t border-black/10 py-20">
       <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
         <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">How Served works</p><h2 className="mt-5 max-w-xl font-display text-4xl font-semibold tracking-[-.035em] sm:text-6xl">One request. Only the records it asks for.</h2></div>
@@ -45,7 +45,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
       <div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">The result from fetched data</p><h2 className="mt-5 max-w-2xl font-display text-4xl font-semibold tracking-[-.035em] sm:text-6xl">28 searched. 7 matched. 2 need review. 19 stayed protected.</h2><p className="mt-5 max-w-xl text-sm leading-7 text-zinc-500">D4 asks for payments to Audrea Barnes. Served checks the connected account, explains each match, and keeps suppliers, other employees, and out-of-range payments outside the response.</p><Button onClick={onGetStarted} className="mt-6">Run the D4 payment demo <ArrowUpRight size={15} /></Button></div>
       <div className="overflow-hidden rounded-[16px] border border-white/10 bg-primary p-6 text-white">
         <div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Records to review</p><span className="rounded-full bg-brand-green px-3 py-1 text-[10px] font-semibold text-black">VERIFIED</span></div>
-        <div className="mt-8 grid grid-cols-3 gap-3"><div className="rounded-2xl bg-brand-green p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">7</p><p className="mt-1 text-xs font-medium">include</p></div><div className="rounded-2xl bg-amber-300 p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">2</p><p className="mt-1 text-xs font-medium">review</p></div><div className="rounded-2xl bg-white/10 p-5"><p className="font-display text-5xl tracking-[-.07em]">19</p><p className="mt-1 text-xs text-white/60">exclude</p></div></div>
+        <div className="mt-8 grid grid-cols-3 gap-3"><div className="rounded-2xl bg-brand-green p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">7</p><p className="mt-1 text-xs font-medium">include</p></div><div className="rounded-2xl bg-white p-5 text-black"><p className="font-display text-5xl tracking-[-.07em]">2</p><p className="mt-1 text-xs font-medium">review</p></div><div className="rounded-2xl bg-white/10 p-5"><p className="font-display text-5xl tracking-[-.07em]">19</p><p className="mt-1 text-xs text-white/60">exclude</p></div></div>
         <div className="mt-3 space-y-2">{["Exact Audrea payee + in-range date", "Unnamed check needs review", "Near-name ACH needs review"].map((label) => <div className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm" key={label}><ShieldCheck className="text-brand-green" size={16} />{label}</div>)}</div>
       </div>
     </section>

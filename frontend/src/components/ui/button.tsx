@@ -8,8 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary px-5 py-3 text-primary-foreground shadow-[0_1px_0_rgba(255,255,255,.12)_inset] hover:bg-[#1b3045]",
-        outline: "border border-black/15 bg-card/80 px-5 py-3 text-ink backdrop-blur hover:bg-card",
+        default: "bg-primary px-5 py-3 text-primary-foreground hover:bg-neutral-800",
+        outline: "border border-border bg-card px-5 py-3 text-foreground hover:bg-muted",
       },
     },
     defaultVariants: { variant: "default" },

@@ -3,14 +3,14 @@ import type { HTMLAttributes } from "react"
 
 import { cn } from "@/lib/utils"
 
-const badgeVariants = cva("inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium", {
+const badgeVariants = cva("inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-medium", {
   variants: {
     variant: {
-      default: "bg-brand-soft text-black",
-      secondary: "bg-black/5 text-zinc-600",
-      warning: "bg-amber-100 text-amber-800",
-      destructive: "bg-orange-100 text-orange-800",
-      outline: "border border-black/10 bg-white/60 text-zinc-700",
+      default: "border-foreground bg-foreground text-background",
+      secondary: "border-border bg-muted text-muted-foreground",
+      warning: "border-foreground/30 bg-muted text-foreground",
+      destructive: "border-foreground bg-muted text-foreground",
+      outline: "border-border bg-background text-muted-foreground",
     },
   },
   defaultVariants: { variant: "default" },

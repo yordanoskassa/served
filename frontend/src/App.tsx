@@ -48,7 +48,7 @@ export function App() {
     }
   }, [])
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-bg-base text-sm">Loading...</div>
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
   if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
 
   const openMailbox = () => {
@@ -65,7 +65,7 @@ export function App() {
     }
     setShowAuth(true)
   }
-  const landing = <div className="min-h-screen bg-bg-base selection:bg-brand-green selection:text-black"><Navbar onGetStarted={openMailbox} /><main><Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startAuth} /><LandingDetails onGetStarted={openMailbox} /></main></div>
+  const landing = <div className="min-h-screen bg-background selection:bg-foreground selection:text-background"><Navbar onGetStarted={openMailbox} /><main><Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startAuth} /><LandingDetails onGetStarted={openMailbox} /></main></div>
 
   if (clientIdLoading) return landing
   if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader></DialogContent></Dialog>

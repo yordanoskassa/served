@@ -15,7 +15,7 @@ const links = [
 export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
   const [open, setOpen] = useState(false)
   return <>
-    <nav className="fixed top-0 left-0 z-50 w-full border-b border-black/[.04] bg-bg-base/88 py-5 backdrop-blur-xl md:py-6">
+    <nav className="fixed top-0 left-0 z-50 w-full border-b border-border bg-background/90 py-5 backdrop-blur-xl md:py-6">
       <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-x-4 px-8 md:gap-x-8 md:px-16 lg:px-20">
         <a href="#top" className="col-span-6 flex items-center gap-2 md:col-span-3" aria-label="Served home">
           <BrandMark className="size-8 shrink-0" /><span className="font-display text-xl font-semibold tracking-[-.025em] text-ink">Served</span>
@@ -33,7 +33,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
       </div>
     </nav>
     <AnimatePresence>
-      {open && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="fixed top-[84px] left-0 z-40 w-full overflow-hidden border-b border-black/10 bg-bg-base/95 px-8 backdrop-blur-xl md:hidden">
+      {open && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="fixed top-[84px] left-0 z-40 w-full overflow-hidden border-b border-border bg-background/95 px-8 backdrop-blur-xl md:hidden">
         <div className="flex flex-col gap-5 py-7 text-sm">
           {links.map((link) => <a onClick={() => setOpen(false)} href={link.href} key={link.label}>{link.label}</a>)}
           <a href="#resources" onClick={() => setOpen(false)}>the story</a>

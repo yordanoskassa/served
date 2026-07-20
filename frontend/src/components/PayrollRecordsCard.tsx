@@ -51,7 +51,7 @@ function CandidateDecision({ decision, possible, onDecision }: {
     <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Owner decision</span>
     <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "approved" ? "bg-brand-green text-black" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("approved")}>Approve</button>
     <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "excluded" ? "bg-black text-white" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("excluded")}>Exclude</button>
-    {possible && <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "counsel" ? "bg-amber-300 text-black" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("counsel")}>Ask counsel</button>}
+    {possible && <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "counsel" ? "bg-neutral-300 text-black" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("counsel")}>Ask counsel</button>}
   </div>
 }
 

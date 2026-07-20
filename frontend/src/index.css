@@ -1,33 +1,35 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
-  --font-display: Merriweather, Georgia, "Times New Roman", serif;
-  --color-brand-green: #b9f34a;
-  --color-brand-soft: #e7f9c1;
-  --color-bg-base: #edf1f5;
-  --color-background: #edf1f5;
-  --color-foreground: #172635;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  /* Accent on dark panels (was lime); keep token name for compatibility */
+  --color-brand-green: #ffffff;
+  --color-brand-soft: #e5e5e5;
+  --color-bg-base: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
   --color-card: #ffffff;
-  --color-primary: #172635;
+  --color-primary: #0a0a0a;
   --color-primary-foreground: #ffffff;
-  --color-muted: #e4eaf0;
-  --color-muted-foreground: #596775;
-  --color-border: #d3dce5;
-  --color-ring: #172635;
-  --color-pine: #172635;
-  --color-coral: #812d29;
-  --color-ink: #172635;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #525252;
+  --color-border: #e5e5e5;
+  --color-ring: #0a0a0a;
+  --color-pine: #0a0a0a;
+  --color-coral: #0a0a0a;
+  --color-ink: #0a0a0a;
 }
 
 @layer base {
   * { @apply border-border; }
   html { scroll-behavior: smooth; }
   body {
-    @apply m-0 bg-bg-base text-foreground font-sans antialiased;
+    @apply m-0 bg-background text-foreground font-sans antialiased;
   }
   h1, h2, h3 {
+    @apply font-display font-medium tracking-[-0.03em];
     text-wrap: balance;
   }
   .font-display {
