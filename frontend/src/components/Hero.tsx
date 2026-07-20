@@ -108,8 +108,8 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           </span>
           <div className="absolute inset-x-8 top-[42%] h-px bg-white/10" />
           <div className="absolute inset-x-0 top-[40%] flex flex-col items-center text-center font-sans">
-            <span className="grid size-[3.25rem] place-items-center rounded-full border border-white/20 bg-white/[.06] shadow-[inset_0_1px_0_rgba(255,255,255,.12)] sm:size-[4.25rem]">
-              <BrandMark inverse className="size-9 sm:size-11" />
+            <span className="grid size-[3.25rem] place-items-center rounded-full border border-white/20 bg-white/[.06] sm:size-[4.25rem]">
+              <BrandMark inverse className="size-10 sm:size-12" />
             </span>
             <p className="mt-3 max-w-[12rem] text-[8px] font-medium uppercase tracking-[.28em] text-white/45 sm:text-[9px]">
               Incoming requests

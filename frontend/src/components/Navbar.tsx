@@ -19,7 +19,7 @@ export function Navbar({ onGetStarted }: { onGetStarted: () => void }) {
     <nav className="fixed top-0 left-0 z-50 w-full border-b border-border bg-background/90 py-5 backdrop-blur-xl md:py-6">
       <div className="mx-auto grid max-w-7xl grid-cols-12 items-center gap-x-4 px-8 md:gap-x-8 md:px-16 lg:px-20">
         <a href="#top" className="col-span-6 flex items-center gap-2 md:col-span-3" aria-label="Served home">
-          <BrandMark className="size-8 shrink-0" />
+          <BrandMark className="size-9 shrink-0" />
           <span className="hidden font-display text-xl font-normal tracking-[-.03em] sm:inline">Served</span>
         </a>
         <div className="col-span-6 hidden items-center justify-center gap-6 md:col-span-6 md:flex">
