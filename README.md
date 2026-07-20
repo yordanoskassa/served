@@ -217,8 +217,11 @@ backend service, including `SERVED_CORS_ORIGINS` with the deployed Netlify
 origin, for example:
 
 ```text
-SERVED_CORS_ORIGINS=["https://your-site.netlify.app"]
+SERVED_CORS_ORIGINS=["https://servedai.netlify.app","http://localhost:5173"]
 ```
+
+The API also merges `https://servedai.netlify.app` into allowed origins by default.
+Redeploy the backend after changing CORS or Plaid variables.
 
 For Netlify, connect the repository and use the included `netlify.toml`.
 Set the build environment variable `VITE_API_URL` to the public EasyPanel

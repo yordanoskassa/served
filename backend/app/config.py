@@ -9,19 +9,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LUMPER_ENV = PROJECT_ROOT.parent / "lumper_app" / ".env"
 
+# Always allow the public Netlify app even if SERVED_CORS_ORIGINS omits it.
+DEFAULT_CORS_ORIGINS: list[str] = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:3000",
+    "https://servedai.netlify.app",
+]
+
 
 class Settings(BaseSettings):
     app_name: str = "Served API"
     api_prefix: str = "/api"
     environment: str = "development"
-    cors_origins: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:3000",
-    ]
+    cors_origins: list[str] = Field(default_factory=lambda: list(DEFAULT_CORS_ORIGINS))
     openai_api_key: str = Field(
         default="",
         validation_alias=AliasChoices("SERVED_OPENAI_API_KEY", "OPENAI_API_KEY"),
@@ -134,8 +138,8 @@ class Settings(BaseSettings):
     @field_validator("cors_origins")
     @classmethod
     def include_loopback_dev_origins(cls, origins: list[str]) -> list[str]:
-        expanded = list(origins)
-        for origin in origins:
+        expanded = [*DEFAULT_CORS_ORIGINS, *origins]
+        for origin in list(expanded):
             if origin.startswith("http://localhost:"):
                 expanded.append(origin.replace("http://localhost:", "http://127.0.0.1:", 1))
         return list(dict.fromkeys(expanded))

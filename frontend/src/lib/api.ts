@@ -291,6 +291,16 @@ async function responseError(res: Response, fallback: string): Promise<Error> {
   return new Error(text || fallback)
 }
 
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init)
+  } catch {
+    throw new Error(
+      "Could not reach the Served API. If the browser mentions CORS, the backend often crashed or timed out before it could respond—check EasyPanel logs and Plaid env vars.",
+    )
+  }
+}
+
 export async function fetchGoogleClientId(): Promise<string> {
   const res = await fetch(`${API_URL}/auth/client-id`)
   if (!res.ok) throw await responseError(res, "Failed to fetch client ID")
@@ -472,7 +482,7 @@ export async function deleteAllSavedAnalyses(credential: string, signal?: AbortS
     headers: { Authorization: `Bearer ${credential}` },
     signal,
   })
-  if (!response.ok) throw await responseError(response, "Unable to delete saved letters")
+  if (!response.ok) throw await responseError(response, "Unable to delete saved requests")
   return response.json()
 }
 
@@ -521,11 +531,11 @@ export async function connectPlaidSandboxDemo(
   analysisId: string,
   credential: string,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
+  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
     method: "POST",
     headers: { Authorization: `Bearer ${credential}` },
   })
-  if (!response.ok) throw await responseError(response, "Unable to connect the D4 sample bank")
+  if (!response.ok) throw await responseError(response, "Unable to connect the sample account")
   return response.json()
 }
 
