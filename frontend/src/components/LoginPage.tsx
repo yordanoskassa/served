@@ -6,7 +6,7 @@ import { BrandMark } from "@/components/BrandMark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
-export function LoginPage({ destination = "your financial subpoena" }: { destination?: string }) {
+export function LoginPage({ destination = "your workspace" }: { destination?: string }) {
   const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -31,10 +31,9 @@ export function LoginPage({ destination = "your financial subpoena" }: { destina
         <div className="mb-7 flex justify-center">
           <BrandMark className="size-12" />
         </div>
-        <p className="mb-3 type-eyebrow">Secure workspace</p>
-        <h1 className="type-subsection text-foreground">Continue to {destination}</h1>
+        <h1 className="type-subsection text-foreground">Sign in for {destination}</h1>
         <p className="type-body mx-auto mt-3 max-w-xs">
-          Sign in first, then verify the request and find its records inside your private Served workspace.
+          Google account required. History stays private to you.
         </p>
 
         {error && (
@@ -55,7 +54,7 @@ export function LoginPage({ destination = "your financial subpoena" }: { destina
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
         </Button>
-        <p className="mt-6 text-[11px] leading-5 text-muted-foreground">Your request history stays tied to your verified Google account.</p>
+        <p className="mt-6 type-caption">No shared login · no automatic sharing</p>
       </div>
     </div>
   )

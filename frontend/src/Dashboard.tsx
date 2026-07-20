@@ -199,10 +199,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
   const counts = summary?.counts
   const metrics = [
-    ["Financial requests", counts?.documents, "Recent small-business subpoenas"],
-    ["Ready to match", counts?.verified, "Eligible for source access"],
-    ["Need verification", counts?.review, "Financial records remain locked"],
-    ["Safety stops", counts?.scam, "No sensitive access allowed"],
+    ["Requests", counts?.documents, "Saved letters"],
+    ["Ready", counts?.verified, "Eligible for matching"],
+    ["Locked", counts?.review, "Needs more verification"],
+    ["Blocked", counts?.scam, "No financial access"],
   ] as const
   const orderedAgents = AGENT_ORDER
     .map((name) => agents.find((agent) => agent.name === name))
@@ -308,7 +308,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
       <main className="lg:ml-56">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
           <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg font-normal">Served</span></button>
-          <div className="hidden lg:block"><p className="type-caption">{greeting()}</p><p className="type-ui-heading mt-0.5 font-medium">Financial subpoena workspace</p></div>
+          <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>
           <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
             <Avatar className="size-8"><AvatarImage src={user.picture ?? undefined} alt={user.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(user.name)}</AvatarFallback></Avatar>
             <span className="max-w-28 truncate">{user.given_name || user.name}</span>
@@ -325,12 +325,12 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><p className="type-label mb-2">Financial subpoena response</p><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Handle the request before the deadline.</h1><p className="type-body mt-3 max-w-2xl">Verify the subpoena, search the right payroll or bank data, and review only the records it asks for.</p></div>
+            <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Before the deadline.</h1><p className="type-body mt-3 max-w-xl">Check the letter, open the right data source, review matches.</p></div>
             <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
           <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-3">
-            {["1 · Read and verify", "2 · Find the records", "3 · Review the matches"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
+            {["1 · Letter", "2 · Source", "3 · Review"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
@@ -384,7 +384,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
           <TabsContent value="documents" className="mt-0">
             {savedDetailState === "idle" ? <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
-              <div className="border-b border-black/5 px-5 py-4"><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-500">Request history</p><h2 className="mt-1.5 font-display text-xl tracking-[-.035em]">Saved financial subpoenas</h2><p className="mt-1 text-xs text-zinc-400">Reopen a request, its verification evidence, and any eligible payroll or bank-matching step.</p></div>
+              <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved requests</h2><p className="type-caption mt-1">Reopen evidence and matching steps.</p></div>
               <div className="divide-y divide-black/5">
                 {historyState === "loading" && <div className="space-y-3 px-6 py-6">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-1/3 bg-black/5" /><Skeleton className="h-2 w-1/5 bg-black/5" /></div></div>)}</div>}
                 {historyState === "error" && <div className="p-5"><Alert className="rounded-2xl border-black/10 bg-white/70"><AlertTitle>History unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{historyError ?? "We could not load your saved analyses right now."}</p><Button variant="outline" onClick={() => setRefreshKey((value) => value + 1)}>Try again</Button></AlertDescription></Alert></div>}
@@ -407,7 +407,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
           <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-3"><Skeleton className="h-36 w-full rounded-2xl bg-black/5" /><Skeleton className="h-64 w-full rounded-2xl bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={pipelineAnalysis ?? latestAnalysis} analysisRunState={pipelineAnalysis ? "complete" : analysisRunState} traceEvents={pipelineAnalysis?.trace?.steps ?? traceEvents} runLabel={pipelineDocumentName} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
 
-          <TabsContent value="privacy" className="mt-0"><section className="flex items-start gap-3 rounded-2xl border border-black/[.08] bg-white/70 p-4 text-sm leading-6"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={15} /></span><p className="pt-0.5"><strong>Privacy, stated accurately.</strong> Uploaded file bytes are processed for the analysis. Your workspace saves the structured result—including extracted facts, evidence, the code decision, and run trace—plus document metadata tied to your account. It does not retain the uploaded file bytes.</p></section></TabsContent>
+          <TabsContent value="privacy" className="mt-0"><section className="type-body flex items-start gap-3 rounded-2xl border border-black/[.08] bg-white/70 p-4 leading-6"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={15} /></span><p className="pt-0.5"><strong>Privacy.</strong> Upload bytes are not kept. Your account stores structured results, evidence, decisions, and run traces.</p></section></TabsContent>
         </div>
       </main>
     </Tabs>

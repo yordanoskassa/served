@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import type { EntryIntent } from "@/lib/entry"
 
 const letters = [
-  { id: "D4" as const, title: "Payment subpoena", note: "Hero demo · search bank payments", rotate: -5 },
-  { id: "D1" as const, title: "Payroll subpoena", note: "Verified request · match payroll records", rotate: 1.5 },
-  { id: "D2" as const, title: "Altered case number", note: "Uncertain request · records stay locked", rotate: 5 },
-  { id: "D3" as const, title: "Gift-card demand", note: "Scam signals · no financial access", rotate: -2 },
+  { id: "D4" as const, title: "Payment request", note: "D4 · bank match", rotate: -5 },
+  { id: "D1" as const, title: "Payroll request", note: "D1 · payroll match", rotate: 1.5 },
+  { id: "D2" as const, title: "Altered case number", note: "D2 · locked", rotate: 5 },
+  { id: "D3" as const, title: "Gift-card demand", note: "D3 · scam", rotate: -2 },
 ]
 
 function FlyingLetter({ letter, index, onSelect, buttonRef }: {
@@ -91,7 +91,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
           <div className="absolute inset-x-0 top-[48%] text-center">
             <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.035em] text-white">Served</p>
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial subpoena help</p>
+            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial records help</p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
@@ -133,17 +133,13 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="type-eyebrow border-y border-border py-2.5">Financial subpoena response workspace</motion.p>
       <AnimatePresence mode="wait">
-        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-5">
+        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-2">
           <h1 className="type-display">
-            {open ? "Payroll or bank records." : "Got a financial subpoena?"}
+            {open ? "Pick a sample letter." : "Got a records request?"}
           </h1>
-          <p className="type-subsection mt-3 font-sans font-normal text-muted-foreground sm:text-[1.35rem]">
-            {open ? "Served finds the right ones." : "Served handles the search."}
-          </p>
-          <p className="type-lead mx-auto mt-5 max-w-xl">
-            {open ? "A verified payroll request opens payroll matching. A verified payment request opens bank matching. If Served is not sure, your records stay locked." : "Served reads and verifies the request, searches the right payroll or bank data, and shows you what to review before the deadline."}
+          <p className="type-lead mx-auto mt-5 max-w-lg">
+            {open ? "Payroll path for D1. Bank path for D4. Uncertain or scam letters stay locked." : "Understand the letter, check the case, then open only the data it asks for."}
           </p>
         </motion.div>
       </AnimatePresence>
@@ -169,6 +165,5 @@ export function Hero({ open, onOpen, onSelect }: {
 
     <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose D4, D1, D2, D3, or upload your own subpoena." : "Mailbox closed."}</p>
     <span className="absolute bottom-6 left-6 z-20 type-caption md:left-16">{new Date().getFullYear()}</span>
-    <span className="absolute right-6 bottom-6 z-20 type-caption md:right-16">verify first · access records second</span>
   </section>
 }

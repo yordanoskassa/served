@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 
 const links = [
   { label: "workflow", href: "#workflow" },
-  { label: "bank connection", href: "#bank-connection" },
-  { label: "record matching", href: "#record-matching" },
+  { label: "bank", href: "#bank-connection" },
+  { label: "results", href: "#record-matching" },
   { label: "privacy", href: "#privacy" },
 ]
 

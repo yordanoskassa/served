@@ -1,4 +1,4 @@
-import { BellRing, Check, Circle, Clipboard, FileCheck2, ListChecks, MailPlus, UserRound } from "lucide-react"
+import { BellRing, Check, Circle, Clipboard, FileCheck2, MailPlus, UserRound } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
@@ -109,9 +109,8 @@ export function CaseWorkflow({
   return <section className="mt-5 overflow-hidden rounded-2xl border border-black/10 bg-white/75" aria-label="Case plan">
     <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
       <div>
-        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500"><ListChecks size={14} /> Case plan</div>
-        <h3 className="mt-1.5 font-display text-xl tracking-[-.035em]">{nextStep}</h3>
-        <p className="mt-1 text-xs text-zinc-500">Case owner: you · {completed} of 4 stages complete</p>
+        <h3 className="type-ui-heading">{nextStep}</h3>
+        <p className="type-caption mt-1">{completed} of 4 complete · you own the case</p>
       </div>
       <Badge variant={deadline.urgent ? "warning" : "secondary"}><BellRing size={12} /> {deadline.label}</Badge>
     </div>

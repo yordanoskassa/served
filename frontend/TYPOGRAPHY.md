@@ -30,3 +30,4 @@ Inspired by [Legora](https://legora.com/) (light serif display + humanist sans b
 2. **Do not** use serif for buttons, nav links, badges, tabs, or form labels — sans only.
 3. **Workspace app** (dashboard, upload, analysis, pipeline): prefer `.type-ui-heading` for card titles; reserve serif for the main page opener only.
 4. **Base size** is 16px on `html`; dense UI may use 14px (`.type-body`) but marketing intros should be `.type-lead` or larger.
+5. **Copy:** one headline per block—avoid eyebrow + title that say the same thing. Do not repeat “Served”, “subpoena”, “verify”, or “financial records” in back-to-back lines. Prefer short terms: letter, request, match, locked, source.

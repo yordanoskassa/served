@@ -58,8 +58,7 @@ export function WorkspaceActivity({
     <div className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-400">{showRun ? "Analysis pipeline" : "Workspace activity"}</p>
-          <h2 className="mt-1.5 font-display text-xl tracking-[-.035em]">{runActive ? "Your request is being verified" : runStopped ? "This run stopped early" : "Recent subpoena checks"}</h2>
+          <h2 className="type-ui-heading">{runActive ? "Running analysis" : runStopped ? "Run stopped" : "Recent checks"}</h2>
         </div>
         <Button
           variant="outline"
@@ -75,8 +74,8 @@ export function WorkspaceActivity({
 
       {showRun ? <div className="pt-4">
         <AnalysisPipeline events={traceEvents} runState={runStopped ? "error" : "running"} compact rail />
-        <p className="mt-3 text-[10px] text-zinc-400">{traceEvents.length} verified backend event{traceEvents.length === 1 ? "" : "s"} received</p>
-        <Button className="mt-4 h-10 w-full py-2 text-sm" onClick={onOpenPipeline}>{runStopped ? "Inspect where it stopped" : "Open live evidence"} <ArrowRight size={15} /></Button>
+        <p className="type-caption mt-3">{traceEvents.length} event{traceEvents.length === 1 ? "" : "s"}</p>
+        <Button className="mt-4 h-10 w-full py-2 text-sm" onClick={onOpenPipeline}>{runStopped ? "See trace" : "Live trace"} <ArrowRight size={15} /></Button>
       </div> : <>
         <div className="mt-4">
           {summaryState === "loading" && <div className="space-y-4">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-2/3 bg-black/5" /><Skeleton className="h-2 w-1/3 bg-black/5" /></div></div>)}</div>}
@@ -90,12 +89,12 @@ export function WorkspaceActivity({
               <Badge variant={badge.variant} className="px-2.5 py-1 text-[9px]">{badge.label}</Badge><ChevronRight className="shrink-0 text-zinc-300" size={15} />
             </button>
           })}
-          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No saved analyses yet</p><p className="mt-1 text-xs leading-5 text-zinc-400">Your first completed check will appear here.</p></div></div>}
+          {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No checks yet</p><p className="type-caption mt-1">Completed analyses appear here.</p></div></div>}
         </div>
         <Separator className="my-3" />
         <div className="grid gap-2 sm:grid-cols-2">
-          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>Saved requests <ArrowRight size={14} /></Button>
-          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenPipeline} disabled={!traceEvents.length}>Latest run trace <Activity size={14} /></Button>
+          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>All requests <ArrowRight size={14} /></Button>
+          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenPipeline} disabled={!traceEvents.length}>Trace <Activity size={14} /></Button>
         </div>
       </>}
     </div>

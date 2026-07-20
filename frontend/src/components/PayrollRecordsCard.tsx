@@ -97,12 +97,11 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-black/5"><LockKeyhole size={18} /></span>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Business records locked</p>
-          <h3 className="mt-1 font-display text-lg tracking-[-.03em]">No payroll or bank access requested</h3>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-500">
+          <h3 className="type-ui-heading">Financial tools locked</h3>
+          <p className="type-body mt-1 max-w-2xl">
             {analysis.verdict === "cannot_confirm"
-              ? "Verify the request through an official source before connecting or uploading sensitive business records."
-              : "This letter shows scam indicators. Served will not ask for financial access or employee records."}
+              ? "Confirm the route through an official source first."
+              : "Scam indicators detected—no financial access."}
           </p>
         </div>
       </div>
@@ -183,8 +182,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10"><FileSpreadsheet size={18} /></span>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Step 2 · Payroll records</p>
-            <h3 className="mt-1 font-display text-lg tracking-[-.03em]">Find candidate records for this request</h3>
+            <h3 className="type-ui-heading text-white">Payroll match</h3>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-white/55">Upload a CSV export from payroll. Served compares only the named employee, requested record types, and displayed date range.</p>
           </div>
         </div>
