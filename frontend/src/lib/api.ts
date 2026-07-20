@@ -459,6 +459,40 @@ export async function fetchAgentStatus(signal?: AbortSignal): Promise<{ agents: 
   return response.json()
 }
 
+export async function fetchPublicConfig(signal?: AbortSignal): Promise<{ google_client_id: string; google_auth_enabled: boolean; environment: string }> {
+  const response = await fetch(`${API_URL}/config/public`, { signal })
+  if (!response.ok) throw await responseError(response, "Unable to load configuration")
+  return response.json()
+}
+
+export async function deleteAllSavedAnalyses(credential: string, signal?: AbortSignal): Promise<{ deleted: number }> {
+  const response = await fetch(`${API_URL}/dashboard/analyses`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to delete saved letters")
+  return response.json()
+}
+
+export async function fetchUserPlaidConnection(credential: string, signal?: AbortSignal): Promise<PlaidConnectionStatus> {
+  const response = await fetch(`${API_URL}/plaid/connection`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to load bank connection")
+  return response.json()
+}
+
+export async function disconnectPlaidConnection(credential: string, signal?: AbortSignal): Promise<void> {
+  const response = await fetch(`${API_URL}/plaid/connection`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok && response.status !== 204) throw await responseError(response, "Unable to disconnect bank")
+}
+
 export async function fetchPlaidStatus(
   analysisId: string,
   credential: string,

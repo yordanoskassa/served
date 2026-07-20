@@ -2,6 +2,7 @@ import { AlertTriangle, Camera, FileImage, Landmark, LoaderCircle, ShieldCheck, 
 import { useEffect, useRef, useState } from "react"
 
 import { AnalysisDetail } from "@/components/AnalysisDetail"
+import { SAMPLE_TIPS_KEY } from "@/components/SettingsPanel"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -30,6 +31,20 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
   const [analysis, setAnalysis] = useState<Analysis>()
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const [showSampleTips, setShowSampleTips] = useState(() => {
+    if (typeof window === "undefined") return true
+    return localStorage.getItem(SAMPLE_TIPS_KEY) !== "off"
+  })
+
+  useEffect(() => {
+    const sync = () => setShowSampleTips(localStorage.getItem(SAMPLE_TIPS_KEY) !== "off")
+    window.addEventListener("served-prefs", sync)
+    window.addEventListener("storage", sync)
+    return () => {
+      window.removeEventListener("served-prefs", sync)
+      window.removeEventListener("storage", sync)
+    }
+  }, [])
 
   useEffect(() => () => analysisController.current?.abort(), [])
 
@@ -147,6 +162,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
       </div>
     </div>
     <div className="px-5 py-4 sm:px-6">
+      {showSampleTips && <>
       <div className="rounded-2xl bg-[#111] p-4 text-white">
         <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white text-black"><Zap size={16} /></span><div><p className="type-label text-white/55">Featured request · D4</p><p className="type-ui mt-1 font-semibold text-white">Payment and bank records</p></div></div>
         <Button aria-label="Analyze the D4 payment and bank records request" className="mt-4 h-10 w-full bg-white text-sm font-medium text-black hover:bg-white/90" disabled={loading} onClick={() => useSample("D4")}><Landmark size={15} /> Run payment request</Button>
@@ -161,6 +177,7 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
         <p className="type-caption mt-2">D2 and D3 keep financial tools locked.</p>
       </div>
       <Separator className="my-3" />
+      </>}
       <div className="flex items-center gap-2 type-caption"><ShieldCheck size={14} /> Structured results saved; file bytes are not</div>
     </div>
   </Card>

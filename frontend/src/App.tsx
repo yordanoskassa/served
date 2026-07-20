@@ -8,6 +8,9 @@ import { Hero } from "@/components/Hero"
 import { LoginPage } from "@/components/LoginPage"
 import { Navbar } from "@/components/Navbar"
 import { LandingDetails } from "@/components/LandingDetails"
+import { LandingFooter } from "@/components/LandingFooter"
+import { LandingPricing } from "@/components/LandingPricing"
+import { LandingTrustBar } from "@/components/LandingTrustBar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { fetchGoogleClientId } from "@/lib/api"
 import { entryLabel, type EntryIntent } from "@/lib/entry"
@@ -51,11 +54,24 @@ export function App() {
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
   if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
 
-  const openMailbox = () => {
+  const openMailbox = useCallback((opts?: { scroll?: boolean }) => {
     setMailboxOpen(true)
-    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
-    window.requestAnimationFrame(() => document.getElementById("mailbox-stage")?.scrollIntoView({ behavior, block: "center" }))
-  }
+    if (opts?.scroll === false) return
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const behavior = reduceMotion ? "auto" : "smooth"
+    const delay = reduceMotion ? 0 : 560
+
+    window.setTimeout(() => {
+      const stage = document.getElementById("mailbox-stage")
+      if (!stage) return
+      const rect = stage.getBoundingClientRect()
+      const navOffset = 96
+      const needsScroll = rect.top < navOffset || rect.bottom > window.innerHeight - 24
+      if (!needsScroll) return
+      stage.scrollIntoView({ behavior, block: "nearest" })
+    }, delay)
+  }, [])
   const startAuth = (intent: EntryIntent) => {
     setEntryIntent(intent)
     try {
@@ -65,7 +81,18 @@ export function App() {
     }
     setShowAuth(true)
   }
-  const landing = <div className="min-h-screen bg-background selection:bg-foreground selection:text-background"><Navbar onGetStarted={openMailbox} /><main><Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startAuth} /><LandingDetails onGetStarted={openMailbox} /></main></div>
+  const landing = (
+    <div className="min-h-screen bg-background selection:bg-foreground selection:text-background">
+      <Navbar onGetStarted={openMailbox} />
+      <main>
+        <Hero open={mailboxOpen} onOpen={openMailbox} onSelect={startAuth} />
+        <LandingTrustBar />
+        <LandingDetails onGetStarted={openMailbox} />
+        <LandingPricing onGetStarted={openMailbox} />
+      </main>
+      <LandingFooter />
+    </div>
+  )
 
   if (clientIdLoading) return landing
   if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader></DialogContent></Dialog>

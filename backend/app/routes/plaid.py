@@ -108,13 +108,7 @@ def _parse_transactions(result: dict) -> list[PlaidTransaction]:
     return parsed
 
 
-@router.get("/analyses/{analysis_id}/status", response_model=PlaidConnectionStatus)
-async def connection_status(
-    analysis_id: str,
-    authorization: str = Header(default=""),
-) -> PlaidConnectionStatus:
-    profile = _authenticate(authorization)
-    await _eligible_analysis(analysis_id, profile)
+async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
     configured = plaid_service.is_configured()
     if not configured:
         return PlaidConnectionStatus(
@@ -124,7 +118,7 @@ async def connection_status(
         )
     try:
         connection = await get_db().bank_connections.find_one(
-            {"google_subject": profile.subject},
+            {"google_subject": subject},
             {"institution_name": 1, "connected_at": 1},
         )
     except Exception as exc:
@@ -139,6 +133,24 @@ async def connection_status(
         institution_name=connection.get("institution_name") if connection else None,
         connected_at=connection.get("connected_at") if connection else None,
     )
+
+
+@router.get("/connection", response_model=PlaidConnectionStatus)
+async def user_connection_status(
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    profile = _authenticate(authorization)
+    return await _connection_status_for_subject(profile.subject)
+
+
+@router.get("/analyses/{analysis_id}/status", response_model=PlaidConnectionStatus)
+async def connection_status(
+    analysis_id: str,
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
+    return await _connection_status_for_subject(profile.subject)
 
 
 @router.post("/analyses/{analysis_id}/link-token", response_model=PlaidLinkTokenResponse)

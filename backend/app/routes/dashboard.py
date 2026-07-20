@@ -1,6 +1,6 @@
 from bson import ObjectId
-from fastapi import APIRouter, Header, HTTPException, Query
-from pydantic import ValidationError
+from fastapi import APIRouter, Header, HTTPException, Query, status
+from pydantic import BaseModel, ValidationError
 
 from app.db import get_db
 from app.routes.auth import _verify_google_token
@@ -18,6 +18,9 @@ from app.services.email_delivery import (
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+class DeleteAnalysesResponse(BaseModel):
+    deleted: int
 
 HISTORY_PROJECTION = {
     "filename": 1,
@@ -207,3 +210,19 @@ async def email_analysis_handoff(
         message_id=receipt.message_id,
         recipient=receipt.recipient,
     )
+
+
+@router.delete("/analyses", response_model=DeleteAnalysesResponse, status_code=status.HTTP_200_OK)
+async def delete_all_analyses(
+    authorization: str = Header(default=""),
+) -> DeleteAnalysesResponse:
+    """Remove every saved letter analysis for the signed-in user."""
+    profile = _authenticate(authorization)
+    try:
+        result = await get_db().analyses.delete_many({"google_subject": profile.subject})
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Saved analyses could not be deleted right now.",
+        ) from exc
+    return DeleteAnalysesResponse(deleted=result.deleted_count)

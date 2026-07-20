@@ -1,4 +1,4 @@
-import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogOut, Scale, ShieldCheck } from "lucide-react"
+import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogOut, Scale, Settings } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -6,6 +6,7 @@ import { AnalysisDetail } from "@/components/AnalysisDetail"
 import { BrandMark } from "@/components/BrandMark"
 import { FinancialSourcesPanel } from "@/components/FinancialSourcesPanel"
 import { ResponsePackPanel } from "@/components/ResponsePackPanel"
+import { SettingsPanel } from "@/components/SettingsPanel"
 import { UploadCard, type AnalysisRunState } from "@/components/UploadCard"
 import { WorkspaceActivity } from "@/components/WorkspaceActivity"
 import { Button } from "@/components/ui/button"
@@ -260,6 +261,16 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
     setActiveTab(value)
   }
 
+  const handleDataDeleted = () => {
+    closeSavedAnalysis(false)
+    setHistoryItems([])
+    setHistoryHasMore(false)
+    setHistoryState("ready")
+    setHistoryError(null)
+    setLatestAnalysis(null)
+    setSummary(null)
+  }
+
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
@@ -272,7 +283,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           <TabsTrigger value="documents" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileText size={16} /> Letters</TabsTrigger>
           <TabsTrigger value="response" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Scale size={16} /> Response pack</TabsTrigger>
           <TabsTrigger value="sources" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileSpreadsheet size={16} /> Financial sources</TabsTrigger>
-          <TabsTrigger value="privacy" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><ShieldCheck size={16} /> Privacy</TabsTrigger>
+          <TabsTrigger value="settings" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Settings size={16} /> Settings</TabsTrigger>
         </TabsList>
         <button type="button" onClick={logout} className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full px-4 py-2 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> Sign out</button>
       </aside>
@@ -292,7 +303,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Letters</TabsTrigger>
           <TabsTrigger value="response" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Response</TabsTrigger>
           <TabsTrigger value="sources" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Sources</TabsTrigger>
-          <TabsTrigger value="privacy" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Privacy</TabsTrigger>
+          <TabsTrigger value="settings" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Settings</TabsTrigger>
         </TabsList>
 
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -395,7 +406,17 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             />
           </TabsContent>
 
-          <TabsContent value="privacy" className="mt-0"><section className="type-body flex items-start gap-3 rounded-2xl border border-black/[.08] bg-white/70 p-4 leading-6"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={15} /></span><p className="pt-0.5"><strong>Privacy.</strong> Upload bytes are not kept. Your account stores structured results, evidence, decisions, and run traces.</p></section></TabsContent>
+          <TabsContent value="settings" className="mt-0">
+            <SettingsPanel
+              user={user}
+              credential={credential!}
+              summary={summary}
+              summaryState={summaryState}
+              onRefresh={() => setRefreshKey((value) => value + 1)}
+              onOpenDocuments={openDocuments}
+              onDataDeleted={handleDataDeleted}
+            />
+          </TabsContent>
         </div>
       </main>
     </Tabs>

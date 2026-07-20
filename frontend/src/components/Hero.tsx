@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Upload } from "lucide-react"
-import { useEffect, useRef, type Ref } from "react"
+import { useEffect, useRef, useState, type Ref } from "react"
 
 import { BrandMark } from "@/components/BrandMark"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,24 @@ const letters = [
   { id: "D2" as const, title: "Altered case number", note: "D2 · locked", rotate: 5 },
   { id: "D3" as const, title: "Gift-card demand", note: "D3 · scam", rotate: -2 },
 ]
+
+const STAGE_EASE = [0.22, 1, 0.36, 1] as const
+
+function useMailboxStageHeights() {
+  const [heights, setHeights] = useState({ closed: 390, open: 650 })
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)")
+    const sync = () => {
+      setHeights(mq.matches ? { closed: 420, open: 610 } : { closed: 390, open: 650 })
+    }
+    sync()
+    mq.addEventListener("change", sync)
+    return () => mq.removeEventListener("change", sync)
+  }, [])
+
+  return heights
+}
 
 function FlyingLetter({ letter, index, onSelect, buttonRef }: {
   letter: (typeof letters)[number]
@@ -28,7 +46,7 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 190, scale: .35, rotate: 0 }}
       animate={{ opacity: 1, y: 0, scale: 1, rotate: reduceMotion ? 0 : letter.rotate }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 80, scale: .7 }}
-      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 115, damping: 15, delay: .12 + index * .12 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 115, damping: 18, delay: 0.18 + index * 0.08 }}
       whileHover={reduceMotion ? undefined : { y: -10, rotate: 0, scale: 1.025 }}
       whileTap={reduceMotion ? undefined : { scale: .98 }}
       onClick={() => onSelect(letter.id)}
@@ -75,7 +93,7 @@ function ServedMailbox({ open, onOpen, onSelect }: {
         <div className="h-full w-full rounded-t-[125px] rounded-b-[22px] bg-[radial-gradient(circle_at_50%_65%,#525252_0%,#171717_68%)] sm:rounded-t-[155px]" />
         <motion.button
           type="button"
-          aria-label={open ? "Served mailbox open" : "Open the Served mailbox"}
+          aria-label={open ? "Mailbox open" : "Open mailbox to choose a sample letter"}
           aria-expanded={open}
           aria-controls="served-letter-choices"
           disabled={open}
@@ -88,10 +106,14 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           <span aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-[inherit]">
             <span className={`absolute -top-1/2 -left-1/3 h-[190%] w-1/3 -rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 ${reduceMotion ? "" : "transition-all duration-700 group-hover/mailbox:left-full group-hover/mailbox:opacity-100"}`} />
           </span>
-          <div className="absolute inset-x-8 top-[42%] h-px bg-black/10" />
-          <div className="absolute inset-x-0 top-[48%] text-center">
-            <p className="font-display text-[clamp(2rem,7vw,3.2rem)] font-semibold tracking-[-.035em] text-white">Served</p>
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[.22em] text-white/55 sm:text-[9px]">financial records help</p>
+          <div className="absolute inset-x-8 top-[42%] h-px bg-white/10" />
+          <div className="absolute inset-x-0 top-[40%] flex flex-col items-center text-center font-sans">
+            <span className="grid size-[3.25rem] place-items-center rounded-full border border-white/20 bg-white/[.06] shadow-[inset_0_1px_0_rgba(255,255,255,.12)] sm:size-[4.25rem]">
+              <BrandMark inverse className="size-9 sm:size-11" />
+            </span>
+            <p className="mt-3 max-w-[12rem] text-[8px] font-medium uppercase tracking-[.28em] text-white/45 sm:text-[9px]">
+              Incoming requests
+            </p>
           </div>
           {!open && <span aria-hidden="true" className={`absolute inset-x-0 bottom-5 z-10 flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[.2em] text-white/60 group-hover/mailbox:text-white sm:bottom-7 ${reduceMotion ? "" : "transition-colors"}`}>
             Open
@@ -113,11 +135,15 @@ function ServedMailbox({ open, onOpen, onSelect }: {
 
 export function Hero({ open, onOpen, onSelect }: {
   open: boolean
-  onOpen: () => void
+  onOpen: (opts?: { scroll?: boolean }) => void
   onSelect: (intent: EntryIntent) => void
 }) {
   const reduceMotion = useReducedMotion()
   const firstLetter = useRef<HTMLButtonElement>(null)
+  const stageHeights = useMailboxStageHeights()
+  const stageTransition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.52, ease: STAGE_EASE }
 
   useEffect(() => {
     if (!open) return
@@ -125,45 +151,74 @@ export function Hero({ open, onOpen, onSelect }: {
     return () => window.clearTimeout(timeout)
   }, [open, reduceMotion])
 
-  return <section id="top" className="relative min-h-[100svh] w-full overflow-hidden bg-background">
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
+  return (
+    <section
+      id="top"
+      className={`relative w-full bg-background ${open ? "min-h-0 overflow-visible pb-6 sm:pb-8" : "min-h-[100svh] overflow-hidden"}`}
+    >
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
       <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-25 grayscale-[40%] saturate-75" />
       <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-bg-base/75 to-bg-base/30" />
     </div>
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <AnimatePresence mode="wait">
-        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-2">
-          <h1 className="type-display">
-            {open ? "Pick a sample letter." : "Got a records request?"}
-          </h1>
-          <p className="type-lead mx-auto mt-5 max-w-lg">
-            {open ? "Payroll path for D1. Bank path for D4. Uncertain or scam letters stay locked." : "Understand the letter, check the case, then open only the data it asks for."}
-          </p>
-        </motion.div>
-      </AnimatePresence>
+      <div className="mt-2 min-h-[11.5rem] w-full sm:min-h-[12.5rem]">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={open ? "open" : "closed"}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+            transition={{ duration: reduceMotion ? 0 : 0.32, ease: STAGE_EASE }}
+          >
+            <h1 className="type-display">
+              {open ? "Pick a sample letter." : "Got a records request?"}
+            </h1>
+            <p className="type-lead mx-auto mt-5 max-w-lg">
+              {open ? "Payroll path for D1. Bank path for D4. Uncertain or scam letters stay locked." : "Understand the letter, check the case, then open only the data it asks for."}
+            </p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
 
-    <div
+    <motion.div
       id="mailbox-stage"
-      className={`relative z-10 mx-auto w-full max-w-6xl px-3 sm:px-8 ${open ? "mt-3 h-[650px] sm:h-[610px]" : "-mt-2 h-[390px] sm:-mt-5 sm:h-[420px]"}`}
+      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-28 px-3 sm:scroll-mt-32 sm:px-8"
+      initial={false}
+      animate={{ height: open ? stageHeights.open : stageHeights.closed }}
+      transition={stageTransition}
     >
-      <AnimatePresence>
-        {open && <motion.div id="served-letter-choices" role="group" aria-label="Choose a sample letter" className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,1050px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-5">
-          {letters.map((letter, index) => <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} buttonRef={index === 0 ? firstLetter : undefined} />)}
-        </motion.div>}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id="served-letter-choices"
+            role="group"
+            aria-label="Choose a sample letter"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.28, delay: reduceMotion ? 0 : 0.12 }}
+            className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,1050px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-5"
+          >
+            {letters.map((letter, index) => (
+              <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} buttonRef={index === 0 ? firstLetter : undefined} />
+            ))}
+          </motion.div>
+        )}
       </AnimatePresence>
       <motion.div
-        animate={{ y: open ? -72 : 0, scale: open ? .92 : 1 }}
-        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 85, damping: 17 }}
-        className="absolute bottom-0 left-1/2 -translate-x-1/2"
+        animate={{ y: open ? -72 : 0, scale: open ? 0.92 : 1 }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 88, damping: 18, mass: 0.85 }}
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 will-change-transform"
       >
-        <ServedMailbox open={open} onOpen={onOpen} onSelect={onSelect} />
+        <ServedMailbox open={open} onOpen={() => onOpen({ scroll: false })} onSelect={onSelect} />
       </motion.div>
-    </div>
+    </motion.div>
 
     <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose D4, D1, D2, D3, or upload your own subpoena." : "Mailbox closed."}</p>
     <span className="absolute bottom-6 left-6 z-20 type-caption md:left-16">{new Date().getFullYear()}</span>
   </section>
+  )
 }

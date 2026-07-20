@@ -300,3 +300,20 @@ def test_saved_analysis_detail_requires_authentication() -> None:
     response = TestClient(app).get(f"/api/dashboard/analyses/{ObjectId()}")
     assert response.status_code == 401
     assert response.json()["detail"] == "Missing bearer token."
+
+
+def test_delete_all_analyses_removes_owner_scoped_records() -> None:
+    analyses = SimpleNamespace(delete_many=AsyncMock(return_value=SimpleNamespace(deleted_count=3)))
+
+    with (
+        patch("app.routes.dashboard._verify_google_token", return_value=PROFILE),
+        patch("app.routes.dashboard.get_db", return_value=SimpleNamespace(analyses=analyses)),
+    ):
+        response = TestClient(app).delete(
+            "/api/dashboard/analyses",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 3}
+    analyses.delete_many.assert_awaited_once_with({"google_subject": PROFILE.subject})
