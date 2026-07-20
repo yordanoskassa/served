@@ -43,7 +43,7 @@ function FlyingLetter({ letter, index, onSelect, buttonRef }: {
         <span className="grid size-7 place-items-center border border-dashed border-black/25 bg-brand-soft sm:size-9"><BrandMark className="size-4 sm:size-5" /></span>
       </div>
       <div className="absolute inset-x-3 bottom-3 z-10 sm:inset-x-5 sm:bottom-5">
-        <p className="truncate font-display text-sm font-semibold tracking-[-.015em] text-ink sm:text-lg">{letter.title}</p>
+        <p className="truncate font-sans text-sm font-semibold tracking-[-.015em] text-ink sm:text-base">{letter.title}</p>
         <p className="mt-0.5 hidden text-[10px] text-zinc-400 sm:block">{letter.note}</p>
       </div>
     </motion.button>
@@ -133,13 +133,16 @@ export function Hero({ open, onOpen, onSelect }: {
     <div className="pointer-events-none absolute top-[22%] left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-white/40 blur-3xl" />
 
     <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-5 pt-24 text-center sm:px-8 sm:pt-28 lg:px-20">
-      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="border-y border-black/10 py-2 text-[10px] font-semibold uppercase tracking-[.2em] text-zinc-600">Financial subpoena response workspace</motion.p>
+      <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="type-eyebrow border-y border-border py-2.5">Financial subpoena response workspace</motion.p>
       <AnimatePresence mode="wait">
-        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-4">
-          <h1 className="font-display text-[clamp(2.75rem,6.2vw,5.65rem)] font-semibold leading-[1.02] tracking-[-.045em] text-ink">
-            {open ? <>Payroll or bank records.<br /><span className="font-normal text-muted-foreground">Served finds the right ones.</span></> : <>Got a financial subpoena?<br /><span className="font-normal text-muted-foreground">Served handles the search.</span></>}
+        <motion.div key={open ? "open" : "closed"} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: reduceMotion ? 0 : .45 }} className="mt-5">
+          <h1 className="type-display">
+            {open ? "Payroll or bank records." : "Got a financial subpoena?"}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+          <p className="type-subsection mt-3 font-sans font-normal text-muted-foreground sm:text-[1.35rem]">
+            {open ? "Served finds the right ones." : "Served handles the search."}
+          </p>
+          <p className="type-lead mx-auto mt-5 max-w-xl">
             {open ? "A verified payroll request opens payroll matching. A verified payment request opens bank matching. If Served is not sure, your records stay locked." : "Served reads and verifies the request, searches the right payroll or bank data, and shows you what to review before the deadline."}
           </p>
         </motion.div>
@@ -165,7 +168,7 @@ export function Hero({ open, onOpen, onSelect }: {
     </div>
 
     <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose D4, D1, D2, D3, or upload your own subpoena." : "Mailbox closed."}</p>
-    <span className="absolute bottom-6 left-6 z-20 text-[10px] tracking-wide text-zinc-500 md:left-16">{new Date().getFullYear()}</span>
-    <span className="absolute right-6 bottom-6 z-20 text-[10px] tracking-wide text-zinc-500 md:right-16">verify first · access records second</span>
+    <span className="absolute bottom-6 left-6 z-20 type-caption md:left-16">{new Date().getFullYear()}</span>
+    <span className="absolute right-6 bottom-6 z-20 type-caption md:right-16">verify first · access records second</span>
   </section>
 }

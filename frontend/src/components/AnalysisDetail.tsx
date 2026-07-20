@@ -130,9 +130,9 @@ export function AnalysisDetail({
         {createdAt && <p className="mt-1 text-xs text-zinc-400">{savedAt(createdAt)}</p>}
       </div>}
       <Badge variant={verdict.variant}>{verdict.label}</Badge>
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{analysis.document_type}</p>
-      <h2 className="mt-1.5 font-display text-xl font-medium tracking-[-.035em]">What this request says</h2>
-      <p className="mt-2 text-sm leading-5 text-muted-foreground">{analysis.summary}</p>
+      <p className="type-label mt-3">{analysis.document_type}</p>
+      <h2 className="type-ui-heading mt-1.5">What this request says</h2>
+      <p className="type-body mt-2">{analysis.summary}</p>
 
       {analysis.trace && <AnalysisPipeline className="mt-4" events={analysis.trace.steps} runState="complete" compact />}
 
@@ -154,7 +154,7 @@ export function AnalysisDetail({
         </TabsContent>
 
         <TabsContent value="evidence" className="mt-4 space-y-4">
-          <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p>{analysis.evidence.length ? <div className="mt-3 space-y-4">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>{item.quote && <blockquote className="mt-3 rounded-xl bg-background px-3 py-2 text-sm italic leading-6 text-zinc-600">“{item.quote}”</blockquote>}{item.source_url ? <a className="mt-2 inline-flex text-[10px] uppercase tracking-wider text-zinc-500 underline decoration-black/20 underline-offset-4" href={item.source_url} target="_blank" rel="noreferrer">{item.source}</a> : <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p>}</div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No evidence items were returned for this analysis.</p>}</section>
+          <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Evidence and warning signals</p>{analysis.evidence.length ? <div className="mt-3 space-y-4">{analysis.evidence.map((item, index) => <div className="border-l-2 border-brand-soft pl-3" key={`${item.label}-${index}`}><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>{item.quote && <blockquote className="type-quote mt-3 rounded-lg border-l-2 border-border bg-muted px-3 py-2">“{item.quote}”</blockquote>}{item.source_url ? <a className="mt-2 inline-flex text-[10px] uppercase tracking-wider text-zinc-500 underline decoration-black/20 underline-offset-4" href={item.source_url} target="_blank" rel="noreferrer">{item.source}</a> : <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p>}</div>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No evidence items were returned for this analysis.</p>}</section>
           {(analysis.limitations?.length ?? 0) > 0 && <Alert className="rounded-2xl border-border bg-muted text-muted-foreground"><AlertTriangle size={15} /><AlertTitle>What could not be confirmed</AlertTitle><AlertDescription><ul className="space-y-1">{analysis.limitations.map((limitation) => <li className="leading-6 text-muted-foreground" key={limitation}>{limitation}</li>)}</ul></AlertDescription></Alert>}
         </TabsContent>
 

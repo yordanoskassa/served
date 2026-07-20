@@ -1,10 +1,16 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&display=swap");
 @import "tailwindcss";
+
+/*
+  Typography (Legora + Harvey):
+  — Newsreader light serif: marketing display, section openers, dialog titles, pull quotes, hero stats
+  — IBM Plex Sans: navigation, body, forms, buttons, badges, pipeline, dense workspace UI
+  Legora: display ~88px / weight 300; body 14–16px sans. Harvey: serif display + sans UI.
+*/
 
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Newsreader", Georgia, "Times New Roman", serif;
-  /* Accent on dark panels (was lime); keep token name for compatibility */
   --color-brand-green: #ffffff;
   --color-brand-soft: #e5e5e5;
   --color-bg-base: #ffffff;
@@ -24,16 +30,77 @@
 
 @layer base {
   * { @apply border-border; }
-  html { scroll-behavior: smooth; }
-  body {
-    @apply m-0 bg-background text-foreground font-sans antialiased;
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
   }
+  body {
+    @apply m-0 bg-background text-foreground font-sans text-base leading-normal antialiased;
+  }
+  /* Default heading font is serif; app panels override with .type-ui-title */
   h1, h2, h3 {
-    @apply font-display font-medium tracking-[-0.03em];
+    @apply font-display font-light tracking-[-0.03em] text-foreground;
     text-wrap: balance;
   }
+  h4, h5, h6 {
+    @apply font-sans font-medium tracking-normal text-foreground;
+  }
+  p {
+    @apply font-sans;
+  }
+  button, input, select, textarea, label {
+    @apply font-sans;
+  }
+  button, a { -webkit-tap-highlight-color: transparent; }
+}
+
+@layer components {
+  /* Sans — eyebrows, metadata, tags (Legora 11px + tracking) */
+  .type-eyebrow {
+    @apply font-sans text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground;
+  }
+  .type-label {
+    @apply font-sans text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground;
+  }
+  .type-caption {
+    @apply font-sans text-xs leading-5 text-muted-foreground;
+  }
+
+  /* Sans — body & UI copy (Harvey Diatype role) */
+  .type-body {
+    @apply font-sans text-sm leading-6 text-muted-foreground;
+  }
+  .type-lead {
+    @apply font-sans text-base leading-7 text-muted-foreground sm:text-[17px] sm:leading-8;
+  }
+  .type-ui {
+    @apply font-sans text-sm leading-5 text-foreground;
+  }
+  .type-ui-title {
+    @apply font-sans text-base font-semibold leading-snug tracking-[-0.01em] text-foreground sm:text-lg;
+  }
+  .type-ui-heading {
+    @apply font-sans text-xl font-semibold leading-snug tracking-[-0.02em] text-foreground;
+  }
+
+  /* Serif — marketing & editorial (Legora Rhymes / Harvey Ghost role) */
+  .type-display {
+    @apply font-display text-[clamp(2.75rem,5.5vw,5.5rem)] font-light leading-[1.02] tracking-[-0.04em];
+  }
+  .type-section {
+    @apply font-display text-[clamp(2rem,4vw,3.25rem)] font-light leading-[1.08] tracking-[-0.035em];
+  }
+  .type-subsection {
+    @apply font-display text-xl font-normal leading-snug tracking-[-0.02em] sm:text-2xl;
+  }
+  .type-stat {
+    @apply font-display text-4xl font-light tabular-nums leading-none tracking-[-0.05em] sm:text-5xl;
+  }
+  .type-quote {
+    @apply font-display text-base font-normal italic leading-7 text-foreground/80;
+  }
+
   .font-display {
     font-kerning: normal;
   }
-  button, a { -webkit-tap-highlight-color: transparent; }
 }

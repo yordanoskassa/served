@@ -43,11 +43,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title data-slot="dialog-title" className={cn("font-display text-2xl font-medium tracking-[-.04em]", className)} {...props} />
+  return <DialogPrimitive.Title data-slot="dialog-title" className={cn("type-subsection", className)} {...props} />
 }
 
 function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
-  return <DialogPrimitive.Description data-slot="dialog-description" className={cn("text-sm leading-6 text-zinc-500", className)} {...props} />
+  return <DialogPrimitive.Description data-slot="dialog-description" className={cn("type-body", className)} {...props} />
 }
 
 export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger }

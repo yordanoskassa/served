@@ -294,7 +294,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
         <button type="button" className="flex items-center gap-3" onClick={() => setActiveTab("overview")}>
           <BrandMark className="size-9" />
-          <span className="font-display text-xl font-semibold tracking-[-.025em]">Served</span>
+          <span className="font-display text-xl font-normal tracking-[-.03em]">Served</span>
         </button>
         <TabsList className="mt-9 flex h-auto w-full flex-col items-stretch gap-1 bg-transparent p-0 text-sm">
           <TabsTrigger value="overview" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><LayoutDashboard size={16} /> Overview</TabsTrigger>
@@ -307,8 +307,8 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
       <main className="lg:ml-56">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
-          <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg">Served</span></button>
-          <div className="hidden lg:block"><p className="text-xs text-zinc-500">{greeting()}</p><p className="font-display text-lg font-semibold tracking-[-.015em]">Financial subpoena workspace</p></div>
+          <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg font-normal">Served</span></button>
+          <div className="hidden lg:block"><p className="type-caption">{greeting()}</p><p className="type-ui-heading mt-0.5 font-medium">Financial subpoena workspace</p></div>
           <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
             <Avatar className="size-8"><AvatarImage src={user.picture ?? undefined} alt={user.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(user.name)}</AvatarFallback></Avatar>
             <span className="max-w-28 truncate">{user.given_name || user.name}</span>
@@ -325,7 +325,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-500">Financial subpoena response</p><h1 className="font-display text-3xl font-semibold tracking-[-.025em] sm:text-4xl">Handle the request before the deadline.</h1><p className="mt-2 max-w-2xl text-sm leading-5 text-zinc-500">Verify the subpoena, search the right payroll or bank data, and review only the records it asks for.</p></div>
+            <div><p className="type-label mb-2">Financial subpoena response</p><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Handle the request before the deadline.</h1><p className="type-body mt-3 max-w-2xl">Verify the subpoena, search the right payroll or bank data, and review only the records it asks for.</p></div>
             <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
