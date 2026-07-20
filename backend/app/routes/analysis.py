@@ -65,21 +65,29 @@ async def _authorize_upload(file: UploadFile, authorization: str):
 
 
 async def _verified_sample_id(file: UploadFile, claimed_sample_id: str | None) -> str | None:
-    """Trust a sample label only when the upload exactly matches our bundled PDF."""
+    """Recognize only byte-identical bundled samples, with or without a UI hint."""
+    uploaded = await file.read()
+    await file.seek(0)
+    uploaded_digest = hashlib.sha256(uploaded).digest()
+
     if not claimed_sample_id:
+        for sample_id in sorted(SAMPLE_IDS):
+            fixture = FIXTURES / f"{sample_id}.pdf"
+            if (
+                fixture.is_file()
+                and uploaded_digest == hashlib.sha256(fixture.read_bytes()).digest()
+            ):
+                return sample_id
         return None
+
     sample_id = claimed_sample_id.upper()
     if sample_id not in SAMPLE_IDS:
         raise HTTPException(status_code=400, detail="Unknown sample request.")
     fixture = FIXTURES / f"{sample_id}.pdf"
-    uploaded = await file.read()
-    await file.seek(0)
-    fixture_digest = (
-        hashlib.sha256(fixture.read_bytes()).digest()
-        if fixture.is_file()
-        else None
-    )
-    if fixture_digest is None or hashlib.sha256(uploaded).digest() != fixture_digest:
+    if (
+        not fixture.is_file()
+        or uploaded_digest != hashlib.sha256(fixture.read_bytes()).digest()
+    ):
         raise HTTPException(
             status_code=400,
             detail="The uploaded file does not match the selected sample.",
