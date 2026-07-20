@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Upload } from "lucide-react"
-import { useEffect, useRef, useState, type Ref } from "react"
 
 import { BrandMark } from "@/components/BrandMark"
 import { Button } from "@/components/ui/button"
@@ -15,38 +14,20 @@ const letters = [
 
 const STAGE_EASE = [0.22, 1, 0.36, 1] as const
 
-function useMailboxStageHeights() {
-  const [heights, setHeights] = useState({ closed: 390, open: 650 })
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 640px)")
-    const sync = () => {
-      setHeights(mq.matches ? { closed: 420, open: 610 } : { closed: 390, open: 650 })
-    }
-    sync()
-    mq.addEventListener("change", sync)
-    return () => mq.removeEventListener("change", sync)
-  }, [])
-
-  return heights
-}
-
-function FlyingLetter({ letter, index, onSelect, buttonRef }: {
+function FlyingLetter({ letter, index, onSelect }: {
   letter: (typeof letters)[number]
   index: number
   onSelect: (intent: EntryIntent) => void
-  buttonRef?: Ref<HTMLButtonElement>
 }) {
   const reduceMotion = useReducedMotion()
   return (
     <motion.button
       type="button"
-      ref={buttonRef}
       aria-label={`Choose ${letter.title}`}
-      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 190, scale: .35, rotate: 0 }}
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 90, scale: .72, rotate: 0 }}
       animate={{ opacity: 1, y: 0, scale: 1, rotate: reduceMotion ? 0 : letter.rotate }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 80, scale: .7 }}
-      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 115, damping: 18, delay: 0.18 + index * 0.08 }}
+      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 130, damping: 21, delay: 0.08 + index * 0.05 }}
       whileHover={reduceMotion ? undefined : { y: -10, rotate: 0, scale: 1.025 }}
       whileTap={reduceMotion ? undefined : { scale: .98 }}
       onClick={() => onSelect(letter.id)}
@@ -97,9 +78,12 @@ function ServedMailbox({ open, onOpen, onSelect }: {
           aria-expanded={open}
           aria-controls="served-letter-choices"
           disabled={open}
-          onClick={onOpen}
-          animate={open ? { rotateX: reduceMotion ? -74 : -102, y: 20 } : { rotateX: 0, y: 0 }}
-          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 90, damping: 14 }}
+          onClick={(event) => {
+            event.currentTarget.blur()
+            onOpen()
+          }}
+          animate={open ? { rotateX: -78, y: 14 } : { rotateX: 0, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 105, damping: 18 }}
           style={{ transformOrigin: "50% 100%", transformStyle: "preserve-3d" }}
           className={`group/mailbox absolute inset-0 appearance-none rounded-t-[135px] rounded-b-[28px] border border-neutral-600 bg-neutral-800 p-0 text-left shadow-[inset_-10px_-8px_18px_rgba(0,0,0,.25)] sm:rounded-t-[170px] ${reduceMotion ? "" : "transition-[filter]"} ${open ? "pointer-events-none" : "cursor-pointer hover:brightness-[1.035] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/20 focus-visible:ring-offset-4 focus-visible:ring-offset-background"}`}
         >
@@ -139,22 +123,11 @@ export function Hero({ open, onOpen, onSelect }: {
   onSelect: (intent: EntryIntent) => void
 }) {
   const reduceMotion = useReducedMotion()
-  const firstLetter = useRef<HTMLButtonElement>(null)
-  const stageHeights = useMailboxStageHeights()
-  const stageTransition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.52, ease: STAGE_EASE }
-
-  useEffect(() => {
-    if (!open) return
-    const timeout = window.setTimeout(() => firstLetter.current?.focus(), reduceMotion ? 0 : 850)
-    return () => window.clearTimeout(timeout)
-  }, [open, reduceMotion])
 
   return (
     <section
       id="top"
-      className={`relative w-full bg-background ${open ? "min-h-0 overflow-visible pb-6 sm:pb-8" : "min-h-[100svh] overflow-hidden"}`}
+      className="relative min-h-[100svh] w-full overflow-hidden bg-background"
     >
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] overflow-hidden">
       <img src="/served-hero.jpg" alt="" className="h-full w-full object-cover object-bottom opacity-25 grayscale-[40%] saturate-75" />
@@ -183,12 +156,9 @@ export function Hero({ open, onOpen, onSelect }: {
       </div>
     </div>
 
-    <motion.div
+    <div
       id="mailbox-stage"
-      className="relative z-10 mx-auto w-full max-w-6xl scroll-mt-28 px-3 sm:scroll-mt-32 sm:px-8"
-      initial={false}
-      animate={{ height: open ? stageHeights.open : stageHeights.closed }}
-      transition={stageTransition}
+      className="relative z-10 mx-auto h-[500px] w-full max-w-6xl scroll-mt-28 px-3 sm:h-[420px] sm:scroll-mt-32 sm:px-8"
     >
       <AnimatePresence initial={false}>
         {open && (
@@ -200,22 +170,22 @@ export function Hero({ open, onOpen, onSelect }: {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.28, delay: reduceMotion ? 0 : 0.12 }}
-            className="absolute top-4 left-1/2 z-30 grid w-[min(94vw,1050px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-5"
+            className="absolute top-2 left-1/2 z-30 grid w-[min(92vw,980px)] -translate-x-1/2 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4"
           >
             {letters.map((letter, index) => (
-              <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} buttonRef={index === 0 ? firstLetter : undefined} />
+              <FlyingLetter key={letter.id} letter={letter} index={index} onSelect={onSelect} />
             ))}
           </motion.div>
         )}
       </AnimatePresence>
       <motion.div
-        animate={{ y: open ? -72 : 0, scale: open ? 0.92 : 1 }}
-        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 88, damping: 18, mass: 0.85 }}
+        animate={{ y: open ? -18 : 0, scale: open ? 0.86 : 1 }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 105, damping: 21, mass: 0.8 }}
         className="absolute bottom-0 left-1/2 -translate-x-1/2 will-change-transform"
       >
         <ServedMailbox open={open} onOpen={() => onOpen({ scroll: false })} onSelect={onSelect} />
       </motion.div>
-    </motion.div>
+    </div>
 
     <p aria-live="polite" className="sr-only">{open ? "Mailbox open. Choose a sample request or upload your own subpoena." : "Mailbox closed."}</p>
     <span className="absolute bottom-6 left-6 z-20 type-caption md:left-16">{new Date().getFullYear()}</span>
