@@ -224,6 +224,17 @@ For Netlify, connect the repository and use the included `netlify.toml`.
 Set the build environment variable `VITE_API_URL` to the public EasyPanel
 backend URL ending in `/api`, such as `https://api.example.com/api`.
 
+**If [servedai.netlify.app](https://servedai.netlify.app/) looks stale after a
+git push**, the site is not picking up `main`. In Netlify → **Site configuration
+→ Build & deploy**, confirm the linked repo is `yordanoskassa/served`, branch
+`main`, and run **Clear cache and deploy site**. A fresh deploy’s `index.html`
+should reference `/brand-served.svg` and a new hashed `/assets/index-*.js` file.
+
+Optional **GitHub Actions deploy** (when Netlify Git hooks are unreliable): add
+repository secrets `NETLIFY_AUTH_TOKEN` (Netlify user → Applications → personal
+access token) and `NETLIFY_SITE_ID` (Site settings → General → Site ID). Pushes
+to `main` then run `.github/workflows/netlify-deploy.yml`.
+
 ## EasyPanel
 
 Deploy the root `docker-compose.yml`, or create two services using
