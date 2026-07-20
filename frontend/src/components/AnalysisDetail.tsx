@@ -2,7 +2,6 @@ import {
   Activity,
   AlertTriangle,
   ArrowLeft,
-  ArrowRight,
   Building2,
   CalendarDays,
   Hash,
@@ -13,6 +12,7 @@ import { useCallback, useState } from "react"
 
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
+import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
 import { CaseWorkflow, type EvidenceWorkflowState } from "@/components/CaseWorkflow"
 import { isPayrollRecordRequest, PayrollRecordsCard } from "@/components/PayrollRecordsCard"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -58,7 +58,6 @@ export function AnalysisDetail({
   createdAt,
   backLabel = "Check another request",
   onBack,
-  onViewPipeline,
   savedAnalysisId,
 }: {
   analysis: Analysis
@@ -66,7 +65,6 @@ export function AnalysisDetail({
   createdAt?: string | null
   backLabel?: string
   onBack: () => void
-  onViewPipeline?: () => void
   savedAnalysisId?: string
 }) {
   const [evidenceWorkflow, setEvidenceWorkflow] = useState<EvidenceWorkflowState>({
@@ -180,7 +178,7 @@ export function AnalysisDetail({
         : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} onWorkflowChange={updateEvidenceWorkflow} />}
       <div className="mt-5 flex flex-wrap gap-2">
         <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
-        {onViewPipeline && <Button onClick={onViewPipeline}>Open this run’s evidence pipeline <ArrowRight size={16} /></Button>}
+        {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact />}
       </div>
     </div>
   </Card>

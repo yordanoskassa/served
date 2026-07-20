@@ -1,9 +1,11 @@
-import { Activity, ChevronRight, FileText, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react"
-import { lazy, Suspense, useEffect, useRef, useState } from "react"
+import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogOut, Scale, ShieldCheck } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { AnalysisDetail } from "@/components/AnalysisDetail"
 import { BrandMark } from "@/components/BrandMark"
+import { FinancialSourcesPanel } from "@/components/FinancialSourcesPanel"
+import { ResponsePackPanel } from "@/components/ResponsePackPanel"
 import { UploadCard, type AnalysisRunState } from "@/components/UploadCard"
 import { WorkspaceActivity } from "@/components/WorkspaceActivity"
 import { Button } from "@/components/ui/button"
@@ -18,7 +20,6 @@ type LoadState = "loading" | "ready" | "error"
 type DetailLoadState = "idle" | LoadState
 const AGENT_ORDER = ["reader", "checker", "explainer", "cook"] as const
 const HISTORY_PAGE_SIZE = 25
-const OrchestrationView = lazy(() => import("@/components/OrchestrationView").then((module) => ({ default: module.OrchestrationView })))
 
 function userInitials(name: string): string {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("")
@@ -69,8 +70,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const [latestAnalysis, setLatestAnalysis] = useState<Analysis | null>(null)
   const [analysisRunState, setAnalysisRunState] = useState<AnalysisRunState>("idle")
   const [traceEvents, setTraceEvents] = useState<TraceEvent[]>([])
-  const [pipelineAnalysis, setPipelineAnalysis] = useState<Analysis | null>(null)
-  const [pipelineDocumentName, setPipelineDocumentName] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
   const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null)
   const [savedDetail, setSavedDetail] = useState<SavedAnalysisDetail | null>(null)
@@ -82,7 +81,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   const [historyLoadingMore, setHistoryLoadingMore] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
   const intentConsumed = useRef(false)
-  const pipelineFocusPending = useRef(false)
   const savedDetailController = useRef<AbortController | null>(null)
   const workspaceController = useRef<AbortController | null>(null)
   const historyController = useRef<AbortController | null>(null)
@@ -168,26 +166,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
     setSavedDetail(null)
     setSavedDetailError(null)
     setSavedDetailState("idle")
-    setPipelineAnalysis(null)
-    setPipelineDocumentName(null)
   }, [credential])
-
-  useEffect(() => {
-    if (activeTab !== "agents" || !pipelineFocusPending.current) return
-    const startedAt = performance.now()
-    let frame = 0
-    const focusPipelineHeading = () => {
-      const heading = document.getElementById("latest-run-title")
-      if (heading instanceof HTMLElement) {
-        heading.focus()
-        pipelineFocusPending.current = false
-        return
-      }
-      if (performance.now() - startedAt < 2_000) frame = requestAnimationFrame(focusPipelineHeading)
-    }
-    frame = requestAnimationFrame(focusPipelineHeading)
-    return () => cancelAnimationFrame(frame)
-  }, [activeTab])
 
   useEffect(() => {
     if (activeTab !== "documents" || savedDetailState === "idle") return
@@ -199,20 +178,14 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
   const counts = summary?.counts
   const metrics = [
-    ["Requests", counts?.documents, "Saved letters"],
-    ["Ready", counts?.verified, "Eligible for matching"],
-    ["Locked", counts?.review, "Needs more verification"],
-    ["Blocked", counts?.scam, "No financial access"],
+    ["Letters", counts?.documents, "Saved subpoena requests"],
+    ["Ready", counts?.verified, "Payroll or bank tools unlocked"],
+    ["Locked", counts?.review, "More court checks needed"],
+    ["Blocked", counts?.scam, "Do not connect accounts"],
   ] as const
   const orderedAgents = AGENT_ORDER
     .map((name) => agents.find((agent) => agent.name === name))
     .filter((agent): agent is AgentStatus => Boolean(agent))
-  const openPipeline = (analysis: Analysis | null = null, documentName: string | null = null) => {
-    setPipelineAnalysis(analysis)
-    setPipelineDocumentName(documentName)
-    pipelineFocusPending.current = true
-    setActiveTab("agents")
-  }
   const closeSavedAnalysis = (restoreFocus = true) => {
     const focusId = returnFocusId.current
     returnFocusId.current = null
@@ -230,8 +203,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
   }
   const openSavedAnalysis = async (id: string) => {
     if (!credential) return
-    setPipelineAnalysis(null)
-    setPipelineDocumentName(null)
     savedDetailController.current?.abort()
     const controller = new AbortController()
     savedDetailController.current = controller
@@ -298,8 +269,9 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
         </button>
         <TabsList className="mt-9 flex h-auto w-full flex-col items-stretch gap-1 bg-transparent p-0 text-sm">
           <TabsTrigger value="overview" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><LayoutDashboard size={16} /> Overview</TabsTrigger>
-          <TabsTrigger value="documents" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileText size={16} /> Requests</TabsTrigger>
-          <TabsTrigger value="agents" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Activity size={16} /> Agent pipeline</TabsTrigger>
+          <TabsTrigger value="documents" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileText size={16} /> Letters</TabsTrigger>
+          <TabsTrigger value="response" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Scale size={16} /> Response pack</TabsTrigger>
+          <TabsTrigger value="sources" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileSpreadsheet size={16} /> Financial sources</TabsTrigger>
           <TabsTrigger value="privacy" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><ShieldCheck size={16} /> Privacy</TabsTrigger>
         </TabsList>
         <button type="button" onClick={logout} className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full px-4 py-2 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> Sign out</button>
@@ -315,22 +287,23 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
           </div>
         </header>
 
-        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-2 rounded-[22px] bg-black/5 p-1 sm:grid-cols-4 sm:rounded-full lg:hidden">
+        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
           <TabsTrigger value="overview" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Overview</TabsTrigger>
-          <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Requests</TabsTrigger>
-          <TabsTrigger value="agents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Pipeline</TabsTrigger>
+          <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Letters</TabsTrigger>
+          <TabsTrigger value="response" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Response</TabsTrigger>
+          <TabsTrigger value="sources" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Sources</TabsTrigger>
           <TabsTrigger value="privacy" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Privacy</TabsTrigger>
         </TabsList>
 
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
-            <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Before the deadline.</h1><p className="type-body mt-3 max-w-xl">Check the letter, open the right data source, review matches.</p></div>
-            <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
+            <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Before the deadline.</h1><p className="type-body mt-3 max-w-xl">Read the financial subpoena, pull payroll or bank records, review matches for counsel.</p></div>
+            <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved letters</Button>
           </section>
 
           <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-3">
-            {["1 · Letter", "2 · Source", "3 · Review"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
+            {["1 · Subpoena letter", "2 · Payroll or bank", "3 · Match & pack"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 2 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
@@ -345,8 +318,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                 if (state === "running") {
                   setLatestAnalysis(null)
                   setTraceEvents([])
-                  setPipelineAnalysis(null)
-                  setPipelineDocumentName(null)
                 }
               }}
               onTraceEvent={(event) => {
@@ -357,7 +328,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
                     .sort((left, right) => left.seq - right.seq)
                 })
               }}
-              onViewPipeline={() => openPipeline()}
               onReset={() => {
                 setLatestAnalysis(null)
                 setAnalysisRunState("idle")
@@ -372,7 +342,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
               onRefresh={() => setRefreshKey((value) => value + 1)}
               onOpenDocuments={openDocuments}
               onOpenAnalysis={(id) => { void openSavedAnalysis(id) }}
-              onOpenPipeline={() => openPipeline()}
             />}
           </section>
 
@@ -384,7 +353,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
 
           <TabsContent value="documents" className="mt-0">
             {savedDetailState === "idle" ? <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
-              <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved requests</h2><p className="type-caption mt-1">Reopen evidence and matching steps.</p></div>
+              <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved letters</h2><p className="type-caption mt-1">Reopen court checks, payroll matching, and bank connect.</p></div>
               <div className="divide-y divide-black/5">
                 {historyState === "loading" && <div className="space-y-3 px-6 py-6">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-1/3 bg-black/5" /><Skeleton className="h-2 w-1/5 bg-black/5" /></div></div>)}</div>}
                 {historyState === "error" && <div className="p-5"><Alert className="rounded-2xl border-black/10 bg-white/70"><AlertTitle>History unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{historyError ?? "We could not load your saved analyses right now."}</p><Button variant="outline" onClick={() => setRefreshKey((value) => value + 1)}>Try again</Button></AlertDescription></Alert></div>}
@@ -400,12 +369,31 @@ export function Dashboard({ initialIntent = null, onIntentConsumed }: {
             </section> : <section ref={savedDetailRegion} tabIndex={-1} aria-label="Saved analysis detail" aria-busy={savedDetailState === "loading"} className="mx-auto max-w-5xl space-y-4 outline-none">
               {savedDetailState === "loading" && <><p role="status" className="sr-only">Loading saved analysis</p><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><div className="space-y-3 rounded-2xl border border-black/[.08] bg-white/70 p-5"><Skeleton className="h-5 w-28 bg-black/5" /><Skeleton className="h-8 w-1/2 bg-black/5" /><Skeleton className="h-16 w-full bg-black/5" /><Skeleton className="h-44 w-full bg-black/5" /></div></>}
               {savedDetailState === "error" && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><Alert className="rounded-[24px] border-black/10 bg-white/70"><AlertTitle>Analysis unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{savedDetailError ?? "We could not load this saved analysis."}</p>{selectedSavedId && <Button variant="outline" onClick={() => { void openSavedAnalysis(selectedSavedId) }}>Try again</Button>}</AlertDescription></Alert></>}
-              {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} onViewPipeline={() => openPipeline(savedDetail.analysis, savedDetail.name)} savedAnalysisId={savedDetail.id} />}
+              {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} savedAnalysisId={savedDetail.id} />}
               {savedDetailState === "ready" && savedDetail && !savedDetail.analysis && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><section className="rounded-2xl border border-black/[.08] bg-white/70 p-5"><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${savedVerdictClass(savedDetail.verdict)}`}>{savedVerdictLabel(savedDetail.verdict)}</span><h2 className="mt-4 font-display text-xl tracking-[-.035em]">{savedDetail.name}</h2><p className="mt-1 text-xs text-zinc-400">{savedDate(savedDetail.created_at)}</p><Alert className="mt-4 rounded-2xl border-black/10 bg-background"><AlertTitle>Earlier analysis</AlertTitle><AlertDescription>The full breakdown was not saved for this earlier analysis. Because Served does not retain uploaded file bytes, upload the document again to create a complete saved breakdown.</AlertDescription></Alert></section></>}
             </section>}
           </TabsContent>
 
-          <TabsContent value="agents" className="mt-0"><Suspense fallback={<div className="space-y-3"><Skeleton className="h-36 w-full rounded-2xl bg-black/5" /><Skeleton className="h-64 w-full rounded-2xl bg-black/5" /></div>}><OrchestrationView agents={orderedAgents} loadState={agentState} latestAnalysis={pipelineAnalysis ?? latestAnalysis} analysisRunState={pipelineAnalysis ? "complete" : analysisRunState} traceEvents={pipelineAnalysis?.trace?.steps ?? traceEvents} runLabel={pipelineDocumentName} onRefresh={() => setRefreshKey((value) => value + 1)} /></Suspense></TabsContent>
+          <TabsContent value="response" className="mt-0">
+            <ResponsePackPanel
+              items={historyItems}
+              loadState={historyState}
+              error={historyError}
+              onOpenAnalysis={(id) => { void openSavedAnalysis(id) }}
+              onOpenDocuments={openDocuments}
+            />
+          </TabsContent>
+
+          <TabsContent value="sources" className="mt-0">
+            <FinancialSourcesPanel
+              agents={orderedAgents}
+              loadState={agentState}
+              summary={summary}
+              summaryState={summaryState}
+              onRefresh={() => setRefreshKey((value) => value + 1)}
+              onOpenDocuments={openDocuments}
+            />
+          </TabsContent>
 
           <TabsContent value="privacy" className="mt-0"><section className="type-body flex items-start gap-3 rounded-2xl border border-black/[.08] bg-white/70 p-4 leading-6"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-soft"><ShieldCheck size={15} /></span><p className="pt-0.5"><strong>Privacy.</strong> Upload bytes are not kept. Your account stores structured results, evidence, decisions, and run traces.</p></section></TabsContent>
         </div>

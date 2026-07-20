@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, ChevronRight, FileText, RefreshCw } from "lucide-react"
+import { ArrowRight, ChevronRight, FileText, RefreshCw } from "lucide-react"
 
 import { AnalysisPipeline } from "@/components/AnalysisPipeline"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -39,7 +39,6 @@ export function WorkspaceActivity({
   onRefresh,
   onOpenDocuments,
   onOpenAnalysis,
-  onOpenPipeline,
 }: {
   summary: DashboardSummary | null
   summaryState: LoadState
@@ -48,7 +47,6 @@ export function WorkspaceActivity({
   onRefresh: () => void
   onOpenDocuments: () => void
   onOpenAnalysis: (id: string) => void
-  onOpenPipeline: () => void
 }) {
   const runActive = runState === "running"
   const runStopped = runState === "error" && traceEvents.length > 0
@@ -74,8 +72,7 @@ export function WorkspaceActivity({
 
       {showRun ? <div className="pt-4">
         <AnalysisPipeline events={traceEvents} runState={runStopped ? "error" : "running"} compact rail />
-        <p className="type-caption mt-3">{traceEvents.length} event{traceEvents.length === 1 ? "" : "s"}</p>
-        <Button className="mt-4 h-10 w-full py-2 text-sm" onClick={onOpenPipeline}>{runStopped ? "See trace" : "Live trace"} <ArrowRight size={15} /></Button>
+        <p className="type-caption mt-3">{traceEvents.length} event{traceEvents.length === 1 ? "" : "s"} · pipeline updates here during the run</p>
       </div> : <>
         <div className="mt-4">
           {summaryState === "loading" && <div className="space-y-4">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-2/3 bg-black/5" /><Skeleton className="h-2 w-1/3 bg-black/5" /></div></div>)}</div>}
@@ -92,10 +89,7 @@ export function WorkspaceActivity({
           {summaryState === "ready" && !summary?.recent.length && <div className="grid place-items-center rounded-xl border border-dashed border-black/10 bg-background px-5 py-8 text-center"><div><span className="mx-auto grid size-9 place-items-center rounded-full bg-black/5"><FileText size={15} /></span><p className="mt-2.5 text-sm font-medium">No checks yet</p><p className="type-caption mt-1">Completed analyses appear here.</p></div></div>}
         </div>
         <Separator className="my-3" />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>All requests <ArrowRight size={14} /></Button>
-          <Button className="h-9 px-3 py-2 text-xs" variant="outline" onClick={onOpenPipeline} disabled={!traceEvents.length}>Trace <Activity size={14} /></Button>
-        </div>
+        <Button className="mt-1 h-9 w-full px-3 py-2 text-xs" variant="outline" onClick={onOpenDocuments}>All letters <ArrowRight size={14} /></Button>
       </>}
     </div>
   </Card>

@@ -16,11 +16,10 @@ function formatFileSize(bytes: number): string {
 
 export type AnalysisRunState = "idle" | "running" | "complete" | "error"
 
-export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onViewPipeline, onReset, initialSample }: {
+export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceEvent, onReset, initialSample }: {
   onAnalysisComplete?: (analysis: Analysis) => void
   onAnalysisStateChange?: (state: AnalysisRunState) => void
   onTraceEvent?: (event: TraceEvent) => void
-  onViewPipeline?: () => void
   onReset?: () => void
   initialSample?: "D1" | "D2" | "D3" | "D4"
 }) {
@@ -128,7 +127,6 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     analysis={analysis}
     documentName={file?.name}
     onBack={reset}
-    onViewPipeline={onViewPipeline}
     savedAnalysisId={analysis.saved_analysis_id ?? undefined}
   />
 
