@@ -37,9 +37,12 @@ function dateRange(record: PayrollCandidate): string {
 }
 
 export function isPayrollRecordRequest(analysis: Analysis): boolean {
-  const text = [analysis.summary, ...(analysis.breakdown?.requested_actions ?? [])].join(" ").toLowerCase()
-  return analysis.breakdown?.case_number === "5:25-cv-02108-KK-SP"
-    || ["payroll", "wage statement", "time record"].some((word) => text.includes(word))
+  const text = [
+    analysis.document_type,
+    analysis.summary,
+    ...(analysis.breakdown?.requested_actions ?? []),
+  ].join(" ").toLowerCase()
+  return ["payroll", "wage statement", "time record"].some((word) => text.includes(word))
 }
 
 function CandidateDecision({ decision, possible, onDecision }: {

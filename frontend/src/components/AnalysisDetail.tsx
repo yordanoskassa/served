@@ -46,8 +46,13 @@ function savedAt(value: string): string {
 }
 
 function isPaymentRecordRequest(analysis: Analysis): boolean {
-  const text = [analysis.summary, ...(analysis.breakdown?.requested_actions ?? [])].join(" ").toLowerCase()
-  return text.includes("bank record") && text.includes("payment")
+  const text = [
+    analysis.document_type,
+    analysis.summary,
+    ...(analysis.breakdown?.requested_actions ?? []),
+  ].join(" ").toLowerCase()
+  return /\b(?:bank records?|bank transactions?|transactions?)\b/.test(text)
+    || /\bpayments?(?:\s+and\s+bank)?\s+records?\b/.test(text)
 }
 
 export function AnalysisDetail({
