@@ -123,6 +123,14 @@ access token is never returned to the frontend. After a verified D4 request and
 successful connection, transactions are fetched and matched automatically for
 that analysis. Transaction details are not written into saved analysis records.
 
+Settings also provides an explicit **Transaction diagnostics** opt-in. When it
+is enabled, Served stores one normalized, owner-scoped transaction snapshot in
+MongoDB for the current Plaid Item. Every verified payment-record case can reuse
+that snapshot with its own extracted payee and date limits, avoiding a live
+Plaid dependency on every click. The UI exposes the stored fields and sync time;
+disabling diagnostics, reconnecting, or disconnecting deletes the snapshot.
+Transaction contents are never written to application logs.
+
 The hackathon flow uses Plaid Sandbox and its realistic small-business data. It
 demonstrates the real Link token, backend token exchange, transaction fetch, and
 automatic 7 include / 2 review / 19 exclude match; financial records do not alter
@@ -304,4 +312,3 @@ Yordan built the sourced corpus and independently implemented Served’s
 Grounding Guard architecture and runtime, including official-source validation
 and corpus allowlisting. No source code or assets were copied from the earlier
 project.
-

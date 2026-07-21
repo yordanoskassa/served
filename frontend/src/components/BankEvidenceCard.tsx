@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CheckCircle2, DatabaseZap, Download, EyeOff, Landmark, LoaderCircle, RefreshCw, ShieldCheck, Zap } from "lucide-react"
+import { AlertTriangle, Check, CheckCircle2, DatabaseZap, Download, EyeOff, Landmark, LoaderCircle, ShieldCheck, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -87,6 +87,19 @@ function requestedPerson(analysis: Analysis): string {
 function requestedStartDate(analysis: Analysis): string {
   const match = requestText(analysis).match(/\bfrom\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i)
   return match?.[1] || "Displayed start date"
+}
+
+function transactionMatchSourceLabel(source: PaymentMatchResponse["transaction_source"] | undefined): string {
+  if (source === "mongo_cache") return "Mongo snapshot"
+  if (source === "reviewed_sample") return "Reviewed sample"
+  return "Plaid live"
+}
+
+function transactionSyncLabel(value: string | null | undefined): string | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
 function PaymentRow({ record, decision, onDecision }: {
@@ -322,7 +335,7 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
     if (!accessCredential || busy) return
     setBusy(true)
     const startedAt = performance.now()
-    setBusyLabel("Refreshing transaction match…")
+    setBusyLabel("Loading saved or live transactions…")
     setError(null)
     try {
       const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
@@ -400,7 +413,7 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
   const progress = [
     { label: "Request verified", done: true },
     { label: "Bank connected", done: status.connected },
-    { label: "Transactions fetched", done: Boolean(records) },
+    { label: "Transactions loaded", done: Boolean(records) },
     { label: "Matches ready", done: Boolean(records) },
   ]
 
@@ -463,7 +476,7 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
       {error && <Alert className="mt-4 border-red-400/30 bg-red-400/10 text-white"><AlertTitle>Could not complete that step</AlertTitle><AlertDescription className="text-white/70">{error}</AlertDescription></Alert>}
 
       {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (demoPlaid ? "Connect sample account" : "Connect bank account")}</Button>{demoPlaid && <p className="type-caption mt-2 text-white/40">Loads Mendoza’s Kitchen with 28 seeded D4 transactions—not the generic bank picker.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking · 28 transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{wrongDemoBank && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connectSampleAccount() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (demoPlaid && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh records"}</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking · 28 transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{wrongDemoBank && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connectSampleAccount() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (demoPlaid && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <DatabaseZap size={16} />}{busyLabel || "Get transactions"}</Button></div></div>
         {busy && <TransactionLoader label={busyLabel} />}
       </div>}
     </div>
@@ -480,7 +493,7 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
           </AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Transaction review</p><h4 className="mt-1 text-lg font-semibold">Found candidate records. Kept everything else outside.</h4></div><div className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] text-white/55">{records.summary.total_searched} searched</div></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Transaction review</p><h4 className="mt-1 text-lg font-semibold">Found candidate records. Kept everything else outside.</h4><p className="mt-1 text-[10px] text-white/40">Source · {transactionMatchSourceLabel(records.transaction_source)}{transactionSyncLabel(records.transactions_synced_at) ? ` · synced ${transactionSyncLabel(records.transactions_synced_at)}` : ""}</p></div><div className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] text-white/55">{records.summary.total_searched} searched</div></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3" aria-label="Transaction partitions">
         <button type="button" aria-pressed={activePartition === "matched"} onClick={() => setActivePartition("matched")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "matched" ? "border-emerald-300 bg-emerald-300 text-emerald-950 shadow-[0_10px_30px_rgba(52,211,153,.14)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Candidate</p><CheckCircle2 size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className={`mt-1 text-xs ${activePartition === "matched" ? "text-emerald-900/70" : "text-white/45"}`}>{approvedSuggestedCount} owner approved</p></button>
         <button type="button" aria-pressed={activePartition === "review"} onClick={() => setActivePartition("review")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "review" ? "border-white/40 bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,.08)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Needs review</p><AlertTriangle size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.review}</p><p className={`mt-1 text-xs ${activePartition === "review" ? "text-black/60" : "text-white/45"}`}>Human decision required</p></button>

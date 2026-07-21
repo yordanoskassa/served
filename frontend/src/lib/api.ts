@@ -204,6 +204,17 @@ export type PlaidTransactionsResponse = {
   historical_update_complete: boolean
 }
 
+export type TransactionSnapshotResponse = {
+  enabled: boolean
+  available: boolean
+  source: "plaid" | "reviewed_sample" | null
+  synced_at: string | null
+  total: number
+  initial_update_complete: boolean
+  historical_update_complete: boolean
+  transactions: PlaidTransaction[]
+}
+
 export type PaymentReasonCode = "PAYEE_AND_DATE_MATCH" | "UNNAMED_INSTRUMENT_NEEDS_HUMAN" | "NAME_NEAR_MATCH_NEEDS_HUMAN" | "NOT_TARGET_PAYEE" | "OUTSIDE_DATE_RANGE"
 
 export type PaymentMatchRecord = {
@@ -240,6 +251,8 @@ export type PaymentMatchResponse = {
   legal_boundary: string
   human_review_required: true
   automatic_send: false
+  transaction_source: "plaid" | "mongo_cache" | "reviewed_sample"
+  transactions_synced_at: string | null
 }
 
 export type PayrollRecordType = "payroll_record" | "wage_statement" | "time_record"
@@ -611,6 +624,45 @@ export async function fetchUserPlaidConnection(credential: string, signal?: Abor
     signal,
   })
   if (!response.ok) throw await responseError(response, "Unable to load bank connection")
+  return response.json()
+}
+
+export async function fetchPlaidTransactionDebug(
+  credential: string,
+  signal?: AbortSignal,
+): Promise<TransactionSnapshotResponse> {
+  const response = await apiFetch(`${API_URL}/plaid/connection/transaction-debug`, {
+    headers: { Authorization: `Bearer ${credential}` },
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "Unable to load transaction diagnostics")
+  return response.json()
+}
+
+export async function updatePlaidTransactionDebug(
+  credential: string,
+  enabled: boolean,
+): Promise<TransactionSnapshotResponse> {
+  const response = await apiFetch(`${API_URL}/plaid/connection/transaction-debug`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${credential}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ enabled }),
+  })
+  if (!response.ok) throw await responseError(response, "Unable to update transaction diagnostics")
+  return response.json()
+}
+
+export async function syncPlaidTransactionSnapshot(
+  credential: string,
+): Promise<TransactionSnapshotResponse> {
+  const response = await apiFetch(`${API_URL}/plaid/connection/transactions/sync`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credential}` },
+  })
+  if (!response.ok) throw await responseError(response, "Unable to sync transaction snapshot")
   return response.json()
 }
 

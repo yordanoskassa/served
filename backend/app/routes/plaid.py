@@ -19,6 +19,8 @@ from app.schemas.plaid import (
     PlaidExchangeRequest,
     PlaidLinkTokenResponse,
     PlaidTransaction,
+    TransactionDebugRequest,
+    TransactionSnapshotResponse,
 )
 from app.services import plaid as plaid_service
 from app.services.financial_matcher import (
@@ -154,6 +156,8 @@ def _parse_transactions(result: dict) -> list[PlaidTransaction]:
     parsed: list[PlaidTransaction] = []
     for item in result.get("transactions") or []:
         category = item.get("personal_finance_category") or {}
+        if not isinstance(category, dict):
+            category = {}
         try:
             parsed.append(PlaidTransaction(
                 transaction_id=item["transaction_id"],
@@ -162,10 +166,14 @@ def _parse_transactions(result: dict) -> list[PlaidTransaction]:
                 merchant_name=item.get("merchant_name"),
                 date=item["date"],
                 amount=item["amount"],
-                currency=item.get("iso_currency_code") or item.get("unofficial_currency_code"),
+                currency=(
+                    item.get("currency")
+                    or item.get("iso_currency_code")
+                    or item.get("unofficial_currency_code")
+                ),
                 pending=bool(item.get("pending")),
-                category_primary=category.get("primary"),
-                category_detailed=category.get("detailed"),
+                category_primary=item.get("category_primary") or category.get("primary"),
+                category_detailed=item.get("category_detailed") or category.get("detailed"),
             ))
         except (KeyError, TypeError, ValueError, ValidationError) as exc:
             raise HTTPException(
@@ -196,6 +204,115 @@ def _seeded_d4_transactions() -> dict:
         "initial_update_complete": True,
         "historical_update_complete": True,
     }
+
+
+def _connection_plaid_environment(connection: dict) -> str | None:
+    if connection.get("demo_fixture"):
+        return "sandbox"
+    stored_environment = connection.get("environment")
+    if stored_environment in plaid_service.PLAID_BASE_URLS:
+        return stored_environment
+    return None
+
+
+async def _load_transaction_snapshot(subject: str, item_id: str | None) -> dict | None:
+    if not item_id:
+        return None
+    try:
+        return await get_db().bank_transaction_snapshots.find_one({
+            "google_subject": subject,
+            "item_id": item_id,
+        })
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The saved transaction snapshot is temporarily unavailable.",
+        ) from exc
+
+
+def _snapshot_response(*, enabled: bool, snapshot: dict | None) -> TransactionSnapshotResponse:
+    if not enabled or not snapshot:
+        return TransactionSnapshotResponse(enabled=enabled, available=False)
+    try:
+        transactions = [
+            PlaidTransaction.model_validate(item)
+            for item in snapshot.get("transactions") or []
+        ]
+        return TransactionSnapshotResponse(
+            enabled=True,
+            available=True,
+            source=snapshot.get("source"),
+            synced_at=snapshot.get("synced_at"),
+            total=len(transactions),
+            initial_update_complete=bool(snapshot.get("initial_update_complete")),
+            historical_update_complete=bool(snapshot.get("historical_update_complete")),
+            transactions=transactions,
+        )
+    except (TypeError, ValueError, ValidationError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The saved transaction snapshot could not be safely read.",
+        ) from exc
+
+
+async def _store_transaction_snapshot(
+    *,
+    subject: str,
+    item_id: str,
+    result: dict,
+    source: str,
+) -> dict:
+    transactions = _parse_transactions(result)
+    synced_at = datetime.now(UTC)
+    document = {
+        "google_subject": subject,
+        "item_id": item_id,
+        "source": source,
+        "synced_at": synced_at,
+        "initial_update_complete": bool(result.get("initial_update_complete")),
+        "historical_update_complete": bool(result.get("historical_update_complete")),
+        "transaction_count": len(transactions),
+        "transactions": [item.model_dump(mode="json") for item in transactions],
+        "updated_at": synced_at,
+    }
+    try:
+        await get_db().bank_transaction_snapshots.update_one(
+            {"google_subject": subject},
+            {"$set": document},
+            upsert=True,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Transactions were retrieved, but the diagnostic snapshot could not be saved.",
+        ) from exc
+    logger.info(
+        "transaction snapshot saved subject=%s source=%s count=%s",
+        subject[:12] + "…" if len(subject) > 12 else subject,
+        source,
+        len(transactions),
+    )
+    return document
+
+
+async def _sync_connection_transactions(connection: dict, *, context: str) -> tuple[dict, str]:
+    if connection.get("demo_fixture"):
+        return _seeded_d4_transactions(), "reviewed_sample"
+    try:
+        async with asyncio.timeout(MATCH_SYNC_TIMEOUT_SECONDS):
+            result = await plaid_service.sync_transactions(
+                connection["access_token"],
+                plaid_environment=_connection_plaid_environment(connection),
+                readiness_max_polls=1,
+            )
+        return result, "plaid"
+    except TimeoutError:
+        logger.info(
+            "%s exceeded Plaid request budget timeout_seconds=%s",
+            context,
+            MATCH_SYNC_TIMEOUT_SECONDS,
+        )
+        raise PlaidAPIError("TRANSACTIONS_NOT_READY") from None
 
 
 async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
@@ -254,7 +371,8 @@ async def _save_connection(
 
     connected_at = datetime.now(UTC)
     try:
-        await get_db().bank_connections.update_one(
+        database = get_db()
+        await database.bank_connections.update_one(
             {"google_subject": subject},
             {"$set": {
                 "google_subject": subject,
@@ -264,11 +382,15 @@ async def _save_connection(
                 "institution_name": institution_name,
                 "environment": settings.plaid_environment,
                 "demo_fixture": demo_fixture,
+                "transaction_debug_enabled": False,
                 "connected_at": connected_at,
                 "updated_at": connected_at,
             }},
             upsert=True,
         )
+        await database.bank_transaction_snapshots.delete_one({
+            "google_subject": subject,
+        })
     except Exception as exc:
         raise HTTPException(
             status_code=503,
@@ -291,6 +413,135 @@ async def user_connection_status(
 ) -> PlaidConnectionStatus:
     profile = _authenticate(authorization)
     return await _connection_status_for_subject(profile.subject)
+
+
+@router.get("/connection/transaction-debug", response_model=TransactionSnapshotResponse)
+async def transaction_debug_status(
+    authorization: str = Header(default=""),
+) -> TransactionSnapshotResponse:
+    profile = _authenticate(authorization)
+    try:
+        connection = await get_db().bank_connections.find_one(
+            {"google_subject": profile.subject},
+            {"item_id": 1, "transaction_debug_enabled": 1},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Transaction diagnostics are temporarily unavailable.",
+        ) from exc
+    enabled = bool(connection and connection.get("transaction_debug_enabled"))
+    snapshot = await _load_transaction_snapshot(
+        profile.subject,
+        connection.get("item_id") if connection else None,
+    ) if enabled else None
+    return _snapshot_response(enabled=enabled, snapshot=snapshot)
+
+
+@router.put("/connection/transaction-debug", response_model=TransactionSnapshotResponse)
+async def update_transaction_debug(
+    body: TransactionDebugRequest,
+    authorization: str = Header(default=""),
+) -> TransactionSnapshotResponse:
+    profile = _authenticate(authorization)
+    collection = get_db().bank_connections
+    try:
+        connection = await collection.find_one(
+            {"google_subject": profile.subject},
+            {
+                "access_token": 1,
+                "item_id": 1,
+                "environment": 1,
+                "demo_fixture": 1,
+                "transaction_debug_enabled": 1,
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Transaction diagnostics are temporarily unavailable.",
+        ) from exc
+    if not connection or not connection.get("access_token") or not connection.get("item_id"):
+        raise HTTPException(status_code=409, detail="Connect a bank account first.")
+
+    try:
+        await collection.update_one(
+            {"google_subject": profile.subject},
+            {"$set": {
+                "transaction_debug_enabled": body.enabled,
+                "updated_at": datetime.now(UTC),
+            }},
+        )
+        if not body.enabled:
+            await get_db().bank_transaction_snapshots.delete_one({
+                "google_subject": profile.subject,
+            })
+            return TransactionSnapshotResponse(enabled=False, available=False)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Transaction diagnostic settings could not be saved.",
+        ) from exc
+
+    if connection.get("demo_fixture"):
+        snapshot = await _store_transaction_snapshot(
+            subject=profile.subject,
+            item_id=connection["item_id"],
+            result=_seeded_d4_transactions(),
+            source="reviewed_sample",
+        )
+    else:
+        snapshot = await _load_transaction_snapshot(profile.subject, connection["item_id"])
+    return _snapshot_response(enabled=True, snapshot=snapshot)
+
+
+@router.post("/connection/transactions/sync", response_model=TransactionSnapshotResponse)
+async def sync_transaction_snapshot(
+    authorization: str = Header(default=""),
+) -> TransactionSnapshotResponse:
+    profile = _authenticate(authorization)
+    try:
+        connection = await get_db().bank_connections.find_one(
+            {"google_subject": profile.subject},
+            {
+                "access_token": 1,
+                "item_id": 1,
+                "environment": 1,
+                "demo_fixture": 1,
+                "transaction_debug_enabled": 1,
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Bank connection data is temporarily unavailable.",
+        ) from exc
+    if not connection or not connection.get("access_token") or not connection.get("item_id"):
+        raise HTTPException(status_code=409, detail="Connect a bank account first.")
+    if not connection.get("transaction_debug_enabled"):
+        raise HTTPException(
+            status_code=409,
+            detail="Enable transaction diagnostics in Settings before saving a snapshot.",
+        )
+    try:
+        result, source = await _sync_connection_transactions(
+            connection,
+            context="settings transaction sync",
+        )
+        snapshot = await _store_transaction_snapshot(
+            subject=profile.subject,
+            item_id=connection["item_id"],
+            result=result,
+            source=source,
+        )
+        return _snapshot_response(enabled=True, snapshot=snapshot)
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The transaction snapshot could not be prepared.",
+        ) from exc
+    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
+        raise _provider_error(exc, context="settings-transaction-sync") from None
 
 
 @router.get("/analyses/{analysis_id}/status", response_model=PlaidConnectionStatus)
@@ -510,7 +761,13 @@ async def match_transactions(
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": profile.subject},
-            {"access_token": 1, "environment": 1, "demo_fixture": 1},
+            {
+                "access_token": 1,
+                "item_id": 1,
+                "environment": 1,
+                "demo_fixture": 1,
+                "transaction_debug_enabled": 1,
+            },
         )
     except Exception as exc:
         raise HTTPException(
@@ -520,18 +777,11 @@ async def match_transactions(
     if not connection or not connection.get("access_token"):
         raise HTTPException(status_code=409, detail="Connect a bank account first.")
 
-    stored_environment = connection.get("environment")
-    plaid_api_env = (
-        "sandbox"
-        if connection.get("demo_fixture")
-        else stored_environment
-        if stored_environment in plaid_service.PLAID_BASE_URLS
-        else None
-    )
+    plaid_api_env = _connection_plaid_environment(connection)
 
     filename = str(record.get("filename") or "")
     if (
-        settings.plaid_environment != "production"
+        (plaid_api_env or settings.plaid_environment) != "production"
         and not connection.get("demo_fixture")
         and "D4" in filename.upper()
     ):
@@ -551,51 +801,62 @@ async def match_transactions(
             bool(connection.get("demo_fixture")),
             plaid_api_env or settings.plaid_environment,
         )
-        seeded_result = _seeded_d4_transactions() if connection.get("demo_fixture") else None
-        if seeded_result:
-            # The sample Item was already created through Plaid Sandbox. Its reviewed
-            # snapshot is deterministic, so do not hold the browser request open while
-            # Plaid prepares the same historical pull asynchronously.
-            result = seeded_result
-        else:
-            try:
-                async with asyncio.timeout(MATCH_SYNC_TIMEOUT_SECONDS):
-                    result = await plaid_service.sync_transactions(
-                        connection["access_token"],
-                        plaid_environment=plaid_api_env,
-                        readiness_max_polls=1,
+        result = None
+        transaction_source = "plaid"
+        transactions_synced_at = None
+        if connection.get("transaction_debug_enabled"):
+            snapshot = await _load_transaction_snapshot(
+                profile.subject,
+                connection.get("item_id"),
+            )
+            if snapshot:
+                result = {
+                    "transactions": snapshot.get("transactions") or [],
+                    "initial_update_complete": bool(snapshot.get("initial_update_complete")),
+                    "historical_update_complete": bool(snapshot.get("historical_update_complete")),
+                }
+                transaction_source = "mongo_cache"
+                transactions_synced_at = snapshot.get("synced_at")
+
+        if result is None:
+            result, provider_source = await _sync_connection_transactions(
+                connection,
+                context=f"match:{analysis_id}",
+            )
+            transaction_source = provider_source
+            if connection.get("transaction_debug_enabled"):
+                if not connection.get("item_id"):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Reconnect the bank before saving a transaction snapshot.",
                     )
-            except TimeoutError:
-                logger.info(
-                    "plaid match sync exceeded request budget analysis_id=%s timeout_seconds=%s",
-                    analysis_id,
-                    MATCH_SYNC_TIMEOUT_SECONDS,
+                snapshot = await _store_transaction_snapshot(
+                    subject=profile.subject,
+                    item_id=connection["item_id"],
+                    result=result,
+                    source=provider_source,
                 )
-                raise _provider_error(
-                    PlaidAPIError("TRANSACTIONS_NOT_READY"),
-                    context=f"match:{analysis_id}",
-                ) from None
-            except PlaidAPIError:
-                raise
+                transactions_synced_at = snapshot.get("synced_at")
         logger.info(
-            "plaid match sync ok analysis_id=%s transactions=%s initial=%s historical=%s",
+            "plaid match data ready analysis_id=%s source=%s transactions=%s initial=%s historical=%s",
             analysis_id,
+            transaction_source,
             len(result.get("transactions") or []),
             result.get("initial_update_complete"),
             result.get("historical_update_complete"),
         )
     except (OSError, KeyError, TypeError, ValueError) as exc:
-        logger.exception("demo fixture transaction load failed analysis_id=%s", analysis_id)
+        logger.exception("transaction data preparation failed analysis_id=%s", analysis_id)
         raise HTTPException(
             status_code=503,
-            detail="The seeded D4 transaction fixture is unavailable.",
+            detail="The transaction data could not be safely prepared.",
         ) from exc
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
         raise _provider_error(exc, context=f"match:{analysis_id}") from None
 
     parsed = _parse_transactions(result)
     try:
-        return match_payment_transactions(
+        matched = match_payment_transactions(
             parsed,
             analysis_id=analysis_id,
             source_document=record.get("filename") or "Uploaded document",
@@ -603,6 +864,10 @@ async def match_transactions(
             start_date=start_date,
             cutoff_date=body.cutoff_date,
         )
+        return matched.model_copy(update={
+            "transaction_source": transaction_source,
+            "transactions_synced_at": transactions_synced_at,
+        })
     except FinancialEligibilityError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -623,19 +888,14 @@ async def disconnect(
             and connection.get("access_token")
             and not is_demo_profile(profile)
         ):
-            stored_environment = connection.get("environment")
-            plaid_api_env = (
-                "sandbox"
-                if connection.get("demo_fixture")
-                else stored_environment
-                if stored_environment in plaid_service.PLAID_BASE_URLS
-                else None
-            )
             await plaid_service.remove_item(
                 connection["access_token"],
-                plaid_environment=plaid_api_env,
+                plaid_environment=_connection_plaid_environment(connection),
             )
         await collection.delete_one({"google_subject": profile.subject})
+        await get_db().bank_transaction_snapshots.delete_one({
+            "google_subject": profile.subject,
+        })
     except (PlaidAPIError, PlaidNotConfiguredError) as exc:
         raise _provider_error(exc) from None
     except Exception as exc:

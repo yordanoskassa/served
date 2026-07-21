@@ -116,6 +116,12 @@ def test_financial_routes_require_google_authentication() -> None:
     ).status_code == 401
     assert client.post("/api/plaid/connection/link-token").status_code == 401
     assert client.post("/api/plaid/connection/exchange", json={"public_token": "x"}).status_code == 401
+    assert client.get("/api/plaid/connection/transaction-debug").status_code == 401
+    assert client.put(
+        "/api/plaid/connection/transaction-debug",
+        json={"enabled": True},
+    ).status_code == 401
+    assert client.post("/api/plaid/connection/transactions/sync").status_code == 401
     assert client.post("/api/plaid/link-token").status_code == 404
     assert client.get("/api/plaid/transactions").status_code == 404
 
@@ -141,7 +147,10 @@ def test_settings_link_token_does_not_require_analysis() -> None:
 
 def test_settings_exchange_does_not_require_analysis() -> None:
     connections = SimpleNamespace(update_one=AsyncMock())
-    database = SimpleNamespace(bank_connections=connections)
+    database = SimpleNamespace(
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     exchange = AsyncMock(return_value={
         "access_token": "access-user",
         "item_id": "item-user",
@@ -225,7 +234,11 @@ def test_exchange_keeps_access_token_server_side_after_rechecking_gate() -> None
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(update_one=AsyncMock())
-    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    database = SimpleNamespace(
+        analyses=analyses,
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     exchange = AsyncMock(return_value={
         "access_token": "access-sandbox-private",
         "item_id": "item-sandbox-1",
@@ -259,7 +272,11 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(update_one=AsyncMock())
-    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    database = SimpleNamespace(
+        analyses=analyses,
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
     exchange = AsyncMock(return_value={
         "access_token": "access-d4-seeded",
@@ -302,7 +319,10 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
 
 def test_settings_sandbox_connect_does_not_require_analysis() -> None:
     connections = SimpleNamespace(update_one=AsyncMock())
-    database = SimpleNamespace(bank_connections=connections)
+    database = SimpleNamespace(
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     create_public_token = AsyncMock(return_value={"public_token": "public-settings"})
     exchange = AsyncMock(return_value={
         "access_token": "access-settings",
@@ -330,7 +350,11 @@ def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> Non
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(update_one=AsyncMock())
-    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    database = SimpleNamespace(
+        analyses=analyses,
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
     exchange = AsyncMock(return_value={
         "access_token": "access-d4-seeded",
@@ -368,7 +392,11 @@ def test_guest_d4_uses_seeded_fixture_without_plaid_credentials() -> None:
             "demo_fixture": True,
         }),
     )
-    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    database = SimpleNamespace(
+        analyses=analyses,
+        bank_connections=connections,
+        bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
+    )
     create_public_token = AsyncMock()
     sync = AsyncMock()
 
@@ -401,6 +429,177 @@ def test_guest_d4_uses_seeded_fixture_without_plaid_credentials() -> None:
         "excluded_by_reason": {"NOT_TARGET_PAYEE": 17, "OUTSIDE_DATE_RANGE": 2},
     }
     create_public_token.assert_not_awaited()
+    sync.assert_not_awaited()
+
+
+def test_enabling_transaction_debug_saves_reviewed_sample_snapshot() -> None:
+    connections = SimpleNamespace(
+        find_one=AsyncMock(return_value={
+            "access_token": "access-sandbox-private",
+            "item_id": "item-sandbox-private",
+            "environment": "sandbox",
+            "demo_fixture": True,
+            "transaction_debug_enabled": False,
+        }),
+        update_one=AsyncMock(),
+    )
+    snapshots = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(
+        bank_connections=connections,
+        bank_transaction_snapshots=snapshots,
+    )
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+    ):
+        response = TestClient(app).put(
+            "/api/plaid/connection/transaction-debug",
+            headers={"Authorization": "Bearer google-token"},
+            json={"enabled": True},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["enabled"] is True
+    assert response.json()["available"] is True
+    assert response.json()["source"] == "reviewed_sample"
+    assert response.json()["total"] == 28
+    assert len(response.json()["transactions"]) == 28
+    assert connections.update_one.await_args.args[1]["$set"]["transaction_debug_enabled"] is True
+    saved = snapshots.update_one.await_args.args[1]["$set"]
+    assert saved["google_subject"] == PROFILE.subject
+    assert saved["item_id"] == "item-sandbox-private"
+    assert saved["transaction_count"] == 28
+
+
+def test_disabling_transaction_debug_deletes_saved_snapshot() -> None:
+    connections = SimpleNamespace(
+        find_one=AsyncMock(return_value={
+            "access_token": "access-production-private",
+            "item_id": "item-production-private",
+            "environment": "production",
+            "demo_fixture": False,
+            "transaction_debug_enabled": True,
+        }),
+        update_one=AsyncMock(),
+    )
+    snapshots = SimpleNamespace(delete_one=AsyncMock())
+    database = SimpleNamespace(
+        bank_connections=connections,
+        bank_transaction_snapshots=snapshots,
+    )
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+    ):
+        response = TestClient(app).put(
+            "/api/plaid/connection/transaction-debug",
+            headers={"Authorization": "Bearer google-token"},
+            json={"enabled": False},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "enabled": False,
+        "available": False,
+        "source": None,
+        "synced_at": None,
+        "total": 0,
+        "initial_update_complete": False,
+        "historical_update_complete": False,
+        "transactions": [],
+    }
+    snapshots.delete_one.assert_awaited_once_with({"google_subject": PROFILE.subject})
+
+
+def test_settings_transaction_sync_saves_normalized_plaid_snapshot() -> None:
+    connections = SimpleNamespace(find_one=AsyncMock(return_value={
+        "access_token": "access-production-private",
+        "item_id": "item-production-private",
+        "environment": "production",
+        "demo_fixture": False,
+        "transaction_debug_enabled": True,
+    }))
+    snapshots = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(
+        bank_connections=connections,
+        bank_transaction_snapshots=snapshots,
+    )
+    sync = AsyncMock(return_value={
+        "transactions": _fixture_plaid_items(),
+        "initial_update_complete": True,
+        "historical_update_complete": True,
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch("app.routes.plaid.get_db", return_value=database),
+    ):
+        response = TestClient(app).post(
+            "/api/plaid/connection/transactions/sync",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["source"] == "plaid"
+    assert response.json()["total"] == 28
+    assert response.json()["historical_update_complete"] is True
+    sync.assert_awaited_once_with(
+        "access-production-private",
+        plaid_environment="production",
+        readiness_max_polls=1,
+    )
+    saved = snapshots.update_one.await_args.args[1]["$set"]
+    assert saved["item_id"] == "item-production-private"
+    assert len(saved["transactions"]) == 28
+    assert saved["transactions"][0]["currency"] == "USD"
+
+
+def test_case_match_reuses_owner_scoped_mongo_snapshot_without_plaid() -> None:
+    analysis_id = ObjectId()
+    synced_at = datetime(2026, 7, 21, 16, 30, tzinfo=UTC)
+    cached_transactions = [item.model_dump(mode="json") for item in _transactions()]
+    database = SimpleNamespace(
+        analyses=SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id))),
+        bank_connections=SimpleNamespace(find_one=AsyncMock(return_value={
+            "access_token": "access-production-private",
+            "item_id": "item-production-private",
+            "environment": "production",
+            "demo_fixture": False,
+            "transaction_debug_enabled": True,
+        })),
+        bank_transaction_snapshots=SimpleNamespace(find_one=AsyncMock(return_value={
+            "google_subject": PROFILE.subject,
+            "item_id": "item-production-private",
+            "source": "plaid",
+            "synced_at": synced_at,
+            "initial_update_complete": True,
+            "historical_update_complete": True,
+            "transactions": cached_transactions,
+        })),
+    )
+    sync = AsyncMock(side_effect=AssertionError("cached case matching must not call Plaid"))
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch.object(plaid_service.settings, "plaid_environment", "production"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer google-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["transaction_source"] == "mongo_cache"
+    assert response.json()["transactions_synced_at"] == "2026-07-21T16:30:00Z"
+    assert response.json()["summary"] == {
+        "total_searched": 28,
+        "include": 7,
+        "review": 2,
+        "exclude": 19,
+        "excluded_by_reason": {"NOT_TARGET_PAYEE": 17, "OUTSIDE_DATE_RANGE": 2},
+    }
     sync.assert_not_awaited()
 
 

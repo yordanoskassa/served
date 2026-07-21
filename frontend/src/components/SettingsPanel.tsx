@@ -1,8 +1,9 @@
-import { Check, Copy, Landmark, LogOut, RefreshCw, Trash2, UserRound } from "lucide-react"
+import { Bug, Check, Copy, Database, Landmark, LogOut, RefreshCw, Trash2, UserRound } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,12 +24,16 @@ import {
   deleteAllSavedAnalyses,
   disconnectPlaidConnection,
   exchangeUserPlaidPublicToken,
+  fetchPlaidTransactionDebug,
   fetchPublicConfig,
   fetchUserPlaidConnection,
   getDemoCredential,
+  syncPlaidTransactionSnapshot,
+  updatePlaidTransactionDebug,
   type DashboardSummary,
   type PlaidConnectionStatus,
   type SavedAnalysisListItem,
+  type TransactionSnapshotResponse,
   type UserProfile,
 } from "@/lib/api"
 import { isSandboxPlaidEnvironment, PLAID_SANDBOX_LABEL, pickPaymentRecordAnalysisId } from "@/lib/bankConnect"
@@ -49,8 +54,21 @@ function formatConnectedAt(value: string | null | undefined): string {
   return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
-function plaidEnvironmentLabel(_environment: PlaidConnectionStatus["environment"]): string {
+function plaidEnvironmentLabel(environment: PlaidConnectionStatus["environment"]): string {
+  if (environment === "production") return "Plaid production"
+  if (environment === "development") return "Plaid development"
   return PLAID_SANDBOX_LABEL
+}
+
+function transactionSourceLabel(source: TransactionSnapshotResponse["source"]): string {
+  return source === "reviewed_sample" ? "Reviewed sample" : "Plaid"
+}
+
+function formatTransactionAmount(amount: number, currency: string | null): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency || "USD",
+  }).format(Math.abs(amount))
 }
 
 export function SettingsPanel({
@@ -92,6 +110,9 @@ export function SettingsPanel({
   const [copied, setCopied] = useState(false)
   const [accessCredential, setAccessCredential] = useState<string | null>(credential ?? null)
   const [localBankConnecting, setLocalBankConnecting] = useState(false)
+  const [transactionDebug, setTransactionDebug] = useState<TransactionSnapshotResponse | null>(null)
+  const [transactionDebugBusy, setTransactionDebugBusy] = useState(false)
+  const [transactionDebugError, setTransactionDebugError] = useState<string | null>(null)
   const bankConnectingActive = bankConnecting || localBankConnecting
   const [showSampleTips, setShowSampleTips] = useState(() => {
     if (typeof window === "undefined") return true
@@ -122,10 +143,24 @@ export function SettingsPanel({
     setBankState("loading")
     setBankError(null)
     void fetchUserPlaidConnection(active, controller.signal)
-      .then((status) => {
+      .then(async (status) => {
         if (bankController.current !== controller) return
         setBank(status)
         setBankState("ready")
+        if (!status.connected) {
+          setTransactionDebug(null)
+          setTransactionDebugError(null)
+          return
+        }
+        try {
+          const diagnostics = await fetchPlaidTransactionDebug(active, controller.signal)
+          if (bankController.current !== controller) return
+          setTransactionDebug(diagnostics)
+          setTransactionDebugError(null)
+        } catch (cause) {
+          if (controller.signal.aborted || bankController.current !== controller) return
+          setTransactionDebugError(cause instanceof Error ? cause.message : "Unable to load transaction diagnostics.")
+        }
       })
       .catch((cause) => {
         if (controller.signal.aborted || bankController.current !== controller) return
@@ -198,6 +233,7 @@ export function SettingsPanel({
       await disconnectPlaidConnection(token)
       setDisconnectOpen(false)
       setDisconnectSuccess(true)
+      setTransactionDebug(null)
       loadBank(token)
     } catch (cause) {
       setBankError(cause instanceof Error ? cause.message : "Could not disconnect the bank.")
@@ -267,6 +303,35 @@ export function SettingsPanel({
         setLocalBankConnecting(false)
       }
     })()
+  }
+
+  const handleToggleTransactionDebug = async () => {
+    if (transactionDebugBusy) return
+    setTransactionDebugBusy(true)
+    setTransactionDebugError(null)
+    try {
+      const token = await ensureCredential()
+      const next = await updatePlaidTransactionDebug(token, !transactionDebug?.enabled)
+      setTransactionDebug(next)
+    } catch (cause) {
+      setTransactionDebugError(cause instanceof Error ? cause.message : "Unable to update transaction diagnostics.")
+    } finally {
+      setTransactionDebugBusy(false)
+    }
+  }
+
+  const handleSyncTransactionSnapshot = async () => {
+    if (transactionDebugBusy) return
+    setTransactionDebugBusy(true)
+    setTransactionDebugError(null)
+    try {
+      const token = await ensureCredential()
+      setTransactionDebug(await syncPlaidTransactionSnapshot(token))
+    } catch (cause) {
+      setTransactionDebugError(cause instanceof Error ? cause.message : "Unable to sync transaction data.")
+    } finally {
+      setTransactionDebugBusy(false)
+    }
   }
 
   const showSampleConnect = demoMode || (bank?.environment ? isSandboxPlaidEnvironment(bank.environment) : true)
@@ -454,6 +519,102 @@ export function SettingsPanel({
                   <p className="mt-4 text-xs leading-5 text-zinc-600">
                     Served can retrieve transactions for verified payment-record requests. Disconnect here to revoke access.
                   </p>
+                  <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex items-start gap-2">
+                        <Bug className="mt-0.5 shrink-0" size={15} />
+                        <div>
+                          <p className="text-xs font-semibold">Transaction diagnostics</p>
+                          <p className="mt-1 max-w-lg text-[11px] leading-5 text-zinc-500">
+                            Opt in to save the normalized Plaid transaction snapshot in MongoDB. Cases can reuse it without waiting on Plaid.
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 px-2.5 text-[11px]"
+                        disabled={transactionDebugBusy}
+                        onClick={() => { void handleToggleTransactionDebug() }}
+                      >
+                        {transactionDebugBusy && <RefreshCw className="animate-spin" size={12} />}
+                        {transactionDebug?.enabled ? "Disable & delete cache" : "Enable diagnostics"}
+                      </Button>
+                    </div>
+
+                    {transactionDebugError && (
+                      <Alert className="mt-3 rounded-lg border-red-200 bg-red-50 text-red-900">
+                        <AlertTitle>Transaction diagnostics failed</AlertTitle>
+                        <AlertDescription>{transactionDebugError}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {transactionDebug?.enabled && (
+                      <div className="mt-3 border-t border-black/5 pt-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary" className="text-[10px]">Mongo cache enabled</Badge>
+                            {transactionDebug.available && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {transactionDebug.total} transactions · {transactionSourceLabel(transactionDebug.source)}
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-8 px-2.5 text-[11px]"
+                            disabled={transactionDebugBusy}
+                            onClick={() => { void handleSyncTransactionSnapshot() }}
+                          >
+                            <Database size={13} />
+                            {transactionDebugBusy ? "Syncing…" : "Sync from Plaid"}
+                          </Button>
+                        </div>
+                        {transactionDebug.available ? (
+                          <>
+                            <p className="mt-2 text-[10px] text-zinc-400">
+                              Saved {formatConnectedAt(transactionDebug.synced_at)} · complete historical snapshot
+                            </p>
+                            <Accordion type="single" collapsible className="mt-2">
+                              <AccordionItem value="transaction-debug-data" className="rounded-lg border border-black/10 px-3">
+                                <AccordionTrigger className="py-3 text-xs hover:no-underline">
+                                  View saved transaction data
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                                    {transactionDebug.transactions.map((transaction) => (
+                                      <article className="rounded-lg border border-black/[.07] bg-background p-3" key={transaction.transaction_id}>
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="truncate text-xs font-medium">{transaction.name}</p>
+                                            <p className="mt-1 text-[10px] text-zinc-500">
+                                              {transaction.date} · {transaction.merchant_name || "No merchant normalization"}
+                                            </p>
+                                          </div>
+                                          <p className="shrink-0 text-xs font-semibold">{formatTransactionAmount(transaction.amount, transaction.currency)}</p>
+                                        </div>
+                                        <div className="mt-2 grid gap-1 text-[9px] text-zinc-400 sm:grid-cols-2">
+                                          <p className="truncate" title={transaction.transaction_id}>Transaction · {transaction.transaction_id}</p>
+                                          <p className="truncate" title={transaction.account_id}>Account · {transaction.account_id}</p>
+                                          <p>Pending · {transaction.pending ? "yes" : "no"}</p>
+                                          <p className="truncate">Category · {transaction.category_detailed || transaction.category_primary || "Uncategorized"}</p>
+                                        </div>
+                                      </article>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </>
+                        ) : (
+                          <p className="mt-2 text-[11px] leading-5 text-zinc-500">
+                            No snapshot is saved yet. Sync once here; if Plaid is still preparing history, retry after a moment.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {bankConnectAnalysisId && onOpenBankRequest && (
                     <Button
                       type="button"
@@ -461,7 +622,7 @@ export function SettingsPanel({
                       className="mt-3 h-9 px-3 text-xs"
                       onClick={() => onOpenBankRequest(bankConnectAnalysisId)}
                     >
-                      Open payment records
+                      Open transaction case
                     </Button>
                   )}
                   <Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
@@ -474,7 +635,7 @@ export function SettingsPanel({
                       <DialogHeader>
                         <DialogTitle>Disconnect {bank.institution_name ?? "this bank"}?</DialogTitle>
                         <DialogDescription className="space-y-2 text-left leading-6">
-                          <span className="block">This removes the bank connection from Served and deletes the stored access token.</span>
+                          <span className="block">This removes the bank connection, stored access token, and diagnostic transaction snapshot from Served.</span>
                           <span className="block">Saved request analyses remain on your account. Open a verified payment-record request to connect again.</span>
                         </DialogDescription>
                       </DialogHeader>
@@ -510,7 +671,8 @@ export function SettingsPanel({
         <ul className="space-y-2 px-5 py-4 text-xs leading-5 text-zinc-600">
           <li>Uploaded request files are not kept after analysis.</li>
           <li>Your account stores structured results, evidence, decisions, and run traces.</li>
-          <li>Payroll CSVs and Plaid transactions are used for matching only during your session workflows.</li>
+          <li>Payroll CSVs are used for matching only during your session workflows.</li>
+          <li>Plaid transactions are not retained unless you enable Transaction diagnostics. Disabling it or disconnecting deletes the MongoDB snapshot.</li>
         </ul>
         <div className="border-t border-black/5 px-5 py-4">
           <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

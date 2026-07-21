@@ -44,6 +44,24 @@ class PlaidTransactionsResponse(BaseModel):
     historical_update_complete: bool
 
 
+TransactionSnapshotSource = Literal["plaid", "reviewed_sample"]
+
+
+class TransactionDebugRequest(BaseModel):
+    enabled: bool
+
+
+class TransactionSnapshotResponse(BaseModel):
+    enabled: bool
+    available: bool
+    source: TransactionSnapshotSource | None = None
+    synced_at: datetime | None = None
+    total: int = 0
+    initial_update_complete: bool = False
+    historical_update_complete: bool = False
+    transactions: list[PlaidTransaction] = Field(default_factory=list)
+
+
 PaymentDisposition = Literal["INCLUDE", "REVIEW", "EXCLUDE"]
 PaymentReasonCode = Literal[
     "PAYEE_AND_DATE_MATCH",
@@ -102,3 +120,5 @@ class PaymentMatchResponse(BaseModel):
     legal_boundary: str
     human_review_required: Literal[True] = True
     automatic_send: Literal[False] = False
+    transaction_source: Literal["plaid", "mongo_cache", "reviewed_sample"] = "plaid"
+    transactions_synced_at: datetime | None = None
