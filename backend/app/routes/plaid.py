@@ -636,6 +636,24 @@ async def exchange_token(
     )
 
 
+async def _save_local_d4_sample_connection(
+    profile,
+    *,
+    institution_name: str = "Mendoza’s Kitchen · D4 sample",
+) -> PlaidConnectionStatus:
+    """Persist the reviewed D4 fixture locally (matching uses fixture rows, not Plaid sync)."""
+    return await _save_connection(
+        subject=profile.subject,
+        provider_result={
+            "access_token": f"served-seeded-fixture:{profile.subject}",
+            "item_id": f"served-seeded-item:{profile.subject}",
+        },
+        institution_id="ins_109508",
+        institution_name=institution_name,
+        demo_fixture=True,
+    )
+
+
 async def _connect_seeded_sandbox_bank(profile, *, log_label: str) -> PlaidConnectionStatus:
     """Connect the Mendoza D4 Plaid Sandbox item for this user (no analysis required)."""
     demo_profile = is_demo_profile(profile)
@@ -657,71 +675,31 @@ async def _connect_seeded_sandbox_bank(profile, *, log_label: str) -> PlaidConne
         )
         raise HTTPException(status_code=404, detail="The sample bank is available only in Sandbox.")
     if demo_profile:
-        return await _save_connection(
-            subject=profile.subject,
-            provider_result={
-                "access_token": f"served-demo-fixture:{profile.subject}",
-                "item_id": f"served-demo-item:{profile.subject}",
-            },
-            institution_id="served_demo_fixture",
+        return await _save_local_d4_sample_connection(
+            profile,
             institution_name="Mendoza’s Kitchen Sandbox",
-            demo_fixture=True,
         )
-    try:
-        raw_fixture = D4_PLAID_FIXTURE.read_text()
-        custom_user = json.loads(raw_fixture)
+    if settings.plaid_environment in ("sandbox", "development"):
+        if not D4_PLAID_FIXTURE.is_file():
+            raise HTTPException(
+                status_code=503,
+                detail=f"D4 bank demo fixture is missing on the server ({D4_PLAID_FIXTURE.name}).",
+            )
         logger.info(
-            "sandbox-connect fixture loaded bytes=%s accounts=%s",
-            len(raw_fixture),
-            len(custom_user.get("override_accounts") or []),
-        )
-        public_token_result = await plaid_service.create_sandbox_public_token(custom_user)
-        public_token = public_token_result.get("public_token")
-        if not public_token:
-            logger.warning("sandbox-connect missing public_token in Plaid response keys=%s", list(public_token_result))
-            raise PlaidAPIError("INVALID_PLAID_RESPONSE")
-        logger.info("sandbox-connect public_token received, exchanging")
-        provider_result = await plaid_service.exchange_sandbox_public_token(public_token)
-        item_id = provider_result.get("item_id")
-        logger.info("sandbox-connect exchange ok item_id=%s", item_id)
-    except OSError as exc:
-        logger.exception(
-            "sandbox-connect fixture IO error path=%s context=%s",
-            D4_PLAID_FIXTURE,
+            "sandbox-connect using local D4 fixture (skip Plaid custom-user API) context=%s",
             log_label,
         )
-        raise HTTPException(
-            status_code=503,
-            detail=f"D4 bank demo fixture is missing on the server ({D4_PLAID_FIXTURE.name}).",
-        ) from exc
-    except ValueError as exc:
-        logger.warning(
-            "sandbox-connect invalid fixture JSON path=%s context=%s error=%s",
-            D4_PLAID_FIXTURE,
+        status = await _save_local_d4_sample_connection(profile)
+        logger.info(
+            "sandbox-connect success context=%s subject=%s demo_fixture=%s institution=%s",
             log_label,
-            exc,
+            subject_hint,
+            status.demo_fixture,
+            status.institution_name,
         )
-        raise HTTPException(
-            status_code=503,
-            detail="D4 bank demo fixture is invalid JSON on the server.",
-        ) from exc
-    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
-        raise _provider_error(exc, context="sandbox-connect") from None
-    status = await _save_connection(
-        subject=profile.subject,
-        provider_result=provider_result,
-        institution_id="ins_109508",
-        institution_name="First Platypus Bank",
-        demo_fixture=True,
-    )
-    logger.info(
-        "sandbox-connect success context=%s subject=%s demo_fixture=%s institution=%s",
-        log_label,
-        subject_hint,
-        status.demo_fixture,
-        status.institution_name,
-    )
-    return status
+        return status
+
+    raise HTTPException(status_code=404, detail="The sample bank is available only in Sandbox.")
 
 
 @router.post("/connection/sandbox-connect", response_model=PlaidConnectionStatus)

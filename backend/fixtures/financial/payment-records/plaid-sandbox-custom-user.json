@@ -1,5 +1,5 @@
 {
-  "version": "2",
+  "version": 2,
   "seed": "served-payments-v1",
   "override_accounts": [
     {

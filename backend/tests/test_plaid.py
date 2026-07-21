@@ -334,11 +334,13 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
         bank_connections=connections,
         bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
     )
-    create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
-    exchange = AsyncMock(return_value={
-        "access_token": "access-d4-seeded",
-        "item_id": "item-d4-seeded",
-    })
+    create_public_token = AsyncMock()
+    exchange = AsyncMock()
+    fixture = json.loads(PAYMENT_FIXTURE.read_text())
+    descriptions = [
+        item["description"]
+        for item in fixture["override_accounts"][0]["transactions"]
+    ]
     with (
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.get_db", return_value=database),
@@ -352,26 +354,22 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
         )
 
     assert response.status_code == 200
-    assert response.json()["institution_name"] == "First Platypus Bank"
+    assert "D4 sample" in response.json()["institution_name"]
     assert response.json()["demo_fixture"] is True
-    custom_user = create_public_token.await_args.args[0]
-    descriptions = [
-        item["description"]
-        for item in custom_user["override_accounts"][0]["transactions"]
-    ]
     exact_audrea = [
         item
-        for item in custom_user["override_accounts"][0]["transactions"]
+        for item in fixture["override_accounts"][0]["transactions"]
         if item["description"] == "PAYROLL ACH - AUDREA BARNES"
     ]
     assert len(exact_audrea) == 9
     assert len([item for item in exact_audrea if item["date_transacted"] >= "2026-01-01"]) == 7
     assert "CHECK #1042" in descriptions
     assert "ACH - A. BARNS" in descriptions
-    exchange.assert_awaited_once_with("public-d4-seeded")
+    create_public_token.assert_not_awaited()
+    exchange.assert_not_awaited()
     _, update = connections.update_one.await_args.args
     assert update["$set"]["demo_fixture"] is True
-    assert update["$set"]["access_token"] == "access-d4-seeded"
+    assert str(update["$set"]["access_token"]).startswith("served-seeded-fixture:")
 
 
 def test_settings_sandbox_connect_does_not_require_analysis() -> None:
@@ -399,8 +397,8 @@ def test_settings_sandbox_connect_does_not_require_analysis() -> None:
 
     assert response.status_code == 200
     assert response.json()["demo_fixture"] is True
-    create_public_token.assert_awaited_once()
-    exchange.assert_awaited_once()
+    create_public_token.assert_not_awaited()
+    exchange.assert_not_awaited()
 
 
 def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> None:
@@ -412,11 +410,8 @@ def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> Non
         bank_connections=connections,
         bank_transaction_snapshots=SimpleNamespace(delete_one=AsyncMock()),
     )
-    create_public_token = AsyncMock(return_value={"public_token": "public-d4-seeded"})
-    exchange = AsyncMock(return_value={
-        "access_token": "access-d4-seeded",
-        "item_id": "item-d4-seeded",
-    })
+    create_public_token = AsyncMock()
+    exchange = AsyncMock()
     with (
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.get_db", return_value=database),
@@ -431,6 +426,7 @@ def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> Non
 
     assert response.status_code == 200
     assert response.json()["demo_fixture"] is True
+    create_public_token.assert_not_awaited()
 
 
 def test_guest_d4_uses_seeded_fixture_without_plaid_credentials() -> None:

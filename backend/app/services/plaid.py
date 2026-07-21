@@ -223,9 +223,17 @@ async def exchange_sandbox_public_token(public_token: str) -> dict[str, Any]:
 
 async def create_sandbox_public_token(custom_user: dict[str, Any]) -> dict[str, Any]:
     """Create the deterministic D4 Item through Plaid's Sandbox API."""
+    payload_user = json.loads(json.dumps(custom_user))
+    version = payload_user.get("version")
+    if isinstance(version, str) and version.isdigit():
+        payload_user["version"] = int(version)
+    elif version is not None and not isinstance(version, int):
+        logger.warning("Plaid custom user has non-integer version=%r; omitting", version)
+        payload_user.pop("version", None)
+
     tx_count = 0
     try:
-        accounts = custom_user.get("override_accounts") or []
+        accounts = payload_user.get("override_accounts") or []
         if accounts:
             tx_count = len(accounts[0].get("transactions") or [])
     except (AttributeError, TypeError, IndexError):
@@ -241,7 +249,7 @@ async def create_sandbox_public_token(custom_user: dict[str, Any]) -> dict[str, 
             "initial_products": ["transactions"],
             "options": {
                 "override_username": "user_custom",
-                "override_password": json.dumps(custom_user, separators=(",", ":")),
+                "override_password": json.dumps(payload_user, separators=(",", ":")),
                 "transactions": {
                     "start_date": "2025-11-01",
                     "end_date": "2026-07-19",
