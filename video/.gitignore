@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Ignore the output video from Git but not videos you import into src/.
+out
+
+# Local review renders. Remotion Studio regenerates these from the source.
+preview-*.png
+served-raul-story.mp4
