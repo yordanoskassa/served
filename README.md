@@ -277,13 +277,14 @@ Netlify environment variables.
 
 ## Acknowledgments
 
-Kathleen introduced the Grounding Guard concept to the Served team,
-drawing on a citation-verification pattern she explored in her earlier work on
-the [HackTheLaw2026 project](https://github.com/RexMortem/HackTheLaw2026).
+Kathleen introduced the Grounding Guard concept to Served, adapting an
+original citation-verification framework she had drafted during her earlier
+work on the
+[HackTheLaw2026 project](https://github.com/RexMortem/HackTheLaw2026).
 
-She subsequently redesigned and extended the concept for Served through its
-deterministic verdict boundaries, claim-quarantine rules, and golden
-regression-test contract.
+For Served, Kathleen redesigned and extended the framework through deterministic
+verdict boundaries, claim-quarantine rules, and the golden regression-test
+contract.
 
 Yordan built the sourced corpus and independently implemented Served’s
 Grounding Guard architecture and runtime, including official-source validation
