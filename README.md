@@ -203,7 +203,7 @@ Codex was used as the build partner to:
 - prepare and audit the sourced corpora, D1–D4 document fixtures, financial-record fixtures, expected outcomes, and 12-case Grounding Guard contract; and
 - inspect the frontend/backend integration, reproduce failures, and keep implementation notes aligned with the repository.
 
-Early visual reference mocks (in references/drive/) were explored with other AI tools; all product code, architecture, corpora, and the running application were built with Codex and GPT-5.6. The final verdict is never delegated to any model.
+Codex and GPT‑5.6 were the primary AI tools used to build Served. Cursor Agent also contributed implementation changes. Early visual reference mocks were explored with other AI tools. The final verdict is never delegated to any model.
 
 ## Run locally
 
