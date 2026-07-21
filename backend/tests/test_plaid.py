@@ -176,6 +176,63 @@ def test_settings_exchange_does_not_require_analysis() -> None:
     exchange.assert_awaited_once_with("public-once")
 
 
+def test_saved_connection_remains_connected_when_runtime_config_check_fails() -> None:
+    connected_at = datetime(2026, 7, 21, 18, 30, tzinfo=UTC)
+    connections = SimpleNamespace(find_one=AsyncMock(return_value={
+        "access_token": "access-stored-private",
+        "institution_name": "Persistent Bank",
+        "connected_at": connected_at,
+        "environment": "production",
+        "demo_fixture": False,
+    }))
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=SimpleNamespace(bank_connections=connections)),
+        patch("app.routes.plaid.plaid_service.is_configured", return_value=False),
+    ):
+        response = TestClient(app).get(
+            "/api/plaid/connection",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "configured": True,
+        "connected": True,
+        "environment": "production",
+        "institution_name": "Persistent Bank",
+        "connected_at": "2026-07-21T18:30:00Z",
+        "demo_fixture": False,
+    }
+    connections.find_one.assert_awaited_once_with(
+        {"google_subject": PROFILE.subject},
+        {
+            "access_token": 1,
+            "institution_name": 1,
+            "connected_at": 1,
+            "environment": 1,
+            "demo_fixture": 1,
+        },
+    )
+
+
+def test_unconfigured_user_without_saved_connection_stays_disconnected() -> None:
+    connections = SimpleNamespace(find_one=AsyncMock(return_value=None))
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=SimpleNamespace(bank_connections=connections)),
+        patch("app.routes.plaid.plaid_service.is_configured", return_value=False),
+    ):
+        response = TestClient(app).get(
+            "/api/plaid/connection",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["configured"] is False
+    assert response.json()["connected"] is False
+
+
 def test_link_token_is_analysis_scoped_and_returns_only_temporary_token() -> None:
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))

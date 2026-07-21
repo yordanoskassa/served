@@ -316,13 +316,6 @@ async def _sync_connection_transactions(connection: dict, *, context: str) -> tu
 
 
 async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
-    configured = subject.startswith("demo:") or plaid_service.is_configured()
-    if not configured:
-        return PlaidConnectionStatus(
-            configured=False,
-            connected=False,
-            environment=settings.plaid_environment,
-        )
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": subject},
@@ -340,6 +333,7 @@ async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
             detail="Bank connection status is temporarily unavailable.",
         ) from exc
     connected = bool(connection and connection.get("access_token"))
+    configured = subject.startswith("demo:") or plaid_service.is_configured() or connected
     stored_environment = connection.get("environment") if connection else None
     environment = (
         stored_environment
@@ -347,7 +341,7 @@ async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
         else settings.plaid_environment
     )
     return PlaidConnectionStatus(
-        configured=True,
+        configured=configured,
         connected=connected,
         environment=environment,
         institution_name=connection.get("institution_name") if connected else None,

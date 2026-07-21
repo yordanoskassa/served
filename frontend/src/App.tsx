@@ -54,6 +54,8 @@ export function App() {
       onSuccess: async (publicToken, institution) => {
         await exchangeUserPlaidPublicToken(credential, publicToken, institution, storedPlaidLinkAnalysisId())
       },
+    }).catch((cause) => {
+      setError(cause instanceof Error ? cause.message : "Unable to finish the bank connection.")
     })
   }, [loading, credential, user])
 

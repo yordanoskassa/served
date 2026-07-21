@@ -60,7 +60,7 @@ export async function openPlaidLink(options: {
     throw new Error("Plaid Link session expired. Close this tab and connect again from Settings.")
   }
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     if (!Plaid) {
       options.onExit?.("Plaid Link did not load.")
       resolve()
@@ -71,13 +71,15 @@ export async function openPlaidLink(options: {
       token: linkToken!,
       ...(oauthReturn ? { receivedRedirectUri: oauthReturn.href } : {}),
       onSuccess: (publicToken, metadata) => {
-        sessionStorage.removeItem(LINK_TOKEN_KEY)
-        sessionStorage.removeItem(LINK_ANALYSIS_KEY)
-        clearPlaidOAuthQueryParams()
-        void Promise.resolve(options.onSuccess(publicToken, metadata.institution)).finally(() => {
-          handler?.destroy()
-          resolve()
-        })
+        void Promise.resolve(options.onSuccess(publicToken, metadata.institution))
+          .then(resolve)
+          .catch(reject)
+          .finally(() => {
+            sessionStorage.removeItem(LINK_TOKEN_KEY)
+            sessionStorage.removeItem(LINK_ANALYSIS_KEY)
+            clearPlaidOAuthQueryParams()
+            handler?.destroy()
+          })
       },
       onExit: (linkError) => {
         if (!oauthReturn) sessionStorage.removeItem(LINK_TOKEN_KEY)

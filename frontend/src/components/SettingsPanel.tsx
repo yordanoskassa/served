@@ -134,7 +134,7 @@ export function SettingsPanel({
     return demo
   }
 
-  const loadBank = (token?: string | null) => {
+  const loadBank = async (token?: string | null): Promise<void> => {
     const active = token ?? accessCredential
     if (!active) return
     bankController.current?.abort()
@@ -142,31 +142,31 @@ export function SettingsPanel({
     bankController.current = controller
     setBankState("loading")
     setBankError(null)
-    void fetchUserPlaidConnection(active, controller.signal)
-      .then(async (status) => {
+    try {
+      const status = await fetchUserPlaidConnection(active, controller.signal)
+      if (bankController.current !== controller) return
+      setBank(status)
+      setBankState("ready")
+      if (!status.connected) {
+        setTransactionDebug(null)
+        setTransactionDebugError(null)
+        return
+      }
+      try {
+        const diagnostics = await fetchPlaidTransactionDebug(active, controller.signal)
         if (bankController.current !== controller) return
-        setBank(status)
-        setBankState("ready")
-        if (!status.connected) {
-          setTransactionDebug(null)
-          setTransactionDebugError(null)
-          return
-        }
-        try {
-          const diagnostics = await fetchPlaidTransactionDebug(active, controller.signal)
-          if (bankController.current !== controller) return
-          setTransactionDebug(diagnostics)
-          setTransactionDebugError(null)
-        } catch (cause) {
-          if (controller.signal.aborted || bankController.current !== controller) return
-          setTransactionDebugError(cause instanceof Error ? cause.message : "Unable to load transaction diagnostics.")
-        }
-      })
-      .catch((cause) => {
+        setTransactionDebug(diagnostics)
+        setTransactionDebugError(null)
+      } catch (cause) {
         if (controller.signal.aborted || bankController.current !== controller) return
-        setBankError(cause instanceof Error ? cause.message : "Unable to load bank connection.")
-        setBankState("error")
-      })
+        setTransactionDebugError(cause instanceof Error ? cause.message : "Unable to load transaction diagnostics.")
+      }
+    } catch (cause) {
+      if (controller.signal.aborted || bankController.current !== controller) return
+      setBankError(cause instanceof Error ? cause.message : "Unable to load bank connection.")
+      setBankState("error")
+      throw cause
+    }
   }
 
   useEffect(() => {
@@ -189,7 +189,7 @@ export function SettingsPanel({
         }
         if (cancelled) return
         setAccessCredential(token)
-        loadBank(token)
+        await loadBank(token)
       } catch {
         if (!cancelled) {
           setBankError("Could not start a session for bank settings.")
@@ -269,8 +269,10 @@ export function SettingsPanel({
     void (async () => {
       try {
         const token = await ensureCredential()
-        await connectPlaidSandboxSample(token, bankConnectAnalysisId)
-        loadBank(token)
+        const status = await connectPlaidSandboxSample(token, bankConnectAnalysisId)
+        setBank(status)
+        setBankState("ready")
+        await loadBank(token)
       } catch (cause: unknown) {
         setBankError(cause instanceof Error ? cause.message : "Unable to connect the sample bank.")
       } finally {
@@ -290,8 +292,10 @@ export function SettingsPanel({
           fetchLinkToken: () => createUserPlaidLinkToken(token, bankConnectAnalysisId),
           analysisIdForLegacyApi: bankConnectAnalysisId,
           onSuccess: async (publicToken, institution) => {
-            await exchangeUserPlaidPublicToken(token, publicToken, institution, bankConnectAnalysisId)
-            loadBank(token)
+            const status = await exchangeUserPlaidPublicToken(token, publicToken, institution, bankConnectAnalysisId)
+            setBank(status)
+            setBankState("ready")
+            await loadBank(token)
           },
           onExit: (message) => {
             if (message) setBankError(message)
