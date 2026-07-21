@@ -264,15 +264,24 @@ async def sync_transactions(
     access_token: str,
     *,
     plaid_environment: str | None = None,
+    readiness_max_polls: int | None = None,
 ) -> dict[str, Any]:
     """Read a complete snapshot after Plaid finishes its historical pull."""
+    max_polls = (
+        TRANSACTIONS_READY_MAX_POLLS
+        if readiness_max_polls is None
+        else readiness_max_polls
+    )
+    if max_polls < 1:
+        raise ValueError("readiness_max_polls must be at least 1")
+
     cursor: str | None = None
     transactions: dict[str, dict[str, Any]] = {}
     removed_ids: set[str] = set()
     initial_update_complete = False
     historical_update_complete = False
 
-    for readiness_attempt in range(TRANSACTIONS_READY_MAX_POLLS):
+    for readiness_attempt in range(max_polls):
         for _ in range(TRANSACTIONS_SYNC_MAX_PAGES):
             payload: dict[str, Any] = {
                 "access_token": access_token,
@@ -318,13 +327,13 @@ async def sync_transactions(
 
         if historical_update_complete:
             break
-        if readiness_attempt == TRANSACTIONS_READY_MAX_POLLS - 1:
+        if readiness_attempt == max_polls - 1:
             raise PlaidAPIError("TRANSACTIONS_NOT_READY")
         logger.info(
             "Plaid transactions still preparing env=%s attempt=%s/%s initial=%s historical=%s",
             plaid_environment or settings.plaid_environment,
             readiness_attempt + 1,
-            TRANSACTIONS_READY_MAX_POLLS,
+            max_polls,
             initial_update_complete,
             historical_update_complete,
         )

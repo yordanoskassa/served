@@ -439,8 +439,9 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(find_one=AsyncMock(return_value={
-        "access_token": "access-sandbox-private",
-        "demo_fixture": True,
+        "access_token": "access-production-private",
+        "environment": "production",
+        "demo_fixture": False,
     }))
     database = SimpleNamespace(analyses=analyses, bank_connections=connections)
     sync = AsyncMock(return_value={
@@ -452,7 +453,7 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
         patch("app.routes.plaid.get_db", return_value=database),
-        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+        patch.object(plaid_service.settings, "plaid_environment", "production"),
     ):
         response = TestClient(app).post(
             f"/api/plaid/analyses/{analysis_id}/match",
@@ -476,12 +477,13 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
     assert "SUNRISE PRODUCE CO" not in response.text
     assert payload["automatic_send"] is False
     sync.assert_awaited_once_with(
-        "access-sandbox-private",
-        plaid_environment="sandbox",
+        "access-production-private",
+        plaid_environment="production",
+        readiness_max_polls=1,
     )
 
 
-def test_signed_in_d4_uses_reviewed_snapshot_when_plaid_history_is_incomplete() -> None:
+def test_signed_in_d4_uses_reviewed_snapshot_without_waiting_for_plaid() -> None:
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
     connections = SimpleNamespace(find_one=AsyncMock(return_value={
@@ -489,11 +491,7 @@ def test_signed_in_d4_uses_reviewed_snapshot_when_plaid_history_is_incomplete() 
         "demo_fixture": True,
     }))
     database = SimpleNamespace(analyses=analyses, bank_connections=connections)
-    sync = AsyncMock(return_value={
-        "transactions": _fixture_plaid_items()[:3],
-        "initial_update_complete": True,
-        "historical_update_complete": True,
-    })
+    sync = AsyncMock(side_effect=AssertionError("sample matching must not poll Plaid"))
     with (
         patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
         patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
@@ -514,10 +512,76 @@ def test_signed_in_d4_uses_reviewed_snapshot_when_plaid_history_is_incomplete() 
         "exclude": 19,
         "excluded_by_reason": {"NOT_TARGET_PAYEE": 17, "OUTSIDE_DATE_RANGE": 2},
     }
-    sync.assert_awaited_once_with(
-        "access-sandbox-private",
-        plaid_environment="sandbox",
+    sync.assert_not_awaited()
+
+
+def test_real_match_returns_retryable_response_when_history_is_not_ready() -> None:
+    analysis_id = ObjectId()
+    database = SimpleNamespace(
+        analyses=SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id))),
+        bank_connections=SimpleNamespace(find_one=AsyncMock(return_value={
+            "access_token": "access-production-private",
+            "environment": "production",
+            "demo_fixture": False,
+        })),
     )
+    sync = AsyncMock(side_effect=PlaidAPIError("TRANSACTIONS_NOT_READY"))
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch.object(plaid_service.settings, "plaid_environment", "production"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer google-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert response.status_code == 409
+    assert response.headers["retry-after"] == "3"
+    assert response.json()["detail"] == (
+        "Plaid is still preparing the transaction history. Try again in a moment."
+    )
+    sync.assert_awaited_once_with(
+        "access-production-private",
+        plaid_environment="production",
+        readiness_max_polls=1,
+    )
+
+
+def test_real_match_has_a_hard_provider_timeout() -> None:
+    analysis_id = ObjectId()
+    database = SimpleNamespace(
+        analyses=SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id))),
+        bank_connections=SimpleNamespace(find_one=AsyncMock(return_value={
+            "access_token": "access-production-private",
+            "environment": "production",
+            "demo_fixture": False,
+        })),
+    )
+
+    async def stalled_sync(*_args, **_kwargs):
+        await asyncio.Event().wait()
+
+    sync = AsyncMock(side_effect=stalled_sync)
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch("app.routes.plaid.MATCH_SYNC_TIMEOUT_SECONDS", 0.01),
+        patch.object(plaid_service.settings, "plaid_environment", "production"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer google-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert response.status_code == 409
+    assert response.headers["retry-after"] == "3"
+    assert "still preparing" in response.json()["detail"]
+    sync.assert_awaited_once()
 
 
 def test_match_fails_closed_without_a_connection() -> None:
@@ -712,3 +776,32 @@ def test_transaction_sync_fails_closed_when_history_stays_pending() -> None:
     assert exc.value.code == "TRANSACTIONS_NOT_READY"
     assert post.await_count == 2
     sleep.assert_awaited_once_with(plaid_service.TRANSACTIONS_READY_DELAY_SECONDS)
+
+
+def test_transaction_sync_can_check_readiness_without_sleeping() -> None:
+    pending_page = {
+        "added": [],
+        "modified": [],
+        "removed": [],
+        "next_cursor": "cursor-pending",
+        "has_more": False,
+        "transactions_update_status": "NOT_READY",
+    }
+    post = AsyncMock(return_value=pending_page)
+    sleep = AsyncMock()
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch("app.services.plaid.asyncio.sleep", new=sleep),
+    ):
+        with pytest.raises(PlaidAPIError) as exc:
+            asyncio.run(
+                plaid_service.sync_transactions(
+                    "access-pending",
+                    plaid_environment="production",
+                    readiness_max_polls=1,
+                )
+            )
+
+    assert exc.value.code == "TRANSACTIONS_NOT_READY"
+    post.assert_awaited_once()
+    sleep.assert_not_awaited()

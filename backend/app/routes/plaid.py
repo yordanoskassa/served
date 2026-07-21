@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -37,6 +38,7 @@ D4_PLAID_FIXTURE = (
     / "payment-records"
     / "plaid-sandbox-custom-user.json"
 )
+MATCH_SYNC_TIMEOUT_SECONDS = 10.0
 
 
 def _authenticate(authorization: str):
@@ -68,6 +70,7 @@ def _provider_error(exc: Exception, *, context: str = "plaid") -> HTTPException:
         return HTTPException(
             status_code=409,
             detail="Plaid is still preparing the transaction history. Try again in a moment.",
+            headers={"Retry-After": "3"},
         )
     if isinstance(exc, PlaidAPIError) and exc.code == "INVALID_CREDENTIALS":
         logger.warning("%s Plaid INVALID_CREDENTIALS (custom sandbox user or API keys)", context)
@@ -206,20 +209,33 @@ async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": subject},
-            {"institution_name": 1, "connected_at": 1, "demo_fixture": 1},
+            {
+                "access_token": 1,
+                "institution_name": 1,
+                "connected_at": 1,
+                "environment": 1,
+                "demo_fixture": 1,
+            },
         )
     except Exception as exc:
         raise HTTPException(
             status_code=503,
             detail="Bank connection status is temporarily unavailable.",
         ) from exc
+    connected = bool(connection and connection.get("access_token"))
+    stored_environment = connection.get("environment") if connection else None
+    environment = (
+        stored_environment
+        if stored_environment in plaid_service.PLAID_BASE_URLS
+        else settings.plaid_environment
+    )
     return PlaidConnectionStatus(
         configured=True,
-        connected=connection is not None,
-        environment=settings.plaid_environment,
-        institution_name=connection.get("institution_name") if connection else None,
-        connected_at=connection.get("connected_at") if connection else None,
-        demo_fixture=bool(connection and connection.get("demo_fixture")),
+        connected=connected,
+        environment=environment,
+        institution_name=connection.get("institution_name") if connected else None,
+        connected_at=connection.get("connected_at") if connected else None,
+        demo_fixture=bool(connected and connection.get("demo_fixture")),
     )
 
 
@@ -494,7 +510,7 @@ async def match_transactions(
     try:
         connection = await get_db().bank_connections.find_one(
             {"google_subject": profile.subject},
-            {"access_token": 1, "demo_fixture": 1},
+            {"access_token": 1, "environment": 1, "demo_fixture": 1},
         )
     except Exception as exc:
         raise HTTPException(
@@ -504,7 +520,14 @@ async def match_transactions(
     if not connection or not connection.get("access_token"):
         raise HTTPException(status_code=409, detail="Connect a bank account first.")
 
-    plaid_api_env = "sandbox" if connection.get("demo_fixture") else None
+    stored_environment = connection.get("environment")
+    plaid_api_env = (
+        "sandbox"
+        if connection.get("demo_fixture")
+        else stored_environment
+        if stored_environment in plaid_service.PLAID_BASE_URLS
+        else None
+    )
 
     filename = str(record.get("filename") or "")
     if (
@@ -529,36 +552,31 @@ async def match_transactions(
             plaid_api_env or settings.plaid_environment,
         )
         seeded_result = _seeded_d4_transactions() if connection.get("demo_fixture") else None
-        if is_demo_profile(profile) and seeded_result:
+        if seeded_result:
+            # The sample Item was already created through Plaid Sandbox. Its reviewed
+            # snapshot is deterministic, so do not hold the browser request open while
+            # Plaid prepares the same historical pull asynchronously.
             result = seeded_result
         else:
             try:
-                result = await plaid_service.sync_transactions(
-                    connection["access_token"],
-                    plaid_environment=plaid_api_env,
-                )
-            except PlaidAPIError as exc:
-                if seeded_result and exc.code == "TRANSACTIONS_NOT_READY":
-                    logger.warning(
-                        "plaid D4 sandbox history stayed pending; using reviewed seeded snapshot analysis_id=%s",
-                        analysis_id,
+                async with asyncio.timeout(MATCH_SYNC_TIMEOUT_SECONDS):
+                    result = await plaid_service.sync_transactions(
+                        connection["access_token"],
+                        plaid_environment=plaid_api_env,
+                        readiness_max_polls=1,
                     )
-                    result = seeded_result
-                else:
-                    raise
-            if (
-                seeded_result
-                and len(result.get("transactions") or [])
-                != len(seeded_result["transactions"])
-            ):
-                logger.warning(
-                    "plaid D4 sandbox returned incomplete history actual=%s expected=%s; "
-                    "using reviewed seeded snapshot analysis_id=%s",
-                    len(result.get("transactions") or []),
-                    len(seeded_result["transactions"]),
+            except TimeoutError:
+                logger.info(
+                    "plaid match sync exceeded request budget analysis_id=%s timeout_seconds=%s",
                     analysis_id,
+                    MATCH_SYNC_TIMEOUT_SECONDS,
                 )
-                result = seeded_result
+                raise _provider_error(
+                    PlaidAPIError("TRANSACTIONS_NOT_READY"),
+                    context=f"match:{analysis_id}",
+                ) from None
+            except PlaidAPIError:
+                raise
         logger.info(
             "plaid match sync ok analysis_id=%s transactions=%s initial=%s historical=%s",
             analysis_id,
@@ -598,14 +616,21 @@ async def disconnect(
     try:
         connection = await collection.find_one(
             {"google_subject": profile.subject},
-            {"access_token": 1, "demo_fixture": 1},
+            {"access_token": 1, "environment": 1, "demo_fixture": 1},
         )
         if (
             connection
             and connection.get("access_token")
             and not is_demo_profile(profile)
         ):
-            plaid_api_env = "sandbox" if connection.get("demo_fixture") else None
+            stored_environment = connection.get("environment")
+            plaid_api_env = (
+                "sandbox"
+                if connection.get("demo_fixture")
+                else stored_environment
+                if stored_environment in plaid_service.PLAID_BASE_URLS
+                else None
+            )
             await plaid_service.remove_item(
                 connection["access_token"],
                 plaid_environment=plaid_api_env,

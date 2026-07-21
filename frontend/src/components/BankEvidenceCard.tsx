@@ -163,6 +163,16 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
   const autoMatchStarted = useRef(false)
 
   useEffect(() => {
+    autoMatchStarted.current = false
+    setStatus(null)
+    setRecords(null)
+    setError(null)
+    setPacketReady(false)
+    setBusy(false)
+    setBusyLabel(null)
+  }, [analysisId])
+
+  useEffect(() => {
     if (credential) {
       setDemoCredential(null)
       return
@@ -217,13 +227,19 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
           const startedAt = performance.now()
           setBusy(true)
           setBusyLabel("Fetching and matching transactions…")
-          void matchPlaidTransactions(analysisId, accessCredential, normalizedCutoff)
+          void matchPlaidTransactions(analysisId, accessCredential, normalizedCutoff, controller.signal)
             .then(async (nextRecords) => {
               await holdTransactionLoading(startedAt)
+              if (controller.signal.aborted) return
               setRecords(nextRecords)
             })
-            .catch((cause) => setError(cause instanceof Error ? cause.message : "Payment records could not be matched."))
+            .catch((cause) => {
+              if (controller.signal.aborted) return
+              autoMatchStarted.current = false
+              setError(cause instanceof Error ? cause.message : "Payment records could not be matched.")
+            })
             .finally(() => {
+              if (controller.signal.aborted) return
               setBusy(false)
               setBusyLabel(null)
             })

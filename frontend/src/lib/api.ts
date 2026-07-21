@@ -338,9 +338,11 @@ async function responseError(res: Response, fallback: string): Promise<Error> {
 async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   try {
     return await fetch(input, init)
-  } catch {
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name === "AbortError") throw cause
     throw new Error(
       "Served could not reach the API. Retry once; if it continues, check the backend health endpoint.",
+      { cause },
     )
   }
 }
@@ -740,6 +742,7 @@ export async function matchPlaidTransactions(
   analysisId: string,
   credential: string,
   cutoffDate: string,
+  signal?: AbortSignal,
 ): Promise<PaymentMatchResponse> {
   const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/match`, {
     method: "POST",
@@ -748,6 +751,7 @@ export async function matchPlaidTransactions(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ cutoff_date: cutoffDate }),
+    signal,
   })
   if (!response.ok) throw await responseError(response, "Unable to match payment records")
   return response.json()
