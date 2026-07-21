@@ -3,7 +3,6 @@ import binascii
 import hashlib
 import hmac
 import json
-import secrets
 import time
 from datetime import UTC, datetime
 
