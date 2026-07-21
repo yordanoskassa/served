@@ -970,6 +970,20 @@ def test_sandbox_public_token_payload_uses_custom_d4_user() -> None:
     }
 
 
+def test_sandbox_public_token_normalizes_string_fixture_version() -> None:
+    custom_user = json.loads(PAYMENT_FIXTURE.read_text())
+    custom_user["version"] = "2"
+    post = AsyncMock(return_value={"public_token": "public-d4"})
+
+    with patch("app.services.plaid._post", new=post):
+        asyncio.run(plaid_service.create_sandbox_public_token(custom_user))
+
+    _, payload = post.await_args.args
+    encoded_user = json.loads(payload["options"]["override_password"])
+    assert encoded_user["version"] == 2
+    assert custom_user["version"] == "2"
+
+
 def test_transaction_sync_waits_for_historical_update() -> None:
     first_page = {
         "added": [],
