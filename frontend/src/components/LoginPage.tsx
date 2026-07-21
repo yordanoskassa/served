@@ -42,7 +42,7 @@ export function LoginPage({
               <PlayCircle size={17} /> Continue as guest (judge demo) <ArrowRight size={15} />
             </Button>
             <p className="mt-3 text-[11px] leading-5 text-zinc-500">
-              Same workspace UI with seeded D1–D4 samples and Plaid Sandbox—no Google account.
+              Same workspace UI with seeded D1–D4 requests and a reviewed bank fixture—no Google account.
             </p>
           </>
         )}

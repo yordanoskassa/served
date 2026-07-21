@@ -473,10 +473,10 @@ export function SettingsPanel({
                   <p className="mt-3 text-sm font-medium text-zinc-800">No bank linked</p>
                   <p className="mt-2 text-xs leading-5 text-zinc-500">
                     {demoMode
-                      ? "Connect the Mendoza’s Kitchen Plaid Sandbox sample anytime—no saved subpoena required."
+                      ? "Open the reviewed Mendoza’s Kitchen D4 fixture anytime—no saved subpoena required."
                       : bankConnectAnalysisId
-                        ? "Connect with Plaid or the Mendoza sample—no extra setup. Matching still needs a verified payment-records request."
-                        : "Connect with Plaid or the sample bank. If connect fails, redeploy the latest EasyPanel backend—or run sample D4 once so the API can use your saved analysis as a fallback."}
+                        ? "Connect a realistic Plaid sandbox account, or use the separate D4 judge fixture for the exact expected result."
+                        : "Connect a realistic Plaid sandbox account. The D4 judge fixture remains available for the seeded legal-request demo."}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {!demoMode && bank.configured && (
@@ -499,7 +499,7 @@ export function SettingsPanel({
                       onClick={handleConnectSampleBank}
                     >
                       <Landmark size={14} />
-                      {bankConnectingActive ? "Connecting…" : "Connect sample bank"}
+                      {bankConnectingActive ? "Connecting…" : "Use D4 judge fixture"}
                     </Button>
                     )}
                     {onOpenDocuments && !demoMode && (

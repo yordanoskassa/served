@@ -134,7 +134,7 @@ export function FinancialSourcesPanel({
                 )}
               </div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Connect the Plaid Sandbox sample bank and match payments to the person and period named in a verified request.
+                Connect a general Plaid Sandbox account, or use the reviewed D4 fixture for the exact request-matching demo.
               </p>
               {cook?.enabled && loadState === "ready" && onConnectSampleBank && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export function FinancialSourcesPanel({
                     onClick={onConnectSampleBank}
                   >
                     <Landmark size={14} />
-                    {bankConnecting ? "Connecting…" : "Connect sample bank"}
+                    {bankConnecting ? "Connecting…" : "Use D4 judge fixture"}
                   </Button>
                   {onOpenDocuments && (
                     <Button variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
