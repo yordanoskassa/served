@@ -7,6 +7,8 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  CircleHelp,
+  ExternalLink,
   FileCheck2,
   FileText,
   Hash,
@@ -31,6 +33,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Analysis, TraceEvent } from "@/lib/api"
+
+type CaseReviewDecision = "possible_match" | "different_case" | "attorney_review"
 
 const verdictCopy = {
   scam: { label: "SCAM", variant: "destructive" as const },
@@ -74,6 +78,10 @@ function traceText(event: TraceEvent | undefined, fallback: string): string {
   return event?.output_summary || event?.detail || fallback
 }
 
+function possibleCaseNumber(detail: string): string | null {
+  return detail.match(/\b\d+:\d{2}-cv-\d+(?:-[A-Z]+(?:-[A-Z]+)?)?/i)?.[0] ?? null
+}
+
 export function AnalysisDetail({
   analysis,
   documentName,
@@ -91,6 +99,7 @@ export function AnalysisDetail({
 }) {
   const [resultTab, setResultTab] = useState("overview")
   const [humanTab, setHumanTab] = useState("brief")
+  const [caseReviewDecision, setCaseReviewDecision] = useState<CaseReviewDecision | null>(null)
   const [evidenceWorkflow, setEvidenceWorkflow] = useState<EvidenceWorkflowState>({
     sourceReady: false,
     candidatesReady: false,
@@ -140,6 +149,10 @@ export function AnalysisDetail({
   const payrollRequest = isPayrollRecordRequest(analysis)
   const hasEvidenceWorkflow = paymentRequest || payrollRequest
   const recordsLabel = paymentRequest ? "Bank payments" : payrollRequest ? "Payroll extraction" : "Next steps"
+  const possibleCase = analysis.verdict === "cannot_confirm"
+    ? analysis.evidence.find((item) => item.id.startsWith("docket:near") || item.label.toLowerCase().includes("possible case-number"))
+    : undefined
+  const candidateCaseNumber = possibleCase ? possibleCaseNumber(possibleCase.detail) : null
   const detailItems = [
     { label: "Court or issuer", value: breakdown.court || breakdown.claimed_authority, icon: Building2 },
     { label: "Court directory", value: courtStatus, icon: Building2 },
@@ -229,6 +242,15 @@ export function AnalysisDetail({
             {breakdown.requested_actions.length > 0 && <section className="rounded-xl border border-black/5 bg-white/80 p-4"><div className="flex items-center gap-2"><ListChecks size={14} /><p className="text-sm font-semibold">Records requested</p></div><ul className="mt-3 space-y-2">{breakdown.requested_actions.map((action, index) => <li className="flex gap-2 text-sm leading-5 text-zinc-600" key={`${action}-${index}`}><span aria-hidden="true">•</span><span>{action}</span></li>)}</ul></section>}
           </div>}
           {!detailItems.length && !breakdown.parties.length && !breakdown.requested_actions.length && <p className="py-6 text-center text-sm text-zinc-400">No additional details were extracted.</p>}
+          {possibleCase && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex max-w-2xl items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-500 text-white"><CircleHelp size={18} /></span>
+                <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-amber-800">Possible public case match</p><h3 className="mt-1 text-base font-semibold text-amber-950">The exact case number did not match, but a nearby docket may involve the same parties.</h3><p className="mt-1 text-sm leading-6 text-amber-950/70">Compare the letter with the public candidate in Human Review. This does not change the CANNOT_CONFIRM verdict.</p></div>
+              </div>
+              <Button className="bg-amber-950 text-white hover:bg-amber-900" onClick={() => setResultTab("human")}>Compare cases <ArrowRight size={15} /></Button>
+            </div>
+          </section>}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#171717] p-4 text-white sm:p-5">
             <div><p className="text-[10px] font-semibold uppercase tracking-[.16em] text-brand-green">Next workspace</p><p className="mt-1 text-sm font-semibold">{analysis.verdict === "verified" && hasEvidenceWorkflow ? `Continue to ${recordsLabel.toLowerCase()}` : "Review the safest next step"}</p><p className="mt-1 max-w-xl text-xs leading-5 text-white/55">{analysis.next_step}</p></div>
             <Button className="bg-white text-black hover:bg-white/90" onClick={() => setResultTab(analysis.verdict === "verified" && hasEvidenceWorkflow ? "records" : "human")}>
@@ -240,7 +262,10 @@ export function AnalysisDetail({
         </TabsContent>
 
         <TabsContent value="evidence" className="mt-5 space-y-4">
-          <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Accepted evidence</p>{analysis.evidence.length ? <div className="mt-3 grid gap-3 lg:grid-cols-2">{analysis.evidence.map((item, index) => <article className="rounded-2xl border border-black/[.07] bg-white p-4" key={`${item.label}-${index}`}><div className="flex items-start gap-3"><span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700"><CheckCircle2 size={15} /></span><div><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>{item.quote && <blockquote className="type-quote mt-3 rounded-lg border-l-2 border-border bg-muted px-3 py-2">“{item.quote}”</blockquote>}{item.source_url ? <a className="mt-2 inline-flex text-[10px] uppercase tracking-wider text-zinc-500 underline decoration-black/20 underline-offset-4" href={item.source_url} target="_blank" rel="noreferrer">{item.source}</a> : <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p>}</div></div></article>)}</div> : <p className="py-6 text-center text-sm text-zinc-400">No evidence items were returned for this analysis.</p>}</section>
+          <section><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">{possibleCase ? "Evidence and case candidate" : "Accepted evidence"}</p>{analysis.evidence.length ? <div className="mt-3 grid gap-3 lg:grid-cols-2">{analysis.evidence.map((item, index) => {
+            const isCandidate = item === possibleCase
+            return <article className={`rounded-2xl border p-4 ${isCandidate ? "border-amber-200 bg-amber-50/60" : "border-black/[.07] bg-white"}`} key={`${item.label}-${index}`}><div className="flex items-start gap-3"><span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${isCandidate ? "bg-amber-500 text-white" : "bg-emerald-50 text-emerald-700"}`}>{isCandidate ? <CircleHelp size={15} /> : <CheckCircle2 size={15} />}</span><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold">{item.label}</p>{isCandidate && <Badge variant="warning">HUMAN REVIEW</Badge>}</div><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p>{item.quote && <blockquote className="type-quote mt-3 rounded-lg border-l-2 border-border bg-muted px-3 py-2">“{item.quote}”</blockquote>}{item.source_url ? <a className="mt-2 inline-flex text-[10px] uppercase tracking-wider text-zinc-500 underline decoration-black/20 underline-offset-4" href={item.source_url} target="_blank" rel="noreferrer">{item.source}</a> : <p className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">Source: {item.source}</p>}</div></div></article>
+          })}</div> : <p className="py-6 text-center text-sm text-zinc-400">No evidence items were returned for this analysis.</p>}</section>
           {(analysis.limitations?.length ?? 0) > 0 && <Alert className="rounded-2xl border-border bg-muted text-foreground"><AlertTriangle size={15} /><AlertTitle>What this result does not prove</AlertTitle><AlertDescription><ul className="space-y-1">{analysis.limitations.map((limitation) => <li className="leading-6 text-muted-foreground" key={limitation}>{limitation}</li>)}</ul></AlertDescription></Alert>}
         </TabsContent>
 
@@ -251,7 +276,29 @@ export function AnalysisDetail({
         </TabsContent>
 
         <TabsContent value="human" className="mt-5">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Optional human verification</p><h3 className="type-ui-heading mt-1">The evidence is organized. A person still decides what happens next.</h3></div>
+          <div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-zinc-400">Human verification</p><h3 className="type-ui-heading mt-1">{possibleCase ? "Compare the letter with the possible public case." : "The evidence is organized. A person still decides what happens next."}</h3></div>
+          {possibleCase && <section className="mt-4 overflow-hidden rounded-2xl border border-amber-200 bg-white">
+            <div className="border-b border-amber-200 bg-amber-50 px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-amber-800">Case comparison required</p><h4 className="mt-1 text-base font-semibold text-amber-950">Same matter or nearby case?</h4></div>
+                <Badge variant="warning">VERDICT UNCHANGED</Badge>
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-950/70">Served found a supported public docket candidate, but the number on the letter did not match exactly. Review the difference before contacting the court or sharing records.</p>
+            </div>
+            <div className="grid gap-px bg-black/[.07] sm:grid-cols-2">
+              <div className="bg-white p-4 sm:p-5"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-zinc-400">On the letter</p><p className="mt-2 font-mono text-base font-semibold">{breakdown.case_number || "Case number not readable"}</p><p className="mt-2 text-xs leading-5 text-zinc-500">Extracted from the uploaded document. It has not been verified against an exact public docket.</p></div>
+              <div className="bg-amber-50/40 p-4 sm:p-5"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-amber-700">Public docket candidate</p><p className="mt-2 font-mono text-base font-semibold text-amber-950">{candidateCaseNumber || "Possible nearby case"}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{possibleCase.detail}</p>{possibleCase.source_url && <a className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 underline decoration-amber-900/30 underline-offset-4" href={possibleCase.source_url} target="_blank" rel="noreferrer">Open public docket <ExternalLink size={13} /></a>}</div>
+            </div>
+            <div className="p-4 sm:p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Record your review</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button aria-pressed={caseReviewDecision === "possible_match"} variant={caseReviewDecision === "possible_match" ? "default" : "outline"} onClick={() => setCaseReviewDecision("possible_match")}><CheckCircle2 size={15} />{caseReviewDecision === "possible_match" ? "Marked as possible" : "Mark as possible match"}</Button>
+                <Button aria-pressed={caseReviewDecision === "different_case"} variant={caseReviewDecision === "different_case" ? "default" : "outline"} onClick={() => setCaseReviewDecision("different_case")}><AlertTriangle size={15} />{caseReviewDecision === "different_case" ? "Marked as different" : "Not the same case"}</Button>
+                <Button aria-pressed={caseReviewDecision === "attorney_review"} variant={caseReviewDecision === "attorney_review" ? "default" : "outline"} onClick={() => { setCaseReviewDecision("attorney_review"); setHumanTab("attorney") }}><Scale size={15} />{caseReviewDecision === "attorney_review" ? "Attorney review selected" : "Send to attorney review"}</Button>
+              </div>
+              {caseReviewDecision && <p className="mt-3 text-xs leading-5 text-zinc-500">Review choice saved for this screen. The code-decided result remains CANNOT_CONFIRM.</p>}
+            </div>
+          </section>}
           <Tabs value={humanTab} onValueChange={setHumanTab} className="mt-4">
             <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl bg-black/[.05] p-1">
               <TabsTrigger className="rounded-xl py-2 text-xs data-[state=active]:bg-white" value="brief">Evidence brief</TabsTrigger>
