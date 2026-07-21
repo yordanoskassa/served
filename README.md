@@ -275,3 +275,19 @@ sender address must use a domain verified in Resend; optionally set
 `SERVED_RESEND_REPLY_TO`. Do not place any of these values in frontend or
 Netlify environment variables.
 
+## Acknowledgments
+
+Kathleen introduced the Grounding Guard concept to Served, adapting an
+original citation-verification framework she had drafted during her earlier
+work on the
+[HackTheLaw2026 project](https://github.com/RexMortem/HackTheLaw2026).
+
+For Served, Kathleen redesigned and extended the framework through deterministic
+verdict boundaries, claim-quarantine rules, and the golden regression-test
+contract.
+
+Yordan built the sourced corpus and independently implemented Served’s
+Grounding Guard architecture and runtime, including official-source validation
+and corpus allowlisting. No source code or assets were copied from the earlier
+project.
+
