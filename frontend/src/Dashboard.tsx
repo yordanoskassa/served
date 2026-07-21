@@ -109,6 +109,23 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
     workspaceController.current?.abort()
     setSummary(null)
     setAgents([])
+    if (demoMode) {
+      const controller = new AbortController()
+      workspaceController.current = controller
+      setSummaryState("ready")
+      setAgentState("loading")
+      setSummary({ counts: { documents: 0, verified: 0, review: 0, scam: 0 }, recent: [] })
+      void fetchAgentStatus(controller.signal)
+        .then((response) => {
+          if (workspaceController.current !== controller) return
+          setAgents(response.agents)
+          setAgentState("ready")
+        })
+        .catch(() => {
+          if (!controller.signal.aborted && workspaceController.current === controller) setAgentState("error")
+        })
+      return () => controller.abort()
+    }
     if (!credential) {
       setSummaryState("loading")
       setAgentState("loading")
@@ -137,7 +154,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
         if (!controller.signal.aborted && workspaceController.current === controller) setAgentState("error")
       })
     return () => controller.abort()
-  }, [credential, refreshKey])
+  }, [credential, demoMode, refreshKey])
 
   useEffect(() => {
     historyController.current?.abort()
@@ -145,6 +162,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
     setHistoryHasMore(false)
     setHistoryLoadingMore(false)
     setHistoryError(null)
+    if (demoMode) {
+      setHistoryState("ready")
+      return
+    }
     if (!credential) {
       setHistoryState("loading")
       return
@@ -165,7 +186,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
         setHistoryState("error")
       })
     return () => controller.abort()
-  }, [credential, refreshKey])
+  }, [credential, demoMode, refreshKey])
 
   useEffect(() => () => savedDetailController.current?.abort(), [])
   useEffect(() => () => historyController.current?.abort(), [])
@@ -186,11 +207,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
   }, [activeTab, savedDetailState])
 
   if (!user && !demoMode) return null
-  const workspaceUser = user ?? {
-    name: "Served Demo",
-    given_name: "Demo",
-    picture: null,
-  }
+  const workspaceUser = demoMode ? DEMO_USER : user!
 
   const counts = summary?.counts
   const metrics = [
@@ -338,15 +355,19 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
           <div className="flex items-center justify-between px-5 py-3 sm:px-6 lg:px-8">
             <div className="flex items-center gap-4">
               <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className="group flex items-center gap-2 lg:hidden" onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
-              {!demoMode && <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>}
+              <div className="hidden lg:block"><p className="type-caption">{demoMode ? "Guest demo" : greeting()}</p></div>
             </div>
-            {demoMode ? <div className="flex items-center gap-2">
-              <Button variant="outline" className="h-9" onClick={() => setActiveTab("settings")}><Settings size={14} /> Bank settings</Button>
-              <Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button>
-            </div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
+            <div className="flex items-center gap-2">
+              {demoMode && (
+                <Button variant="outline" className="h-9 text-xs sm:text-sm" onClick={onExitDemo}>
+                  <LogIn size={14} /> Sign in
+                </Button>
+              )}
+              <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
               <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
-              <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>
-            </div>}
+              <span className="max-w-32 truncate">{demoMode ? "Guest" : (workspaceUser.given_name || workspaceUser.name)}</span>
+            </div>
+            </div>
           </div>
           {activeTab === "overview" && <div className="overflow-x-auto border-t border-black/[.06] bg-white">
             <ol className="mx-auto grid min-w-[680px] max-w-[1280px] grid-cols-4 px-4 sm:px-6 lg:px-8" aria-label="Response workflow">
@@ -375,7 +396,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
           <section className="flex flex-wrap items-end justify-between gap-5">
             <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Respond with the right records.</h1><p className="type-body mt-3 max-w-xl">Verify the financial subpoena, find responsive records, and prepare them for review.</p></div>
-            {!demoMode && <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>}
+            <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
@@ -408,7 +429,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
                 setTraceEvents([])
               }}
             />
-            {!demoMode && !latestAnalysis && analysisRunState !== "running" && <WorkspaceActivity
+            {!latestAnalysis && analysisRunState !== "running" && <WorkspaceActivity
               summary={summary}
               summaryState={summaryState}
               runState={analysisRunState}
@@ -419,25 +440,22 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
             />}
           </section>
 
-          {!demoMode && <section className="grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
+          <section className="grid grid-cols-2 items-start gap-3 xl:grid-cols-4">
             {metrics.map(([label, value, note], index) => <article className="h-fit rounded-2xl border border-black/[.08] bg-white/70 p-4" key={label}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[11px] font-medium text-zinc-600">{label}</p><p className="mt-1 text-[11px] leading-4 text-zinc-500">{summaryState === "error" ? "Data temporarily unavailable" : note}</p></div><span className={`mt-1 size-2 shrink-0 rounded-full ${index === 3 ? "bg-neutral-500" : "bg-brand-green"}`} /></div>{summaryState === "loading" ? <Skeleton className="mt-3 h-8 w-12 rounded-lg bg-black/5" /> : <p className="mt-3 font-display text-3xl leading-none tracking-[-.05em]">{summaryState === "error" ? "!" : value ?? 0}</p>}</article>)}
-          </section>}
+          </section>
 
           </TabsContent>
 
-          {demoMode && <TabsContent value="settings" className="mt-0">
-            <SettingsPanel
-              demoMode
-              user={DEMO_USER}
-              summary={null}
-              summaryState="ready"
-              savedRequests={[]}
-              onRefresh={() => undefined}
-            />
-          </TabsContent>}
-
-          {!demoMode && <><TabsContent value="documents" className="mt-0">
-            {savedDetailState === "idle" ? <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
+          <TabsContent value="documents" className="mt-0">
+            {demoMode ? (
+              <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 px-5 py-8 text-center">
+                <h2 className="type-ui-heading">Saved requests</h2>
+                <p className="type-body mx-auto mt-2 max-w-md">Guest demo runs live on samples only. Sign in with Google to save analyses and reopen them here.</p>
+                <Button variant="outline" className="mt-4" onClick={onExitDemo}><LogIn size={15} /> Sign in to save requests</Button>
+              </section>
+            ) : (
+              savedDetailState === "idle" ? (
+            <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
               <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved requests</h2><p className="type-caption mt-1">Reopen verification, record matching, and response review.</p></div>
               <div className="divide-y divide-black/5">
                 {historyState === "loading" && <div className="space-y-3 px-6 py-6">{[0, 1, 2].map((item) => <div className="flex items-center gap-3" key={item}><Skeleton className="size-10 rounded-full bg-black/5" /><div className="flex-1 space-y-2"><Skeleton className="h-3 w-1/3 bg-black/5" /><Skeleton className="h-2 w-1/5 bg-black/5" /></div></div>)}</div>}
@@ -451,12 +469,16 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
               </div>
               {historyState === "ready" && historyError && <div className="border-t border-black/5 p-5"><Alert className="rounded-2xl border-black/10 bg-background"><AlertTitle>Could not load more</AlertTitle><AlertDescription>{historyError}</AlertDescription></Alert></div>}
               {historyState === "ready" && historyHasMore && <div className="border-t border-black/5 p-5 text-center"><Button variant="outline" disabled={historyLoadingMore} onClick={() => { void loadMoreHistory() }}>{historyLoadingMore ? "Loading more…" : "Load more documents"}</Button></div>}
-            </section> : <section ref={savedDetailRegion} tabIndex={-1} aria-label="Saved analysis detail" aria-busy={savedDetailState === "loading"} className="mx-auto max-w-5xl space-y-4 outline-none">
+            </section>
+              ) : (
+            <section ref={savedDetailRegion} tabIndex={-1} aria-label="Saved analysis detail" aria-busy={savedDetailState === "loading"} className="mx-auto max-w-5xl space-y-4 outline-none">
               {savedDetailState === "loading" && <><p role="status" className="sr-only">Loading saved analysis</p><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><div className="space-y-3 rounded-2xl border border-black/[.08] bg-white/70 p-5"><Skeleton className="h-5 w-28 bg-black/5" /><Skeleton className="h-8 w-1/2 bg-black/5" /><Skeleton className="h-16 w-full bg-black/5" /><Skeleton className="h-44 w-full bg-black/5" /></div></>}
               {savedDetailState === "error" && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><Alert className="rounded-[24px] border-black/10 bg-white/70"><AlertTitle>Analysis unavailable</AlertTitle><AlertDescription className="space-y-4"><p>{savedDetailError ?? "We could not load this saved analysis."}</p>{selectedSavedId && <Button variant="outline" onClick={() => { void openSavedAnalysis(selectedSavedId) }}>Try again</Button>}</AlertDescription></Alert></>}
               {savedDetailState === "ready" && savedDetail?.analysis && <AnalysisDetail analysis={savedDetail.analysis} documentName={savedDetail.name} createdAt={savedDetail.created_at} backLabel="Back to documents" onBack={() => closeSavedAnalysis()} savedAnalysisId={savedDetail.id} />}
               {savedDetailState === "ready" && savedDetail && !savedDetail.analysis && <><Button variant="outline" onClick={() => closeSavedAnalysis()}>← Back to documents</Button><section className="rounded-2xl border border-black/[.08] bg-white/70 p-5"><span className={`rounded-full px-3 py-1 text-[11px] font-medium ${savedVerdictClass(savedDetail.verdict)}`}>{savedVerdictLabel(savedDetail.verdict)}</span><h2 className="mt-4 font-display text-xl tracking-[-.035em]">{savedDetail.name}</h2><p className="mt-1 text-xs text-zinc-400">{savedDate(savedDetail.created_at)}</p><Alert className="mt-4 rounded-2xl border-black/10 bg-background"><AlertTitle>Earlier analysis</AlertTitle><AlertDescription>The full breakdown was not saved for this earlier analysis. Because Served does not retain uploaded file bytes, upload the document again to create a complete saved breakdown.</AlertDescription></Alert></section></>}
-            </section>}
+            </section>
+              )
+            )}
           </TabsContent>
 
           <TabsContent value="response" className="mt-0">
@@ -484,8 +506,9 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
 
           <TabsContent value="settings" className="mt-0">
             <SettingsPanel
-              user={user!}
-              credential={credential}
+              demoMode={demoMode}
+              user={demoMode ? DEMO_USER : user!}
+              credential={demoMode ? undefined : credential}
               summary={summary}
               summaryState={summaryState}
               savedRequests={historyItems}
@@ -493,9 +516,9 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
               onRefresh={() => setRefreshKey((value) => value + 1)}
               onOpenDocuments={openDocuments}
               onOpenBankRequest={openBankRequest}
-              onDataDeleted={handleDataDeleted}
+              onDataDeleted={demoMode ? undefined : handleDataDeleted}
             />
-          </TabsContent></>}
+          </TabsContent>
         </div>
       </main>
     </Tabs>

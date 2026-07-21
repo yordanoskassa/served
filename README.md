@@ -150,9 +150,9 @@ After deploy, container stdout includes structured Plaid lines (no secrets). On
 - `sandbox-connect success` or `sandbox-connect Plaid API failure`.
 
 A uvicorn `502` on `POST …/sandbox-connect` with `INVALID_CREDENTIALS` on
-`/sandbox/public_token/create` means Plaid rejected the custom-user payload or
-API credentials. The fixture follows Plaid's documented string schema version,
-`"version": "2"`; also confirm the Sandbox secret in EasyPanel.
+`/sandbox/public_token/create` often means the custom-user JSON used a string
+`"version": "2"` instead of numeric `"version": 2` — the fixture in this repo
+uses an integer version.
 
 If the browser shows **CORS blocked** / **Failed to fetch** on `sandbox-connect`
 but `curl` from your machine returns JSON with `access-control-allow-origin`,
@@ -304,3 +304,4 @@ Yordan built the sourced corpus and independently implemented Served’s
 Grounding Guard architecture and runtime, including official-source validation
 and corpus allowlisting. No source code or assets were copied from the earlier
 project.
+
