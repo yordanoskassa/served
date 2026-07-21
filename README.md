@@ -277,16 +277,16 @@ Netlify environment variables.
 
 ## Acknowledgments
 
-Served’s Grounding Guard began with a citation-verification concept Kathleen
-Huang explored in her earlier work on the
-[HackTheLaw2026 project](https://github.com/RexMortem/HackTheLaw2026).
+Kathleen introduced the Grounding Guard concept to the Served team,
+drawing on a citation-verification pattern she explored in her earlier work on
+the [HackTheLaw2026 project](https://github.com/RexMortem/HackTheLaw2026).
 
-Kathleen subsequently redesigned and expanded that concept for Served—extending
-it beyond citation checking into official-source validation, corpus
-allowlisting, deterministic verdict boundaries, claim quarantine, and
-regression-test requirements.
+She subsequently redesigned and extended the concept for Served through its
+deterministic verdict boundaries, claim-quarantine rules, and golden
+regression-test contract.
 
-Yordan Kassa independently implemented the Served-specific architecture and
-runtime using his full-stack engineering expertise. No source code or assets
-were copied from the earlier project.
+Yordan built the sourced corpus and independently implemented Served’s
+Grounding Guard architecture and runtime, including official-source validation
+and corpus allowlisting. No source code or assets were copied from the earlier
+project.
 
