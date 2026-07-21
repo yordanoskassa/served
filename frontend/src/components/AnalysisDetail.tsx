@@ -139,7 +139,7 @@ export function AnalysisDetail({
   const paymentRequest = isPaymentRecordRequest(analysis)
   const payrollRequest = isPayrollRecordRequest(analysis)
   const hasEvidenceWorkflow = paymentRequest || payrollRequest
-  const recordsLabel = paymentRequest ? "Bank payments" : payrollRequest ? "Payroll records" : "Next steps"
+  const recordsLabel = paymentRequest ? "Bank payments" : payrollRequest ? "Payroll extraction" : "Next steps"
   const detailItems = [
     { label: "Court or issuer", value: breakdown.court || breakdown.claimed_authority, icon: Building2 },
     { label: "Court directory", value: courtStatus, icon: Building2 },

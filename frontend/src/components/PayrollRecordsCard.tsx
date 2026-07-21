@@ -213,7 +213,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
         <div className="flex items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10"><FileSpreadsheet size={18} /></span>
           <div>
-            <h3 className="type-ui-heading text-white">Payroll match</h3>
+            <h3 className="type-ui-heading text-white">Payroll extraction</h3>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-white/55">Upload a CSV export from payroll. Served compares only the named employee, requested record types, and displayed date range.</p>
           </div>
         </div>
