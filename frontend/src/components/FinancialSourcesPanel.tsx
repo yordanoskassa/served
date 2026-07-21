@@ -16,6 +16,14 @@ function gateStatus(agents: AgentStatus[], loadState: LoadState) {
   if (loadState === "error") return { label: "Unavailable", variant: "warning" as const, dot: "bg-neutral-500", detail: "Could not load verification services." }
   const ready = Boolean(reader?.enabled && checker?.enabled)
   if (!ready) return { label: "Not configured", variant: "destructive" as const, dot: "bg-neutral-600", detail: "Request verification cannot run until services are configured." }
+  if (reader?.last_error || checker?.last_error) {
+    return {
+      label: "Needs attention",
+      variant: "warning" as const,
+      dot: "bg-neutral-400",
+      detail: "Live document verification is temporarily unavailable. Reviewed D1–D4 samples still run normally.",
+    }
+  }
   return {
     label: "Ready",
     variant: "default" as const,

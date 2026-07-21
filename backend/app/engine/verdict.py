@@ -11,7 +11,7 @@ from app.engine.models import (
 from app.engine.fraud_patterns import load_fraud_patterns
 
 
-VERDICT_POLICY_VERSION = "three-agent-v1"
+VERDICT_POLICY_VERSION = "three-agent-v2"
 
 
 def classify_tier(parsed: DocumentParse) -> Tier:
@@ -35,7 +35,12 @@ def apply_verdict_policy(checker: CheckerReport) -> VerdictState:
 
     if len(signal_ids) >= 2:
         return VerdictState.SCAM
-    if checker.case_found and checker.parties_match:
+    if (
+        checker.case_found
+        and checker.parties_match
+        and checker.court_lookup_status == "match"
+        and checker.scam_check_status == "complete"
+    ):
         return VerdictState.VERIFIED
     return VerdictState.CANNOT_CONFIRM
 

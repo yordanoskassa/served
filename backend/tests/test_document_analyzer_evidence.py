@@ -190,6 +190,25 @@ def test_trusted_d4_sample_uses_reviewed_verification_evidence() -> None:
     assert runner.await_count == 0
 
 
+@pytest.mark.parametrize("sample_id", ["D1", "D2", "D3", "D4"])
+def test_trusted_samples_never_call_live_agents(sample_id: str) -> None:
+    fixture_root = Path(__file__).resolve().parents[1] / "fixtures"
+    upload = UploadFile(
+        file=BytesIO((fixture_root / "documents" / f"{sample_id}.pdf").read_bytes()),
+        filename=f"{sample_id}_reviewed_request.pdf",
+        headers=Headers({"content-type": "application/pdf"}),
+    )
+    with patch(
+        "app.services.document_analyzer.coordinator.run",
+        new=AsyncMock(),
+    ) as runner:
+        result = asyncio.run(analyze_document(upload, trusted_sample_id=sample_id))
+
+    assert result.trace is not None
+    assert result.trace.fact_extraction_basis == "reviewed_sample_fixture"
+    assert runner.await_count == 0
+
+
 @pytest.mark.parametrize("case_name", ["D1", "D2", "D3", "D4"])
 def test_golden_agent_outputs_replay_through_validation_and_code_policy(case_name: str) -> None:
     """Replay saved agent outputs without invoking OpenAI or CourtListener."""

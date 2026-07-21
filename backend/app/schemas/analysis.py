@@ -53,6 +53,10 @@ class DecisionTrace(BaseModel):
     counted_signal_ids: list[str] = Field(default_factory=list)
     case_found: bool
     parties_match: bool
+    court_lookup_status: Literal[
+        "match", "no_match", "near_match", "party_mismatch", "unavailable", "not_applicable"
+    ] = "not_applicable"
+    scam_check_status: Literal["complete", "unavailable", "not_applicable"] = "not_applicable"
 
 
 TraceKind = Literal["run", "agent", "tool", "decision", "result"]

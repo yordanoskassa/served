@@ -577,6 +577,64 @@ def test_official_link_token_payload_requests_transactions() -> None:
     assert "secret" not in payload
 
 
+def test_sandbox_link_token_retries_without_unregistered_redirect() -> None:
+    post = AsyncMock(side_effect=[
+        PlaidAPIError(
+            "INVALID_FIELD",
+            plaid_message="OAuth redirect URI must be configured in the developer dashboard.",
+        ),
+        {"link_token": "link-without-oauth", "expiration": "soon"},
+    ])
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+        patch.object(
+            plaid_service.settings,
+            "plaid_redirect_uri",
+            "https://servedai.netlify.app/",
+        ),
+    ):
+        result = asyncio.run(plaid_service.create_link_token("google-user-plaid"))
+
+    assert result["link_token"] == "link-without-oauth"
+    assert post.await_count == 2
+    first_payload = post.await_args_list[0].args[1]
+    second_payload = post.await_args_list[1].args[1]
+    assert first_payload["redirect_uri"] == "https://servedai.netlify.app/"
+    assert "redirect_uri" not in second_payload
+
+
+@pytest.mark.parametrize(
+    ("environment", "message"),
+    [
+        ("sandbox", "The transactions field is invalid."),
+        ("production", "OAuth redirect URI must be configured in the developer dashboard."),
+    ],
+)
+def test_link_token_does_not_retry_unrelated_or_production_invalid_fields(
+    environment: str,
+    message: str,
+) -> None:
+    post = AsyncMock(side_effect=PlaidAPIError(
+        "INVALID_FIELD",
+        plaid_message=message,
+    ))
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch.object(plaid_service.settings, "plaid_environment", environment),
+        patch.object(
+            plaid_service.settings,
+            "plaid_redirect_uri",
+            "https://servedai.netlify.app/",
+        ),
+    ):
+        with pytest.raises(PlaidAPIError) as caught:
+            asyncio.run(plaid_service.create_link_token("google-user-plaid"))
+
+    assert caught.value.code == "INVALID_FIELD"
+    assert post.await_count == 1
+
+
 def test_sandbox_public_token_payload_uses_custom_d4_user() -> None:
     custom_user = json.loads(PAYMENT_FIXTURE.read_text())
     post = AsyncMock(return_value={"public_token": "public-d4"})

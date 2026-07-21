@@ -23,7 +23,7 @@ from app.main import app
 from app.schemas.analysis import AnalysisResponse, EvidenceItem, TraceEvent
 from app.schemas.auth import UserProfile
 from app.services import document_analyzer as analyzer
-from app.services.agent_system import AgentUnavailableError
+from app.services.agent_system import AgentProviderQuotaError, AgentUnavailableError
 from app.services.run_trace import RunTraceCollector
 
 
@@ -161,13 +161,14 @@ def test_rejected_model_excerpt_is_not_sent_to_explainer() -> None:
     ))
     client = SimpleNamespace(responses=SimpleNamespace(parse=parse))
 
-    with patch.object(analyzer, "OpenAI", return_value=client):
+    with patch.object(analyzer, "OpenAI", return_value=client) as openai_client:
         analyzer._explain_with_openai(
             DocumentParse(doc_type="Notice", visible_text="Real document text"),
             checker,
             VerdictState.CANNOT_CONFIRM,
         )
 
+    assert openai_client.call_args.kwargs["max_retries"] == 0
     prompt = parse.call_args.kwargs["input"][0]["content"][0]["text"]
     assert rejected_text not in prompt
     assert "Real document text" in prompt
@@ -190,6 +191,96 @@ def test_reader_provider_failure_is_reported_as_unavailable() -> None:
     assert reader_finish.status == "unavailable"
     assert any("READER was unavailable" in limitation for limitation in result.limitations)
     assert not any("could not be read reliably" in limitation for limitation in result.limitations)
+
+
+def test_reader_quota_failure_uses_service_unavailable_copy_and_stops_agent_calls() -> None:
+    runner = AsyncMock(side_effect=AgentProviderQuotaError("provider quota unavailable"))
+    with patch("app.services.document_analyzer.coordinator.run", new=runner):
+        result = asyncio.run(analyzer.analyze_document(_upload()))
+
+    assert runner.await_count == 1
+    assert result.verdict is VerdictState.CANNOT_CONFIRM
+    assert result.decision is not None
+    assert result.decision.scam_check_status == "unavailable"
+    assert "temporarily unavailable" in result.summary.lower()
+    assert "try again" in result.next_step.lower()
+    assert "retake" not in result.next_step.lower()
+    assert not any("could not be read reliably" in item.lower() for item in result.limitations)
+    assert any("temporarily unavailable" in item.lower() for item in result.limitations)
+    assert result.trace is not None
+    reader_finish = next(
+        event for event in result.trace.steps
+        if event.key == "reader" and event.status != "started"
+    )
+    assert reader_finish.status == "unavailable"
+    assert reader_finish.output_summary == "Document AI temporarily unavailable"
+    explainer_finish = next(
+        event for event in result.trace.steps
+        if event.key == "explainer" and event.status != "started"
+    )
+    assert explainer_finish.status == "degraded"
+    assert "temporarily unavailable" in (explainer_finish.output_summary or "").lower()
+
+
+def test_explainer_only_quota_failure_keeps_the_verified_fallback_explanation() -> None:
+    parsed = DocumentParse(
+        doc_type="Subpoena",
+        court="United States District Court",
+        case_number="5:25-cv-02108-KK-SP",
+        parties=["Audrea Barnes", "Maximus Consulting Services"],
+        visible_text="Visible subpoena text",
+    )
+    checker = CheckerReport(
+        case_found=True,
+        parties_match=True,
+        court_lookup_status="match",
+        scam_check_status="complete",
+    )
+    runner = AsyncMock(side_effect=[
+        parsed,
+        checker,
+        AgentProviderQuotaError("provider quota unavailable"),
+    ])
+    with patch("app.services.document_analyzer.coordinator.run", new=runner):
+        result = asyncio.run(analyzer.analyze_document(_upload()))
+
+    assert runner.await_count == 3
+    assert result.verdict is VerdictState.VERIFIED
+    assert "case number" in result.summary.lower()
+    assert "could not extract or verify" not in result.summary.lower()
+    assert not any("no document facts were inferred" in item.lower() for item in result.limitations)
+    assert any("explainer was unavailable" in item.lower() for item in result.limitations)
+    assert result.trace is not None
+    explainer_finish = next(
+        event for event in result.trace.steps
+        if event.key == "explainer" and event.status != "started"
+    )
+    assert explainer_finish.status == "degraded"
+    assert "explainer quota unavailable" in (explainer_finish.output_summary or "").lower()
+
+
+def test_pattern_quota_failure_fails_closed_without_signal() -> None:
+    class FakeQuotaError(RuntimeError):
+        code = "insufficient_quota"
+        body = {"code": "insufficient_quota"}
+
+    with (
+        patch.object(analyzer.settings, "openai_api_key", "test-key"),
+        patch.object(
+            analyzer,
+            "_check_patterns_with_openai",
+            side_effect=FakeQuotaError("quota exhausted"),
+        ),
+    ):
+        result = asyncio.run(analyzer._pattern_branch(
+            DocumentParse(doc_type="Notice", visible_text="Visible document text"),
+            trace=None,
+        ))
+
+    assert result.status == "unavailable"
+    assert result.signals == []
+    assert result.reviews == []
+    assert any("temporarily unavailable" in item.lower() for item in result.limitations)
 
 
 def test_embedded_pdf_text_anchors_pattern_checking() -> None:

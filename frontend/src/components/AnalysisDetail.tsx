@@ -244,7 +244,7 @@ export function AnalysisDetail({
           <TabsTrigger className="rounded-full px-3 py-2.5 text-xs data-[state=active]:bg-white" value="evidence">Evidence</TabsTrigger>
           <TabsTrigger className="rounded-full px-3 py-2.5 text-xs data-[state=active]:bg-white" value="trace">Decision trace</TabsTrigger>
           <TabsTrigger className="rounded-full px-3 py-2.5 text-xs data-[state=active]:bg-white" value="human">Human review</TabsTrigger>
-          <TabsTrigger className="col-span-2 rounded-full px-3 py-2.5 text-xs data-[state=active]:bg-black data-[state=active]:text-white sm:col-span-1" value="records">{recordsLabel}</TabsTrigger>
+          <TabsTrigger data-served-result-tab="records" className="col-span-2 rounded-full px-3 py-2.5 text-xs data-[state=active]:bg-black data-[state=active]:text-white sm:col-span-1" value="records">{recordsLabel}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-5 space-y-5">
@@ -348,7 +348,7 @@ export function AnalysisDetail({
           <div className="mt-4 rounded-2xl border border-black/[.07] bg-muted px-4 py-3 text-xs leading-5 text-zinc-600"><strong className="text-zinc-900">Legal boundary:</strong> {humanReviewBoundary}</div>
         </TabsContent>
 
-        <TabsContent forceMount value="records" className="mt-5 data-[state=inactive]:hidden">
+        <TabsContent id="served-records-workspace" forceMount value="records" className="scroll-mt-32 mt-5 data-[state=inactive]:hidden">
           <div className="rounded-2xl bg-muted p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
           {analysis.verdict === "verified" && savedAnalysisId && hasEvidenceWorkflow && <CaseWorkflow analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} workflow={evidenceWorkflow} />}
           {analysis.verdict === "verified" && paymentRequest

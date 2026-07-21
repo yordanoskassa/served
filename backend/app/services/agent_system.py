@@ -25,6 +25,36 @@ class AgentUnavailableError(RuntimeError):
     """A configured runner could not produce an agent result."""
 
 
+class AgentProviderQuotaError(AgentUnavailableError):
+    """A provider rejected the request because its account quota is exhausted."""
+
+
+def provider_error_code(exc: BaseException) -> str | None:
+    """Return a structured provider code without parsing user-facing messages."""
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        for value in (getattr(current, "code", None), getattr(current, "type", None)):
+            if isinstance(value, str) and value:
+                return value
+        body = getattr(current, "body", None)
+        if isinstance(body, dict):
+            for payload in (body, body.get("error")):
+                if not isinstance(payload, dict):
+                    continue
+                for key in ("code", "type"):
+                    value = payload.get(key)
+                    if isinstance(value, str) and value:
+                        return value
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def is_provider_quota_error(exc: BaseException) -> bool:
+    return provider_error_code(exc) == "insufficient_quota"
+
+
 class AgentCoordinator:
     def __init__(self) -> None:
         self._agents: dict[str, Agent] = {}
@@ -64,7 +94,15 @@ class AgentCoordinator:
             )
             return result
         except Exception as exc:  # fail safe; callers can continue with other evidence
-            agent.last_error = str(exc)
+            if is_provider_quota_error(exc):
+                agent.last_error = "Provider quota unavailable."
+                if raise_on_error:
+                    raise AgentProviderQuotaError(
+                        f"Agent {name!r} provider quota unavailable"
+                    ) from None
+                return None
+            # Do not expose provider response bodies through the public status API.
+            agent.last_error = "Provider request failed."
             if raise_on_error:
                 raise AgentUnavailableError(f"Agent {name!r} failed") from exc
             return None

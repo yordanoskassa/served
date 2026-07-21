@@ -48,7 +48,13 @@ from app.schemas.analysis import (
     EvidenceItem,
     LetterBreakdown,
 )
-from app.services.agent_system import AgentUnavailableError, coordinator, register_runner
+from app.services.agent_system import (
+    AgentProviderQuotaError,
+    AgentUnavailableError,
+    coordinator,
+    is_provider_quota_error,
+    register_runner,
+)
 from app.services.courtlistener import lookup_docket
 from app.services.run_trace import RunTraceCollector, TraceEmitter
 
@@ -61,6 +67,10 @@ REVIEWED_SAMPLE_OUTPUTS = (
     Path(__file__).resolve().parents[2]
     / "fixtures"
     / "golden-agent-outputs.json"
+)
+DOCUMENT_AI_UNAVAILABLE_LIMITATION = (
+    "Document AI is temporarily unavailable. No document facts were inferred or "
+    "verified during this run; try again after service is restored."
 )
 
 READER_PROMPT = """You are READER. Extract only visible facts from this legal-looking document.
@@ -328,7 +338,7 @@ def _model_result(response: Any, output: Any) -> ParsedModelResponse:
 
 
 def _read_with_openai(data: bytes, mime_type: str) -> ParsedModelResponse:
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = OpenAI(api_key=settings.openai_api_key, max_retries=0)
     response = client.responses.parse(
         model=settings.openai_model,
         input=[{
@@ -346,7 +356,7 @@ def _read_with_openai(data: bytes, mime_type: str) -> ParsedModelResponse:
 
 
 def _check_patterns_with_openai(visible_text: str) -> ParsedModelResponse:
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = OpenAI(api_key=settings.openai_api_key, max_retries=0)
     corpus = [
         {
             "id": pattern.id,
@@ -489,7 +499,7 @@ def _explain_with_openai(
     verdict: VerdictState,
     legal_passages: list[LegalPassage] | None = None,
 ) -> ParsedModelResponse:
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = OpenAI(api_key=settings.openai_api_key, max_retries=0)
     # Rejected model proposals are audit data only. Never expose their text to
     # EXPLAINER, where a hallucinated excerpt could influence user-facing copy.
     checker_for_explainer = checker.model_copy(update={"signal_reviews": []})
@@ -554,6 +564,19 @@ def _fallback_explanation(parsed: DocumentParse, checker: CheckerReport, verdict
     return ExplanationDraft(
         summary=f"This appears to be {parsed.doc_type.lower()}. Its visible facts were extracted, but the case and parties could not be independently confirmed.",
         next_step="Check the case through the court's official website or ask a qualified attorney to review it.",
+    )
+
+
+def _service_unavailable_explanation() -> ExplanationDraft:
+    return ExplanationDraft(
+        summary=(
+            "The document analysis service is temporarily unavailable, so this run "
+            "could not extract or verify the request."
+        ),
+        next_step=(
+            "Try again after service is restored. Do not act on the document until "
+            "its facts can be independently checked."
+        ),
     )
 
 
@@ -785,9 +808,17 @@ async def _pattern_branch(
                 evidence_ids=evidence_ids,
             )
         return PatternBranchResult(signals, reviews, "complete", [])
-    except Exception:
-        logger.exception("CHECKER pattern comparison failed")
-        limitation = "The scam-pattern comparison was unavailable during this analysis."
+    except Exception as exc:
+        quota_unavailable = is_provider_quota_error(exc)
+        if quota_unavailable:
+            logger.warning("CHECKER pattern comparison unavailable: provider quota exhausted")
+        else:
+            logger.exception("CHECKER pattern comparison failed")
+        limitation = (
+            DOCUMENT_AI_UNAVAILABLE_LIMITATION
+            if quota_unavailable
+            else "The scam-pattern comparison was unavailable during this analysis."
+        )
         if trace is not None:
             await trace.finish(
                 key="scam_patterns",
@@ -797,7 +828,11 @@ async def _pattern_branch(
                 parent_key="checker",
                 parallel_group="checker_evidence",
                 detail=limitation,
-                output_summary="Model comparison failed",
+                output_summary=(
+                    "Document AI temporarily unavailable"
+                    if quota_unavailable
+                    else "Model comparison failed"
+                ),
             )
         return PatternBranchResult([], [], "unavailable", [limitation])
 
@@ -909,6 +944,7 @@ async def analyze_document(
         else None
     )
     reader_unavailable = False
+    provider_quota_unavailable = False
     if reviewed_sample:
         parsed = reviewed_sample[0]
         trace.fact_extraction_basis = "reviewed_sample_fixture"
@@ -921,6 +957,11 @@ async def analyze_document(
                 trace=trace,
                 raise_on_error=True,
             )
+        except AgentProviderQuotaError:
+            logger.warning("READER unavailable: provider quota exhausted")
+            parsed = None
+            reader_unavailable = True
+            provider_quota_unavailable = True
         except AgentUnavailableError:
             logger.exception("READER failed")
             parsed = None
@@ -933,9 +974,17 @@ async def analyze_document(
         kind="agent",
         status="unavailable" if reader_unavailable else "complete" if parsed.readable else "degraded",
         label="READER extracts visible facts",
-        detail="The model provider did not return document facts." if reader_unavailable else None,
+        detail=(
+            DOCUMENT_AI_UNAVAILABLE_LIMITATION
+            if provider_quota_unavailable
+            else "The model provider did not return document facts."
+            if reader_unavailable
+            else None
+        ),
         output_summary=(
-            "READER provider unavailable"
+            "Document AI temporarily unavailable"
+            if provider_quota_unavailable
+            else "READER provider unavailable"
             if reader_unavailable
             else
             f"Loaded reviewed {trusted_sample_id} sample facts"
@@ -1066,6 +1115,13 @@ async def analyze_document(
             evidence_count=len(checker.scam_signals),
             evidence_ids=[f"pattern:{signal.pattern_id}" for signal in checker.scam_signals],
         )
+    elif provider_quota_unavailable:
+        checker = CheckerReport(
+            court_lookup_status="unavailable",
+            scam_check_status="unavailable",
+            limitations=[DOCUMENT_AI_UNAVAILABLE_LIMITATION],
+        )
+        checker_unavailable = True
     else:
         try:
             checker = await coordinator.run(
@@ -1074,6 +1130,11 @@ async def analyze_document(
                 trace=trace,
                 raise_on_error=True,
             )
+        except AgentProviderQuotaError:
+            logger.warning("CHECKER unavailable: provider quota exhausted")
+            checker = None
+            checker_unavailable = True
+            provider_quota_unavailable = True
         except AgentUnavailableError:
             logger.exception("CHECKER failed")
             checker = None
@@ -1083,8 +1144,14 @@ async def analyze_document(
         checker = CheckerReport(
             court_lookup_status="unavailable",
             scam_check_status="unavailable",
-            limitations=["CHECKER was unavailable during this analysis."],
+            limitations=[
+                DOCUMENT_AI_UNAVAILABLE_LIMITATION
+                if provider_quota_unavailable
+                else "CHECKER was unavailable during this analysis."
+            ],
         )
+    if DOCUMENT_AI_UNAVAILABLE_LIMITATION in checker.limitations:
+        provider_quota_unavailable = True
     guard_audit = _guard_checker_result(checker)
     guarded_pattern_ids = set(guard_audit.accepted_pattern_ids)
     checker = checker.model_copy(update={
@@ -1130,8 +1197,9 @@ async def analyze_document(
         kind="decision",
         label="Fixed verdict policy",
         detail=(
-            "Ordinary code now compares three inputs: countable warning signs, "
-            "whether the case was found, and whether the caption parties matched."
+            "Ordinary code compares countable warning signs, whether the case was "
+            "found, whether caption parties matched, and whether the warning-sign "
+            "check completed."
         ),
     )
     # This is the only verdict decision. It is ordinary code, not an agent or model.
@@ -1149,6 +1217,8 @@ async def analyze_document(
         counted_signal_ids=result.indicators,
         case_found=checker.case_found,
         parties_match=checker.parties_match,
+        court_lookup_status=checker.court_lookup_status,
+        scam_check_status=checker.scam_check_status,
     )
     await trace.finish(
         key="rules",
@@ -1157,7 +1227,9 @@ async def analyze_document(
         label="Fixed verdict policy",
         input_summary=(
             f"{len(result.indicators)} countable signal(s); "
-            f"case_found={checker.case_found}; parties_match={checker.parties_match}"
+            f"case_found={checker.case_found}; parties_match={checker.parties_match}; "
+            f"court_lookup={checker.court_lookup_status}; "
+            f"scam_check={checker.scam_check_status}"
         ),
         output_summary=result.verdict.value.upper(),
         decision=decision,
@@ -1250,22 +1322,31 @@ async def analyze_document(
             ),
         )
     else:
-        try:
-            explanation = await coordinator.run(
-                "explainer",
-                parsed=parsed,
-                checker=checker,
-                verdict=result.verdict,
-                legal_passage_ids=[passage.id for passage in legal_passages],
-                trace=trace,
-                raise_on_error=True,
-            )
-        except AgentUnavailableError:
-            logger.exception("EXPLAINER failed")
-            explanation = None
+        explanation = None
+        explainer_quota_unavailable = False
+        if not provider_quota_unavailable:
+            try:
+                explanation = await coordinator.run(
+                    "explainer",
+                    parsed=parsed,
+                    checker=checker,
+                    verdict=result.verdict,
+                    legal_passage_ids=[passage.id for passage in legal_passages],
+                    trace=trace,
+                    raise_on_error=True,
+                )
+            except AgentProviderQuotaError:
+                logger.warning("EXPLAINER unavailable: provider quota exhausted")
+                explainer_quota_unavailable = True
+            except AgentUnavailableError:
+                logger.exception("EXPLAINER failed")
         explainer_status = "complete"
         if explanation is None:
-            explanation = _fallback_explanation(parsed, checker, result.verdict)
+            explanation = (
+                _service_unavailable_explanation()
+                if provider_quota_unavailable
+                else _fallback_explanation(parsed, checker, result.verdict)
+            )
             explainer_status = "degraded"
         await trace.finish(
             key="explainer",
@@ -1276,6 +1357,10 @@ async def analyze_document(
             output_summary=(
                 "Model explanation completed"
                 if explainer_status == "complete"
+                else "Document AI temporarily unavailable; deterministic explanation used"
+                if provider_quota_unavailable
+                else "EXPLAINER quota unavailable; deterministic explanation used"
+                if explainer_quota_unavailable
                 else "Deterministic fallback explanation used"
             ),
         )
@@ -1330,7 +1415,7 @@ async def analyze_document(
     document_item = EvidenceItem(
         id="document:facts",
         tool_key="reader",
-        label="Document facts extracted",
+        label="Uploaded document received" if reader_unavailable else "Document facts extracted",
         detail=(
             parsed.case_number
             or _claimed_authority(parsed)
@@ -1340,6 +1425,8 @@ async def analyze_document(
         source=(
             "Versioned reviewed sample facts"
             if reviewed_sample
+            else "Uploaded document metadata only"
+            if reader_unavailable
             else "READER transcription of uploaded document"
         ),
     )
@@ -1375,18 +1462,27 @@ async def analyze_document(
     ]
 
     limitations = list(checker.limitations)
-    limitations.append(
-        "This bundled sample uses versioned reviewed facts. Personal uploads use "
-        "the live document reader and verification tools."
-        if reviewed_sample
-        else "READER facts are model-assisted. Check critical names, numbers, dates, "
-        "and wording against the original before acting."
-    )
-    if not native_pdf_text:
+    if reviewed_sample:
+        limitations.append(
+            "This bundled sample uses versioned reviewed facts. Personal uploads use "
+            "the live document reader and verification tools."
+        )
+    elif not reader_unavailable:
+        limitations.append(
+            "READER facts are model-assisted. Check critical names, numbers, dates, "
+            "and wording against the original before acting."
+        )
+    if (
+        not native_pdf_text
+        and parsed.readable
+        and checker.scam_check_status != "unavailable"
+    ):
         limitations.append(
             "Scam-pattern excerpts were validated against READER’s model-assisted transcription because native document text was unavailable."
         )
-    if reader_unavailable:
+    if provider_quota_unavailable:
+        limitations.append(DOCUMENT_AI_UNAVAILABLE_LIMITATION)
+    elif reader_unavailable:
         limitations.append(
             "READER was unavailable, so document facts could not be extracted during this run."
         )

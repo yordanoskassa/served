@@ -43,6 +43,32 @@ def test_case_found_and_parties_match_is_verified() -> None:
     assert decide_verdict(parsed, checker).verdict is VerdictState.VERIFIED
 
 
+def test_case_and_party_match_fails_closed_when_scam_check_is_unavailable() -> None:
+    parsed = DocumentParse(doc_type="Subpoena", court="U.S. District Court")
+    checker = CheckerReport(
+        docket_evidence=[docket()],
+        case_found=True,
+        parties_match=True,
+        court_lookup_status="match",
+        scam_check_status="unavailable",
+    )
+
+    assert decide_verdict(parsed, checker).verdict is VerdictState.CANNOT_CONFIRM
+
+
+def test_case_and_party_flags_fail_closed_without_a_completed_court_match() -> None:
+    parsed = DocumentParse(doc_type="Subpoena", court="U.S. District Court")
+    checker = CheckerReport(
+        docket_evidence=[docket()],
+        case_found=True,
+        parties_match=True,
+        court_lookup_status="unavailable",
+        scam_check_status="complete",
+    )
+
+    assert decide_verdict(parsed, checker).verdict is VerdictState.CANNOT_CONFIRM
+
+
 def test_case_found_without_party_match_cannot_confirm() -> None:
     parsed = DocumentParse(doc_type="Subpoena")
     checker = CheckerReport(

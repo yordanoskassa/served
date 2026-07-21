@@ -105,6 +105,8 @@ export interface Analysis {
     counted_signal_ids: string[]
     case_found: boolean
     parties_match: boolean
+    court_lookup_status?: "match" | "no_match" | "near_match" | "party_mismatch" | "unavailable" | "not_applicable"
+    scam_check_status?: "complete" | "unavailable" | "not_applicable"
   } | null
   guard?: {
     accepted: boolean
@@ -338,7 +340,7 @@ async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
     return await fetch(input, init)
   } catch {
     throw new Error(
-      "Could not reach the Served API. If the browser mentions CORS, the backend often crashed or timed out before it could respond—check EasyPanel logs and Plaid env vars.",
+      "Served could not reach the API. Retry once; if it continues, check the backend health endpoint.",
     )
   }
 }

@@ -183,7 +183,29 @@ async def create_link_token(client_user_id: str) -> dict[str, Any]:
     }
     if settings.plaid_redirect_uri:
         payload["redirect_uri"] = settings.plaid_redirect_uri
-    return await _post("/link/token/create", payload)
+    try:
+        return await _post("/link/token/create", payload)
+    except PlaidAPIError as exc:
+        # OAuth redirect allowlisting should never block the Sandbox demo. Keep
+        # the configured redirect on the first request so OAuth institutions work
+        # when the dashboard is ready, then fall back to non-OAuth Sandbox Link.
+        if (
+            settings.plaid_environment != "sandbox"
+            or "redirect_uri" not in payload
+            or exc.code != "INVALID_FIELD"
+            or "redirect uri" not in (exc.plaid_message or "").lower()
+        ):
+            raise
+        logger.warning(
+            "Plaid Sandbox rejected the configured OAuth redirect; "
+            "retrying Link without redirect_uri"
+        )
+        sandbox_payload = {
+            key: value
+            for key, value in payload.items()
+            if key != "redirect_uri"
+        }
+        return await _post("/link/token/create", sandbox_payload)
 
 
 async def exchange_public_token(public_token: str) -> dict[str, Any]:

@@ -78,6 +78,19 @@ def _provider_error(exc: Exception, *, context: str = "plaid") -> HTTPException:
                 "Redeploy the latest backend fixture, or check PLAID_SANDBOX_SECRET."
             ),
         )
+    if (
+        isinstance(exc, PlaidAPIError)
+        and exc.code == "INVALID_FIELD"
+        and "redirect uri" in (exc.plaid_message or "").lower()
+    ):
+        logger.warning("%s Plaid OAuth redirect URI is not allowlisted", context)
+        return HTTPException(
+            status_code=502,
+            detail=(
+                "Plaid OAuth is not ready for this domain. Add the exact "
+                "PLAID_REDIRECT_URI to Plaid Dashboard → API → Allowed redirect URIs."
+            ),
+        )
     if isinstance(exc, PlaidAPIError):
         logger.warning(
             "%s Plaid API failure code=%s request_id=%s message=%s",

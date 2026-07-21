@@ -332,6 +332,32 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
     : activeTab === "sources" || activeTab === "settings" || latestAnalysis?.verdict === "verified"
       ? 1
       : 0
+  const navigateWorkflowStep = (index: number) => {
+    if (index === 0) {
+      setActiveTab("overview")
+      requestAnimationFrame(() => {
+        document.getElementById("served-request-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      })
+      return
+    }
+    if (index === 1) {
+      setActiveTab("sources")
+      return
+    }
+    if (index === 2) {
+      const recordsTab = document.querySelector<HTMLButtonElement>("[data-served-result-tab='records']")
+      if (recordsTab) {
+        recordsTab.click()
+        requestAnimationFrame(() => {
+          document.getElementById("served-records-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        })
+      } else {
+        setActiveTab("sources")
+      }
+      return
+    }
+    setActiveTab("response")
+  }
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
@@ -374,10 +400,12 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
               {workflowSteps.map((step, index) => {
                 const active = index === workflowStepIndex
                 const complete = index < workflowStepIndex
-                return <li aria-current={active ? "step" : undefined} className={`relative flex items-center gap-3 border-r border-black/[.06] px-3 py-3 last:border-r-0 ${active ? "bg-brand-soft/70" : "bg-white"}`} key={step}>
-                  <span className={`grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${complete ? "bg-emerald-600 text-white" : active ? "bg-black text-white ring-2 ring-brand-green/60 ring-offset-2" : "border border-black/10 bg-zinc-50 text-zinc-400"}`}>{index + 1}</span>
-                  <span className={`whitespace-nowrap text-xs tracking-[-.01em] ${active ? "font-bold text-black" : complete ? "font-semibold text-zinc-800" : "font-semibold text-zinc-500"}`}>{step}</span>
-                  {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-black" />}
+                return <li aria-current={active ? "step" : undefined} className={`relative border-r border-black/[.06] last:border-r-0 ${active ? "bg-brand-soft/70" : "bg-white"}`} key={step}>
+                  <button type="button" className="flex w-full items-center gap-3 px-3 py-3 text-left transition hover:bg-black/[.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-inset" onClick={() => navigateWorkflowStep(index)} aria-label={`Go to ${step}`}>
+                    <span className={`grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${complete ? "bg-emerald-600 text-white" : active ? "bg-black text-white ring-2 ring-brand-green/60 ring-offset-2" : "border border-black/10 bg-zinc-50 text-zinc-400"}`}>{index + 1}</span>
+                    <span className={`whitespace-nowrap text-xs tracking-[-.01em] ${active ? "font-bold text-black" : complete ? "font-semibold text-zinc-800" : "font-semibold text-zinc-500"}`}>{step}</span>
+                  </button>
+                  {active && <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-black" />}
                 </li>
               })}
             </ol>
@@ -399,7 +427,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
             <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>
           </section>
 
-          <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
+          <section id="served-request-workspace" className={`scroll-mt-32 grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
             <UploadCard
               initialSample={launchIntent && launchIntent !== "upload" ? launchIntent : undefined}
               onSignInRequired={demoMode ? onExitDemo : undefined}
