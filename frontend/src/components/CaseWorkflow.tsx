@@ -22,6 +22,8 @@ export type EvidenceWorkflowState = {
   reviewed: number
   total: number
   packetReady: boolean
+  attorneyReviewed?: boolean
+  attorneyDecision?: string | null
   sourceLabel?: string | null
 }
 
@@ -31,6 +33,8 @@ const EMPTY_WORKFLOW: EvidenceWorkflowState = {
   reviewed: 0,
   total: 0,
   packetReady: false,
+  attorneyReviewed: false,
+  attorneyDecision: null,
 }
 
 function deadlineStatus(value: string | null | undefined): { label: string; urgent: boolean } {
@@ -86,8 +90,9 @@ export function CaseWorkflow({
   const steps = [
     { label: "Request verified", done: analysis.verdict === "verified" },
     { label: workflow.sourceLabel || "Records collected", done: workflow.sourceReady },
-    { label: workflow.total ? `${workflow.reviewed}/${workflow.total} reviewed` : "Candidate review", done: reviewDone },
-    { label: "Handoff ready", done: workflow.packetReady },
+    { label: workflow.total ? `${workflow.reviewed}/${workflow.total} owner reviewed` : "Owner review", done: reviewDone },
+    { label: "Packet generated", done: workflow.packetReady },
+    { label: workflow.attorneyDecision || "Attorney decision", done: Boolean(workflow.attorneyReviewed) },
   ]
   const completed = steps.filter((step) => step.done).length
   const nextStep = !workflow.sourceReady
@@ -97,8 +102,10 @@ export function CaseWorkflow({
       : !reviewDone
         ? `Review ${Math.max(workflow.total - workflow.reviewed, 0)} remaining candidate${workflow.total - workflow.reviewed === 1 ? "" : "s"}`
         : !workflow.packetReady
-          ? "Export the counsel handoff"
-          : "Package ready for intentional handoff"
+          ? "Generate the response packet"
+          : !workflow.attorneyReviewed
+            ? "Complete attorney review"
+            : "Final decision recorded"
 
   const copyDraft = async () => {
     await navigator.clipboard.writeText(draft)
@@ -110,12 +117,12 @@ export function CaseWorkflow({
     <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
       <div>
         <h3 className="type-ui-heading">{nextStep}</h3>
-        <p className="type-caption mt-1">{completed} of 4 complete · you own the case</p>
+        <p className="type-caption mt-1">{completed} of 5 complete · you own the case</p>
       </div>
       <Badge variant={deadline.urgent ? "warning" : "secondary"}><BellRing size={12} /> {deadline.label}</Badge>
     </div>
 
-    <div className="grid border-y border-black/5 bg-white/55 sm:grid-cols-4">
+    <div className="grid border-y border-black/5 bg-white/55 sm:grid-cols-5">
       {steps.map((step, index) => <div className={`flex items-center gap-2 px-4 py-3 text-[11px] ${index < steps.length - 1 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step.label}>
         <span className={`grid size-5 shrink-0 place-items-center rounded-full ${step.done ? "bg-brand-green text-black" : index === completed ? "bg-black text-white" : "bg-black/5 text-zinc-400"}`}>
           {step.done ? <Check size={12} strokeWidth={3} /> : <Circle size={8} fill="currentColor" />}

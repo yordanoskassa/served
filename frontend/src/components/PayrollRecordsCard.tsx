@@ -26,6 +26,7 @@ import {
   type PayrollMatchResponse,
   type PayrollRecordType,
 } from "@/lib/api"
+import { clearReviewPacket, loadReviewPacket, saveReviewPacket, type ReviewPacket } from "@/lib/reviewWorkflow"
 
 
 const recordLabels: Record<PayrollRecordType, string> = {
@@ -77,11 +78,12 @@ function CandidateDecision({ decision, possible, onDecision }: {
   </div>
 }
 
-export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkflowChange }: {
+export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkflowChange, onPacketChange }: {
   analysis: Analysis
   analysisId?: string
   documentName?: string
   onWorkflowChange?: (state: EvidenceWorkflowState) => void
+  onPacketChange?: (packet: ReviewPacket | null) => void
 }) {
   const { credential } = useAuth()
   const [demoCredential, setDemoCredential] = useState<string | null>(null)
@@ -99,7 +101,7 @@ export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkf
       return {}
     }
   })
-  const [packetReady, setPacketReady] = useState(false)
+  const [packetReady, setPacketReady] = useState(() => Boolean(loadReviewPacket(analysisId)))
   const isPayroll = isPayrollRecordRequest(analysis)
   const scopePerson = payrollSubject(analysis)
   const scopeStart = payrollStartDate(analysis)
@@ -188,16 +190,31 @@ export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkf
 
   const decide = (recordId: string, decision: ReviewDecision) => {
     setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
     setDecisions((current) => ({ ...current, [recordId]: decision }))
   }
 
   const approveSuggested = () => {
     if (!result) return
     setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
     setDecisions((current) => ({
       ...current,
       ...Object.fromEntries(result.strong_matches.map((record) => [record.record_id, "approved" as const])),
     }))
+  }
+
+  const applySafeDemoReview = () => {
+    if (!result) return
+    setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
+    setDecisions(Object.fromEntries([
+      ...result.strong_matches.map((record) => [record.record_id, "approved" as const]),
+      ...result.possible_matches.map((record) => [record.record_id, "counsel" as const]),
+    ]))
   }
 
   const exportManifest = () => {
@@ -230,7 +247,31 @@ export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkf
     anchor.download = `served-payroll-review-${analysisId.slice(-8)}.csv`
     anchor.click()
     URL.revokeObjectURL(url)
+    const packet: ReviewPacket = {
+      analysisId,
+      documentName: documentName || "Saved request",
+      generatedAt: new Date().toISOString(),
+      sourceLabel: file?.name || "Payroll records",
+      criteria: [
+        `Case: ${analysis.breakdown?.case_number || "Verified request"}`,
+        `Employee: ${result.criteria.employee_name}`,
+        `Dates: ${result.criteria.start_date} through ${result.criteria.end_date || "present"}`,
+        `Record types: ${result.criteria.record_types.map((type) => recordLabels[type]).join(", ")}`,
+      ],
+      approved: approvedCount,
+      excluded: keptOutCount,
+      counsel: counselCount,
+      records: candidates.map((record) => ({
+        recordId: record.record_id,
+        label: recordLabels[record.record_type],
+        detail: `${dateRange(record)} · ${record.source}`,
+        systemRecommendation: record.match_strength,
+        ownerDecision: decisions[record.record_id],
+      })),
+    }
+    saveReviewPacket(packet)
     setPacketReady(true)
+    onPacketChange?.(packet)
   }
 
   const candidates = result ? [...result.strong_matches, ...result.possible_matches] : []
@@ -323,10 +364,10 @@ export function PayrollRecordsCard({ analysis, analysisId, documentName, onWorkf
 
         <div className="flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Human review required.</strong> {result.manifest_note} {result.privacy_note}</p></div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
-          <div><p className="text-sm font-semibold">{reviewedCount} of {candidates.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">Export only after each candidate has an owner decision.</p></div>
-          <div className="flex flex-wrap gap-2"><Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => { setResult(null); setFile(null); setPacketReady(false) }}>Choose another file</Button><Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download review list again" : "Download review list"}</Button></div>
+          <div><p className="text-sm font-semibold">{reviewedCount} of {candidates.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">Every candidate needs an owner decision before the attorney packet unlocks.</p>{!reviewComplete && <button type="button" className="mt-2 text-xs font-semibold text-brand-green underline underline-offset-4" onClick={applySafeDemoReview}>Approve clear matches and send uncertain records to attorney</button>}</div>
+          <div className="flex flex-wrap gap-2"><Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => { setResult(null); setFile(null); setPacketReady(false); clearReviewPacket(analysisId); onPacketChange?.(null) }}>Choose another file</Button><Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Regenerate response packet" : "Generate response packet"}</Button></div>
         </div>
-        {packetReady && <div className="flex items-start gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-xs leading-5 text-emerald-100"><CheckCircle2 className="mt-0.5 shrink-0" size={16} /><p><strong>Review list prepared.</strong> {approvedCount} approved, {ownerKeptOutCount} kept out, and {counselCount} marked for counsel. The locked criteria and matching reasons are included. Nothing was sent.</p></div>}
+        {packetReady && <div className="flex items-start gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-xs leading-5 text-emerald-100"><CheckCircle2 className="mt-0.5 shrink-0" size={16} /><p><strong>Packet generated and attorney review opened.</strong> {approvedCount} approved, {ownerKeptOutCount} kept out, and {counselCount} marked for counsel. Nothing was sent.</p></div>}
       </div>}
     </div>
   </section>

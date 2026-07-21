@@ -20,8 +20,9 @@ import {
   Users,
   WalletCards,
 } from "lucide-react"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
+import { AttorneyReviewPanel } from "@/components/AttorneyReviewPanel"
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
 import { CaseWorkflow, type EvidenceWorkflowState } from "@/components/CaseWorkflow"
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
@@ -33,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Analysis, TraceEvent } from "@/lib/api"
+import { loadAttorneyReview, loadReviewPacket, type AttorneyReview, type ReviewPacket } from "@/lib/reviewWorkflow"
 
 type CaseReviewDecision = "possible_match" | "different_case" | "attorney_review"
 type PersonContext = "yes" | "no" | "unsure"
@@ -103,6 +105,8 @@ export function AnalysisDetail({
   const [caseReviewDecision, setCaseReviewDecision] = useState<CaseReviewDecision | null>(null)
   const [personContext, setPersonContext] = useState<PersonContext | null>(null)
   const [reviewBriefPrepared, setReviewBriefPrepared] = useState(false)
+  const [reviewPacket, setReviewPacket] = useState<ReviewPacket | null>(() => loadReviewPacket(savedAnalysisId))
+  const [attorneyReview, setAttorneyReview] = useState<AttorneyReview>(() => loadAttorneyReview(savedAnalysisId))
   const [evidenceWorkflow, setEvidenceWorkflow] = useState<EvidenceWorkflowState>({
     sourceReady: false,
     candidatesReady: false,
@@ -119,6 +123,18 @@ export function AnalysisDetail({
       && current.packetReady === next.packetReady
       && current.sourceLabel === next.sourceLabel
     ) ? current : next)
+  }, [])
+  useEffect(() => {
+    setReviewPacket(loadReviewPacket(savedAnalysisId))
+    setAttorneyReview(loadAttorneyReview(savedAnalysisId))
+  }, [savedAnalysisId])
+  const handlePacketChange = useCallback((packet: ReviewPacket | null) => {
+    setReviewPacket(packet)
+    if (!packet) setAttorneyReview(loadAttorneyReview(undefined))
+    if (packet) {
+      setResultTab("human")
+      setHumanTab("attorney")
+    }
   }, [])
 
   const verdict = verdictCopy[analysis.verdict]
@@ -339,10 +355,8 @@ export function AnalysisDetail({
             </TabsContent>
             <TabsContent value="clerk" className="mt-0"><GuidedClerkCall analysis={analysis} /></TabsContent>
             <TabsContent value="attorney" className="mt-4">
-              <section className="grid gap-4 rounded-2xl border border-black/[.07] bg-white p-4 sm:p-5 lg:grid-cols-[1fr_18rem]">
-                <div><div className="flex items-center gap-2"><Scale size={17} /><p className="text-sm font-semibold">Attorney handoff</p></div><h4 className="type-subsection mt-3">Bring a scoped report, not a pile of files.</h4><p className="type-body mt-2">Send the owner-reviewed brief to counsel chosen independently. Served does not operate an attorney network or create an attorney-client relationship.</p>{savedAnalysisId && <div className="mt-4"><EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact /></div>}</div>
-                <aside className="rounded-xl bg-[#171717] p-4 text-white"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-brand-green">Human accountability</p><p className="mt-3 text-sm font-semibold">Agent prepares. Human decides.</p><p className="mt-2 text-xs leading-5 text-white/55">No legal responsiveness decision, waiver, filing, or automatic record delivery.</p></aside>
-              </section>
+              <AttorneyReviewPanel analysisId={savedAnalysisId} packet={reviewPacket} onOpenRecords={() => setResultTab("records")} onReviewChange={setAttorneyReview} />
+              {reviewPacket && savedAnalysisId && <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/[.07] bg-white p-4"><div><p className="text-sm font-semibold">Intentional handoff only</p><p className="mt-1 text-xs text-zinc-500">After final review, email the evidence brief to a recipient you choose independently.</p></div><EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact /></div>}
             </TabsContent>
           </Tabs>
           <div className="mt-4 rounded-2xl border border-black/[.07] bg-muted px-4 py-3 text-xs leading-5 text-zinc-600"><strong className="text-zinc-900">Legal boundary:</strong> {humanReviewBoundary}</div>
@@ -350,12 +364,12 @@ export function AnalysisDetail({
 
         <TabsContent id="served-records-workspace" forceMount value="records" className="scroll-mt-32 mt-5 data-[state=inactive]:hidden">
           <div className="rounded-2xl bg-muted p-4 text-sm"><strong>Safest next step</strong><p className="mt-1 text-muted-foreground">{analysis.next_step}</p></div>
-          {analysis.verdict === "verified" && savedAnalysisId && hasEvidenceWorkflow && <CaseWorkflow analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} workflow={evidenceWorkflow} />}
+          {analysis.verdict === "verified" && savedAnalysisId && hasEvidenceWorkflow && <CaseWorkflow analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} workflow={{ ...evidenceWorkflow, attorneyReviewed: attorneyReview.disposition !== "pending", attorneyDecision: attorneyReview.disposition === "approved" ? "Attorney approved" : attorneyReview.disposition === "changes_requested" ? "Changes requested" : attorneyReview.disposition === "rejected" ? "Packet rejected" : null }} />}
           {analysis.verdict === "verified" && paymentRequest
             ? savedAnalysisId
-              ? <BankEvidenceCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} cutoffDate={breakdown.document_date} onWorkflowChange={updateEvidenceWorkflow} />
+              ? <BankEvidenceCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} cutoffDate={breakdown.document_date} onWorkflowChange={updateEvidenceWorkflow} onPacketChange={handlePacketChange} />
               : <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>Save this verified request before connecting financial data.</AlertDescription></Alert>
-            : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} onWorkflowChange={updateEvidenceWorkflow} />}
+            : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} onWorkflowChange={updateEvidenceWorkflow} onPacketChange={handlePacketChange} />}
           {analysis.verdict !== "verified" && paymentRequest && <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Bank payments remain locked</AlertTitle><AlertDescription>The request must pass verification before any financial source can open.</AlertDescription></Alert>}
         </TabsContent>
       </Tabs>

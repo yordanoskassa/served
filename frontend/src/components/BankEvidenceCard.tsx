@@ -21,6 +21,7 @@ import {
 } from "@/lib/api"
 import { isSandboxPlaidEnvironment } from "@/lib/bankConnect"
 import { openPlaidLink } from "@/lib/plaidLink"
+import { clearReviewPacket, loadReviewPacket, saveReviewPacket, type ReviewPacket } from "@/lib/reviewWorkflow"
 
 type LoadState = "loading" | "ready" | "error"
 type ReviewDecision = "approved" | "excluded" | "counsel"
@@ -144,12 +145,13 @@ function TransactionLoader({ label }: { label: string | null }) {
   </div>
 }
 
-export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDate = DEFAULT_CUTOFF_DATE, onWorkflowChange }: {
+export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDate = DEFAULT_CUTOFF_DATE, onWorkflowChange, onPacketChange }: {
   analysis: Analysis
   analysisId: string
   documentName?: string
   cutoffDate?: string | null
   onWorkflowChange?: (state: EvidenceWorkflowState) => void
+  onPacketChange?: (packet: ReviewPacket | null) => void
 }) {
   const { credential } = useAuth()
   const [demoCredential, setDemoCredential] = useState<string | null>(null)
@@ -172,7 +174,7 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
       return {}
     }
   })
-  const [packetReady, setPacketReady] = useState(false)
+  const [packetReady, setPacketReady] = useState(() => Boolean(loadReviewPacket(analysisId)))
   const autoMatchStarted = useRef(false)
 
   useEffect(() => {
@@ -351,16 +353,31 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
 
   const decide = (recordId: string, decision: ReviewDecision) => {
     setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
     setDecisions((current) => ({ ...current, [recordId]: decision }))
   }
 
   const approveSuggested = () => {
     if (!records) return
     setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
     setDecisions((current) => ({
       ...current,
       ...Object.fromEntries(records.include.map((record) => [record.record_id, "approved" as const])),
     }))
+  }
+
+  const applySafeDemoReview = () => {
+    if (!records) return
+    setPacketReady(false)
+    clearReviewPacket(analysisId)
+    onPacketChange?.(null)
+    setDecisions(Object.fromEntries([
+      ...records.include.map((record) => [record.record_id, "approved" as const]),
+      ...records.review.map((record) => [record.record_id, "counsel" as const]),
+    ]))
   }
 
   const exportManifest = () => {
@@ -403,7 +420,31 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
     anchor.download = `served-financial-review-${analysisId.slice(-8)}.csv`
     anchor.click()
     URL.revokeObjectURL(url)
+    const packet: ReviewPacket = {
+      analysisId,
+      documentName: documentName || records.criteria_snapshot.source_document,
+      generatedAt: new Date().toISOString(),
+      sourceLabel: status?.institution_name || "Business bank",
+      criteria: [
+        `Case: ${analysis.breakdown?.case_number || "Verified request"}`,
+        `Person: ${records.criteria_snapshot.target_payee}`,
+        `Dates: ${records.criteria_snapshot.start_date} through ${records.criteria_snapshot.cutoff_date}`,
+        "Record type: payments and bank records",
+      ],
+      approved: approvedCount,
+      excluded: keptOutCount,
+      counsel: counselCount,
+      records: candidates.map((record) => ({
+        recordId: record.record_id,
+        label: record.description,
+        detail: `${record.date} · ${money(record.amount, record.currency)}`,
+        systemRecommendation: record.disposition,
+        ownerDecision: decisions[record.record_id],
+      })),
+    }
+    saveReviewPacket(packet)
     setPacketReady(true)
+    onPacketChange?.(packet)
   }
 
   if (statusState === "loading") return <section className="mt-5 rounded-2xl border border-black/10 bg-[#111] p-4 text-white" aria-busy="true"><TransactionLoader label="Checking financial-record eligibility…" /></section>
@@ -506,10 +547,10 @@ export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDat
       {activePartition === "excluded" && <div className="mt-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-sky-200">Protected from the response packet</p><p className="mt-1 text-xs leading-5 text-white/45">Served records only an audit ID and exclusion reason. Unrelated transaction details stay out of the candidate workspace.</p></div><div className="mt-3 grid gap-2 sm:grid-cols-2">{records.excluded_audit.map((record) => <article className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-white/[.04] px-3 py-3" key={record.record_id}><div className="min-w-0"><p className="truncate text-xs font-semibold text-white/75">{record.record_id}</p><p className="mt-1 text-[10px] text-white/35">{record.reason_code === "OUTSIDE_DATE_RANGE" ? "Outside the displayed date range" : "Different payee, not requested"}</p></div><Badge className="shrink-0 bg-sky-100 text-sky-950">KEPT OUT</Badge></article>)}</div></div>}
       <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Review before export.</strong> {records.legal_boundary} Nothing is automatically sent or shared.</p></div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
-        <div><p className="text-sm font-semibold">{reviewedCount} of {candidateRecords.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">The manifest contains your decisions and matching reasons. It is not automatically sent.</p></div>
-        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download review list again" : "Download review list"}</Button>
+        <div><p className="text-sm font-semibold">{reviewedCount} of {candidateRecords.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">Every candidate needs an owner decision before the attorney packet unlocks.</p>{!reviewComplete && <button type="button" className="mt-2 text-xs font-semibold text-brand-green underline underline-offset-4" onClick={applySafeDemoReview}>Approve clear matches and send uncertain records to attorney</button>}</div>
+        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Regenerate response packet" : "Generate response packet"}</Button>
       </div>
-      {packetReady && <div className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-xs leading-5 text-emerald-100"><CheckCircle2 className="mt-0.5 shrink-0" size={16} /><p><strong>Review list prepared.</strong> {approvedCount} approved, {ownerKeptOutCount} kept out, and {counselCount} marked for counsel. The locked criteria and reason codes are included. Nothing was sent.</p></div>}
+      {packetReady && <div className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-xs leading-5 text-emerald-100"><CheckCircle2 className="mt-0.5 shrink-0" size={16} /><p><strong>Packet generated and attorney review opened.</strong> {approvedCount} approved, {ownerKeptOutCount} kept out, and {counselCount} marked for counsel. Nothing was sent.</p></div>}
     </div>}
   </section>
 }
