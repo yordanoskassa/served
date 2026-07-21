@@ -57,11 +57,12 @@ function savedDate(value: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString()
 }
 
-export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = false, onExitDemo }: {
+export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = false, onExitDemo, onGoHome }: {
   initialIntent?: EntryIntent | null
   onIntentConsumed?: () => void
   demoMode?: boolean
   onExitDemo?: () => void
+  onGoHome?: () => void
 }) {
   const { user, credential, logout } = useAuth()
   const [launchIntent] = useState(initialIntent)
@@ -297,8 +298,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
 
       <main className={demoMode ? "" : "lg:ml-56"}>
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
-          <button type="button" className="flex items-center gap-2 lg:hidden" onClick={() => setActiveTab("overview")}><BrandMark className="size-8" /><span className="font-display text-lg font-normal">Served</span></button>
-          <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>
+          <div className="flex items-center gap-4">
+            <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className={`group items-center gap-2 ${demoMode ? "flex" : "flex lg:hidden"}`} onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
+            {!demoMode && <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>}
+          </div>
           {demoMode ? <div className="flex items-center gap-3"><span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-medium uppercase tracking-[.12em] text-white">Demo · reviewed fixtures</span><Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button></div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
             <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
             <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>

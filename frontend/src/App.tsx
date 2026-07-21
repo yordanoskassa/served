@@ -84,7 +84,7 @@ export function App() {
 
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
   if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
-  if (demoIntent) return <Dashboard demoMode initialIntent={demoIntent} onExitDemo={openUploadAuth} />
+  if (demoIntent) return <Dashboard demoMode initialIntent={demoIntent} onExitDemo={openUploadAuth} onGoHome={() => setDemoIntent(null)} />
 
   const startEntry = (intent: EntryIntent) => {
     if (intent !== "upload") {

@@ -22,7 +22,6 @@ import {
 import { useCallback, useState } from "react"
 
 import { BankEvidenceCard } from "@/components/BankEvidenceCard"
-import { BrandMark } from "@/components/BrandMark"
 import { CaseWorkflow, type EvidenceWorkflowState } from "@/components/CaseWorkflow"
 import { EmailEvidenceBrief } from "@/components/EmailEvidenceBrief"
 import { GuidedClerkCall } from "@/components/GuidedClerkCall"
@@ -198,18 +197,15 @@ export function AnalysisDetail({
   ]
 
   return <Card className="overflow-hidden">
-    <div className="border-b border-black/[.07] bg-white/75 px-4 py-3 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={() => window.location.assign("/")} className="group inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-semibold transition hover:border-black/20 hover:bg-black hover:text-white">
-          <BrandMark className="size-6 transition group-hover:brightness-0 group-hover:invert" />
-          Go home
-        </button>
-        <div className="min-w-0 text-right">
-          {documentName && <p className="max-w-[min(60vw,32rem)] truncate text-xs font-semibold">{documentName}</p>}
-          {createdAt && <p className="mt-0.5 text-[10px] text-zinc-400">{savedAt(createdAt)}</p>}
+    {(documentName || createdAt) && <div className="border-b border-black/[.07] bg-white/75 px-4 py-3 sm:px-6">
+      <div className="flex min-w-0 items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-zinc-400">Request file</p>
+          {documentName && <p className="mt-1 max-w-[min(70vw,38rem)] truncate text-xs font-semibold">{documentName}</p>}
         </div>
+        {createdAt && <p className="shrink-0 text-[10px] text-zinc-400">{savedAt(createdAt)}</p>}
       </div>
-    </div>
+    </div>}
 
     <div className="p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
