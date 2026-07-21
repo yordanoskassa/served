@@ -99,6 +99,10 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
   }, [launchIntent, onIntentConsumed])
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" })
+  }, [])
+
+  useEffect(() => {
     workspaceController.current?.abort()
     setSummary(null)
     setAgents([])
@@ -279,6 +283,13 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
     setSummary(null)
   }
 
+  const workflowSteps = ["Verify request", "Connect sample bank", "Review candidate records", "Generate packet"]
+  const workflowStepIndex = activeTab === "response"
+    ? 3
+    : activeTab === "sources" || activeTab === "settings" || latestAnalysis?.verdict === "verified"
+      ? 1
+      : 0
+
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
       {!demoMode && <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
@@ -297,15 +308,30 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
       </aside>}
 
       <main className={demoMode ? "" : "lg:ml-56"}>
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-black/5 bg-background/75 px-5 py-3 backdrop-blur-2xl sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className={`group items-center gap-2 ${demoMode ? "flex" : "flex lg:hidden"}`} onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
-            {!demoMode && <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>}
+        <header className="sticky top-0 z-20 border-b border-black/[.08] bg-white/95 shadow-[0_1px_0_rgba(0,0,0,.03)] backdrop-blur-2xl">
+          <div className="flex items-center justify-between px-5 py-3 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4">
+              <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className={`group items-center gap-2 ${demoMode ? "flex" : "flex lg:hidden"}`} onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
+              {!demoMode && <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>}
+            </div>
+            {demoMode ? <div className="flex items-center gap-3"><span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-medium uppercase tracking-[.12em] text-white">Demo · reviewed fixtures</span><Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button></div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
+              <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
+              <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>
+            </div>}
           </div>
-          {demoMode ? <div className="flex items-center gap-3"><span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-medium uppercase tracking-[.12em] text-white">Demo · reviewed fixtures</span><Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button></div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
-            <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
-            <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>
-          </div>}
+          <div className="overflow-x-auto border-t border-black/[.06] bg-white">
+            <ol className="mx-auto grid min-w-[680px] max-w-[1280px] grid-cols-4 px-4 sm:px-6 lg:px-8" aria-label="Response workflow">
+              {workflowSteps.map((step, index) => {
+                const active = index === workflowStepIndex
+                const complete = index < workflowStepIndex
+                return <li aria-current={active ? "step" : undefined} className={`relative flex items-center gap-3 border-r border-black/[.06] px-3 py-3 last:border-r-0 ${active ? "bg-brand-soft/70" : "bg-white"}`} key={step}>
+                  <span className={`grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold ${complete ? "bg-emerald-600 text-white" : active ? "bg-black text-white ring-2 ring-brand-green/60 ring-offset-2" : "border border-black/10 bg-zinc-50 text-zinc-400"}`}>{index + 1}</span>
+                  <span className={`whitespace-nowrap text-xs tracking-[-.01em] ${active ? "font-bold text-black" : complete ? "font-semibold text-zinc-800" : "font-semibold text-zinc-500"}`}>{step}</span>
+                  {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-black" />}
+                </li>
+              })}
+            </ol>
+          </div>
         </header>
 
         {!demoMode && <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
@@ -321,10 +347,6 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
           <section className="flex flex-wrap items-end justify-between gap-5">
             <div><h1 className="type-section max-w-3xl sm:text-[2.25rem]">Respond with the right records.</h1><p className="type-body mt-3 max-w-xl">Verify the financial subpoena, find responsive records, and prepare them for review.</p></div>
             {!demoMode && <Button variant="outline" className="h-10 px-4 py-2 text-sm" onClick={openDocuments}><FileText size={15} /> Saved requests</Button>}
-          </section>
-
-          <section className="grid overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 sm:grid-cols-4">
-            {["1 · Verify request", "2 · Connect sample bank", "3 · Review candidate records", "4 · Generate packet"].map((step, index) => <div className={`flex items-center gap-3 px-4 py-3 text-xs font-medium ${index < 3 ? "border-b border-black/5 sm:border-r sm:border-b-0" : ""}`} key={step}><span className={`size-2 rounded-full ${index === 0 ? "bg-brand-green" : "bg-black/15"}`} />{step}</div>)}
           </section>
 
           <section className={`grid items-start gap-4 ${latestAnalysis || analysisRunState === "running" ? "mx-auto w-full max-w-5xl" : "min-[1180px]:grid-cols-[minmax(0,1.2fr)_minmax(20rem,.8fr)]"}`}>
