@@ -6,6 +6,7 @@ import { useAuth } from "@/AuthContext"
 import { Dashboard } from "@/Dashboard"
 import { Hero } from "@/components/Hero"
 import { LoginPage } from "@/components/LoginPage"
+import { SampleEntryMottoDialog } from "@/components/SampleEntryMottoDialog"
 import { Navbar } from "@/components/Navbar"
 import { LandingDetails } from "@/components/LandingDetails"
 import { LandingFooter } from "@/components/LandingFooter"
@@ -13,8 +14,9 @@ import { LandingPricing } from "@/components/LandingPricing"
 import { LandingTrustBar } from "@/components/LandingTrustBar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { fetchGoogleClientId } from "@/lib/api"
+import { fetchGoogleClientId, createUserPlaidLinkToken, exchangeUserPlaidPublicToken } from "@/lib/api"
 import { entryLabel, type EntryIntent } from "@/lib/entry"
+import { resumePlaidOAuthIfNeeded, storedPlaidLinkAnalysisId } from "@/lib/plaidLink"
 
 const ENTRY_STORAGE_KEY = "served_entry_intent"
 
@@ -28,13 +30,14 @@ function storedEntryIntent(): EntryIntent | null {
 }
 
 export function App() {
-  const { user, loading } = useAuth()
+  const { user, credential, loading } = useAuth()
   const [clientId, setClientId] = useState<string | null>(null)
   const [clientIdLoading, setClientIdLoading] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
   const [mailboxOpen, setMailboxOpen] = useState(false)
   const [entryIntent, setEntryIntent] = useState<EntryIntent | null>(storedEntryIntent)
   const [demoIntent, setDemoIntent] = useState<Exclude<EntryIntent, "upload"> | null>(null)
+  const [sampleMottoIntent, setSampleMottoIntent] = useState<Exclude<EntryIntent, "upload"> | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -43,6 +46,17 @@ export function App() {
       .catch(() => setError("Unable to connect to the authentication service."))
       .finally(() => setClientIdLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (loading || !credential || !user) return
+    void resumePlaidOAuthIfNeeded({
+      fetchLinkToken: () => createUserPlaidLinkToken(credential, storedPlaidLinkAnalysisId()),
+      analysisIdForLegacyApi: storedPlaidLinkAnalysisId(),
+      onSuccess: async (publicToken, institution) => {
+        await exchangeUserPlaidPublicToken(credential, publicToken, institution, storedPlaidLinkAnalysisId())
+      },
+    })
+  }, [loading, credential, user])
 
   const consumeEntryIntent = useCallback(() => {
     setEntryIntent(null)
@@ -84,27 +98,55 @@ export function App() {
   }, [])
 
   const openJudgeDemo = useCallback(() => {
+    const intent = entryIntent && entryIntent !== "upload" ? entryIntent : "D4"
     setShowAuth(false)
     setEntryIntent(null)
-    setDemoIntent("D4")
+    setDemoIntent(intent)
     try {
       sessionStorage.removeItem(ENTRY_STORAGE_KEY)
     } catch {
       // The demo can still open when session storage is unavailable.
     }
-  }, [])
+  }, [entryIntent])
 
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
   if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
   if (demoIntent) return <Dashboard demoMode initialIntent={demoIntent} onExitDemo={openUploadAuth} onGoHome={() => setDemoIntent(null)} />
 
   const startEntry = (intent: EntryIntent) => {
-    if (intent !== "upload") {
-      setDemoIntent(intent)
+    setDemoIntent(null)
+    setEntryIntent(intent)
+    try {
+      sessionStorage.setItem(ENTRY_STORAGE_KEY, intent)
+    } catch {
+      // The selected request remains available for this session.
+    }
+    if (intent === "upload") {
+      setSampleMottoIntent(null)
+      setShowAuth(true)
       return
     }
-    openUploadAuth()
+    setShowAuth(false)
+    setSampleMottoIntent(intent)
   }
+
+  const openSignInFromMotto = useCallback(() => {
+    setSampleMottoIntent(null)
+    setShowAuth(true)
+  }, [])
+
+  const openDemoFromMotto = useCallback(() => {
+    const intent = sampleMottoIntent ?? (entryIntent && entryIntent !== "upload" ? entryIntent : "D4")
+    setSampleMottoIntent(null)
+    setShowAuth(false)
+    setEntryIntent(null)
+    setDemoIntent(intent)
+    try {
+      sessionStorage.removeItem(ENTRY_STORAGE_KEY)
+    } catch {
+      // Demo can still open when storage is unavailable.
+    }
+  }, [sampleMottoIntent, entryIntent])
   const landing = (
     <div className="min-h-screen bg-background selection:bg-foreground selection:text-background">
       <Navbar onGetStarted={openMailbox} />
@@ -118,8 +160,49 @@ export function App() {
     </div>
   )
 
-  if (clientIdLoading) return landing
-  if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader><Button type="button" variant="outline" onClick={openJudgeDemo}>Run judge demo without sign-in</Button></DialogContent></Dialog>
+  const mottoDialog = (
+    <SampleEntryMottoDialog
+      intent={sampleMottoIntent}
+      open={sampleMottoIntent !== null}
+      onOpenChange={(open) => { if (!open) setSampleMottoIntent(null) }}
+      onSignIn={openSignInFromMotto}
+      onBypassDemo={openDemoFromMotto}
+    />
+  )
 
-  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Google sign-in for {entryLabel(entryIntent)}, with a seeded judge demo available without sign-in.</DialogDescription><LoginPage destination={entryLabel(entryIntent)} onContinueDemo={openJudgeDemo} /></DialogContent></Dialog></GoogleOAuthProvider>
+  if (clientIdLoading) return <>{landing}{mottoDialog}</>
+  if (!clientId) {
+    return (
+      <>
+        <Dialog open={showAuth} onOpenChange={setShowAuth}>
+          {landing}
+          <DialogContent>
+            <DialogHeader className="items-center text-center">
+              <RefreshCw className="mb-2" size={22} />
+              <DialogTitle>Sign-in unavailable</DialogTitle>
+              <DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription>
+            </DialogHeader>
+            <Button type="button" variant="outline" onClick={openJudgeDemo}>Run judge demo without sign-in</Button>
+          </DialogContent>
+        </Dialog>
+        {mottoDialog}
+      </>
+    )
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={clientId}>
+      <Dialog open={showAuth} onOpenChange={setShowAuth}>
+        {landing}
+        <DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none">
+          <DialogTitle className="sr-only">Sign in to Served</DialogTitle>
+          <DialogDescription className="sr-only">
+            Google sign-in for {entryLabel(entryIntent)}, with a seeded judge demo available without sign-in.
+          </DialogDescription>
+          <LoginPage destination={entryLabel(entryIntent)} onContinueDemo={openJudgeDemo} />
+        </DialogContent>
+      </Dialog>
+      {mottoDialog}
+    </GoogleOAuthProvider>
+  )
 }

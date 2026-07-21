@@ -1,13 +1,46 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.routes import api_router
 from app.services import plaid as plaid_service
 
 logger = logging.getLogger(__name__)
+
+
+def _origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in settings.cors_origins:
+        return True
+    import re
+
+    return bool(re.fullmatch(r"https://([a-z0-9-]+--)?servedai\.netlify\.app", origin))
+
+
+class UnhandledErrorMiddleware(BaseHTTPMiddleware):
+    """Return JSON (with CORS) instead of dropping the connection on unexpected errors."""
+
+    async def dispatch(self, request: Request, call_next):
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception("Unhandled error path=%s", request.url.path)
+            headers: dict[str, str] = {}
+            origin = request.headers.get("origin", "")
+            if _origin_allowed(origin):
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = "true"
+                headers["Vary"] = "Origin"
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "Server error. Check EasyPanel logs for Plaid or MongoDB."},
+                headers=headers,
+            )
 
 
 def create_app() -> FastAPI:
@@ -31,6 +64,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(UnhandledErrorMiddleware)
     app.include_router(api_router, prefix=settings.api_prefix)
     return app
 

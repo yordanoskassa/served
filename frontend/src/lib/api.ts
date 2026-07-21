@@ -343,6 +343,26 @@ async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   }
 }
 
+const PLAID_SETTINGS_DEPLOY_HINT =
+  "This API build is missing Settings bank routes. Redeploy the EasyPanel backend, or connect from a verified payment-records (D4) request."
+
+async function postPlaidWithSettingsFallback(
+  credential: string,
+  connectionPath: string,
+  analysisPath: string | null,
+  init: RequestInit,
+): Promise<Response> {
+  const headers = {
+    Authorization: `Bearer ${credential}`,
+    ...(init.headers as Record<string, string> | undefined),
+  }
+  let response = await apiFetch(`${API_URL}${connectionPath}`, { ...init, headers })
+  if (response.status === 404 && analysisPath) {
+    response = await apiFetch(`${API_URL}${analysisPath}`, { ...init, headers })
+  }
+  return response
+}
+
 export async function fetchGoogleClientId(): Promise<string> {
   const res = await fetch(`${API_URL}/auth/client-id`)
   if (!res.ok) throw await responseError(res, "Failed to fetch client ID")
@@ -462,6 +482,55 @@ export async function analyzeDocumentStream(
   return result
 }
 
+/** D1–D4 reviewed fixtures with no Google sign-in (judge / landing demo path). */
+export async function analyzeSampleStream(
+  sampleId: "D1" | "D2" | "D3" | "D4",
+  onTrace?: (event: TraceEvent) => void,
+  signal?: AbortSignal,
+): Promise<Analysis> {
+  const response = await fetch(`${API_URL}/documents/samples/${encodeURIComponent(sampleId)}/analyze/stream`, {
+    method: "POST",
+    signal,
+  })
+  if (!response.ok) throw await responseError(response, "We couldn’t analyze that sample. Please try again.")
+  if (!response.body) throw new Error("The analysis stream was not available.")
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let result: Analysis | undefined
+
+  function processLine(line: string) {
+    if (!line.trim()) return
+    const message = JSON.parse(line) as
+      | { type: "trace"; event: TraceEvent }
+      | { type: "result"; analysis: Analysis }
+      | { type: "error"; detail: string }
+    if (message.type === "trace") onTrace?.(message.event)
+    if (message.type === "result") result = message.analysis
+    if (message.type === "error") throw new Error(message.detail || "Analysis failed.")
+  }
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      buffer += decoder.decode(value, { stream: !done })
+      const lines = buffer.split("\n")
+      buffer = lines.pop() ?? ""
+      for (const line of lines) processLine(line)
+      if (done) break
+    }
+    if (buffer.trim()) processLine(buffer)
+  } catch (error) {
+    await reader.cancel().catch(() => undefined)
+    throw error
+  } finally {
+    reader.releaseLock()
+  }
+  if (!result) throw new Error("The analysis ended before returning a result.")
+  return result
+}
+
 export async function fetchDashboardSummary(credential: string, signal?: AbortSignal): Promise<DashboardSummary> {
   const response = await fetch(`${API_URL}/dashboard/summary`, { headers: { Authorization: `Bearer ${credential}` }, signal })
   if (!response.ok) throw await responseError(response, "Unable to load dashboard data")
@@ -533,7 +602,7 @@ export async function deleteAllSavedAnalyses(credential: string, signal?: AbortS
 }
 
 export async function fetchUserPlaidConnection(credential: string, signal?: AbortSignal): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/connection`, {
+  const response = await apiFetch(`${API_URL}/plaid/connection`, {
     headers: { Authorization: `Bearer ${credential}` },
     signal,
   })
@@ -542,7 +611,7 @@ export async function fetchUserPlaidConnection(credential: string, signal?: Abor
 }
 
 export async function disconnectPlaidConnection(credential: string, signal?: AbortSignal): Promise<void> {
-  const response = await fetch(`${API_URL}/plaid/connection`, {
+  const response = await apiFetch(`${API_URL}/plaid/connection`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${credential}` },
     signal,
@@ -555,7 +624,7 @@ export async function fetchPlaidStatus(
   credential: string,
   signal?: AbortSignal,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/status`, {
+  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/status`, {
     headers: { Authorization: `Bearer ${credential}` },
     signal,
   })
@@ -564,7 +633,7 @@ export async function fetchPlaidStatus(
 }
 
 export async function createPlaidLinkToken(analysisId: string, credential: string): Promise<string> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/link-token`, {
+  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/link-token`, {
     method: "POST",
     headers: { Authorization: `Bearer ${credential}` },
   })
@@ -573,16 +642,46 @@ export async function createPlaidLinkToken(analysisId: string, credential: strin
   return data.link_token
 }
 
+export async function createUserPlaidLinkToken(
+  credential: string,
+  analysisId?: string | null,
+): Promise<string> {
+  const response = await postPlaidWithSettingsFallback(
+    credential,
+    "/plaid/connection/link-token",
+    analysisId ? `/plaid/analyses/${encodeURIComponent(analysisId)}/link-token` : null,
+    { method: "POST" },
+  )
+  if (response.status === 404 && !analysisId) {
+    throw new Error(PLAID_SETTINGS_DEPLOY_HINT)
+  }
+  if (!response.ok) throw await responseError(response, "Unable to start Plaid Link")
+  const data = await response.json() as { link_token: string }
+  return data.link_token
+}
+
+export async function connectPlaidSandboxSample(
+  credential: string,
+  analysisId?: string | null,
+): Promise<PlaidConnectionStatus> {
+  const response = await postPlaidWithSettingsFallback(
+    credential,
+    "/plaid/connection/sandbox-connect",
+    analysisId ? `/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect` : null,
+    { method: "POST" },
+  )
+  if (response.status === 404 && !analysisId) {
+    throw new Error(PLAID_SETTINGS_DEPLOY_HINT)
+  }
+  if (!response.ok) throw await responseError(response, "Unable to connect the sample account")
+  return response.json()
+}
+
 export async function connectPlaidSandboxDemo(
   analysisId: string,
   credential: string,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/sandbox-connect`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${credential}` },
-  })
-  if (!response.ok) throw await responseError(response, "Unable to connect the sample account")
-  return response.json()
+  return connectPlaidSandboxSample(credential, analysisId)
 }
 
 export async function exchangePlaidPublicToken(
@@ -591,7 +690,7 @@ export async function exchangePlaidPublicToken(
   publicToken: string,
   institution?: { institution_id: string; name: string } | null,
 ): Promise<PlaidConnectionStatus> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/exchange`, {
+  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/exchange`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${credential}`,
@@ -607,12 +706,40 @@ export async function exchangePlaidPublicToken(
   return response.json()
 }
 
+export async function exchangeUserPlaidPublicToken(
+  credential: string,
+  publicToken: string,
+  institution?: { institution_id: string; name: string } | null,
+  analysisId?: string | null,
+): Promise<PlaidConnectionStatus> {
+  const body = JSON.stringify({
+    public_token: publicToken,
+    institution_id: institution?.institution_id ?? null,
+    institution_name: institution?.name ?? null,
+  })
+  const response = await postPlaidWithSettingsFallback(
+    credential,
+    "/plaid/connection/exchange",
+    analysisId ? `/plaid/analyses/${encodeURIComponent(analysisId)}/exchange` : null,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    },
+  )
+  if (response.status === 404 && !analysisId) {
+    throw new Error(PLAID_SETTINGS_DEPLOY_HINT)
+  }
+  if (!response.ok) throw await responseError(response, "Unable to finish bank connection")
+  return response.json()
+}
+
 export async function matchPlaidTransactions(
   analysisId: string,
   credential: string,
   cutoffDate: string,
 ): Promise<PaymentMatchResponse> {
-  const response = await fetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/match`, {
+  const response = await apiFetch(`${API_URL}/plaid/analyses/${encodeURIComponent(analysisId)}/match`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${credential}`,

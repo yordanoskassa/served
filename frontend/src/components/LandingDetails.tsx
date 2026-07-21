@@ -45,7 +45,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
       </div>
 
       <div className="mt-10 grid gap-2 sm:grid-cols-3" aria-label="Bank connection workflow">
-        {[{ icon: Landmark, title: "Business account", note: "Secure connection" }, { icon: DatabaseZap, title: "Transaction search", note: "Scoped to the request" }, { icon: ShieldCheck, title: "Owner review", note: "Nothing sent automatically" }].map(({ icon: Icon, title, note }) => (
+        {[{ icon: Landmark, title: "Mendoza’s Kitchen sample", note: "D4 demo account" }, { icon: DatabaseZap, title: "Transaction search", note: "Scoped to the request" }, { icon: ShieldCheck, title: "Owner review", note: "Nothing sent automatically" }].map(({ icon: Icon, title, note }) => (
           <div className="flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card px-4" key={title}>
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted"><Icon size={16} /></span>
             <div><p className="type-ui font-medium">{title}</p><p className="type-caption mt-1">{note}</p></div>
@@ -78,7 +78,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
     <section id="record-matching" className="mx-auto grid max-w-7xl gap-8 border-t border-border py-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
       <div>
         <h2 className="type-section max-w-2xl">Find the requested records. Exclude the rest.</h2>
-        <p className="type-body mt-5 max-w-xl text-base leading-7">Payments for Audrea Barnes are separated from suppliers, other employees, and transactions outside the requested period.</p>
+        <p className="type-body mt-5 max-w-xl text-base leading-7">On sample D4, Mendoza’s Kitchen business checking yields <strong className="font-medium text-foreground">7 include, 2 review, and 19 exclude</strong> from 28 transactions—Audrea Barnes payments only, not suppliers or other staff.</p>
         <Button onClick={onGetStarted} className="mt-6">Review the result <ArrowUpRight size={15} /></Button>
       </div>
       <div className="overflow-hidden rounded-lg border border-border bg-primary p-6 text-white">
@@ -91,6 +91,7 @@ export function LandingDetails({ onGetStarted }: { onGetStarted: () => void }) {
           <div className="rounded-lg bg-white/15 p-5"><p className="type-stat">2</p><p className="type-caption mt-1 text-white/70">review</p></div>
           <div className="rounded-lg bg-white/10 p-5"><p className="type-stat">19</p><p className="type-caption mt-1 text-white/60">exclude</p></div>
         </div>
+        <p className="type-caption mt-4 text-white/45">28 transactions searched · sample D4 · Connect sample account in the app (not BoA/Amex sandbox pickers).</p>
       </div>
     </section>
 

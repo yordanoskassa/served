@@ -49,6 +49,9 @@ function reviewedDate(value: string | null): string | null {
 function callScriptFor(analysis: Analysis): string {
   const caseNumber = analysis.breakdown?.case_number
   const parties = analysis.breakdown?.parties?.slice(0, 2).filter(Boolean) ?? []
+  const nearbyCase = analysis.evidence
+    .find((item) => item.id.startsWith("docket:near") || item.label.toLowerCase().includes("possible case-number"))
+    ?.detail.match(/\b\d+:\d{2}-cv-\d+(?:-[A-Z]+(?:-[A-Z]+)?)?/i)?.[0]
   const partyQuestion = parties.length
     ? ` involving ${parties.join(" and ")}`
     : ""
@@ -58,6 +61,9 @@ function callScriptFor(analysis: Analysis): string {
     return `Hello. A document names your court but does not show a clear case number. Which official public resource should I use to check whether a case exists? ${boundary}`
   }
   if (analysis.verdict === "cannot_confirm") {
+    if (nearbyCase) {
+      return `Hello. A document shows case ${caseNumber}, but the public search found possible case ${nearbyCase}${partyQuestion}. Could you confirm whether the first number may contain a typo, which case number is public, and which clerk’s office handles it? ${boundary}`
+    }
     return `Hello. I’m trying to confirm case ${caseNumber}. I could not locate an exact public-record match. Could you confirm whether a case${partyQuestion} exists and tell me the correct public case number and status? ${boundary}`
   }
   if (analysis.verdict === "verified") {

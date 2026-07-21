@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PLAID_SANDBOX_LABEL } from "@/lib/bankConnect"
 import type { AgentStatus, DashboardSummary } from "@/lib/api"
 
 type LoadState = "loading" | "ready" | "error"
@@ -36,15 +37,19 @@ export function FinancialSourcesPanel({
   loadState,
   summary,
   summaryState,
+  bankConnecting,
   onRefresh,
   onOpenDocuments,
+  onConnectSampleBank,
 }: {
   agents: AgentStatus[]
   loadState: LoadState
   summary: DashboardSummary | null
   summaryState: LoadState
+  bankConnecting?: boolean
   onRefresh?: () => void
   onOpenDocuments?: () => void
+  onConnectSampleBank?: () => void
 }) {
   const cook = agents.find((item) => item.name === "cook")
   const gate = gateStatus(agents, loadState)
@@ -116,10 +121,30 @@ export function FinancialSourcesPanel({
                 <p className="text-sm font-medium">Bank payment records</p>
                 <span className={`size-2 rounded-full ${plaid.dot}`} aria-hidden="true" />
                 <Badge variant={plaid.variant} className="text-[10px]">{plaid.label}</Badge>
+                {cook?.enabled && loadState === "ready" && (
+                  <Badge variant="outline" className="text-[10px]">{PLAID_SANDBOX_LABEL}</Badge>
+                )}
               </div>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Connect a business account and match payments to the person and period named in a verified request.
+                Connect the Plaid Sandbox sample bank and match payments to the person and period named in a verified request.
               </p>
+              {cook?.enabled && loadState === "ready" && onConnectSampleBank && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    className="h-9 px-3 text-xs"
+                    disabled={bankConnecting}
+                    onClick={onConnectSampleBank}
+                  >
+                    <Landmark size={14} />
+                    {bankConnecting ? "Connecting…" : "Connect sample bank"}
+                  </Button>
+                  {onOpenDocuments && (
+                    <Button variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
+                      Open verified requests
+                    </Button>
+                  )}
+                </div>
+              )}
               {!cook?.enabled && loadState === "ready" && (
                 <Alert className="mt-3 rounded-xl border-black/10 bg-background">
                   <AlertTitle>Bank connect unavailable</AlertTitle>

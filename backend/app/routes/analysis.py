@@ -2,13 +2,16 @@ import asyncio
 import hashlib
 import json
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 
 from bson import ObjectId
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
+from starlette.datastructures import Headers
 
 from app.schemas.analysis import AnalysisResponse, TraceEvent
+from app.schemas.auth import UserProfile
 from app.config import settings
 from app.db import get_db
 from app.routes.auth import _verify_google_token, is_demo_profile
@@ -17,6 +20,13 @@ from app.services.document_analyzer import analyze_document
 router = APIRouter(prefix="/documents", tags=["documents"])
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "documents"
 SAMPLE_IDS = {"D1", "D2", "D3", "D4"}
+JUDGE_SAMPLE_PROFILE = UserProfile(
+    subject="demo:sample-judge",
+    email="demo@served.local",
+    name="Served Demo",
+    given_name="Demo",
+    picture=None,
+)
 
 
 def _matches_declared_type(data: bytes, content_type: str) -> bool:
@@ -93,6 +103,18 @@ async def _verified_sample_id(file: UploadFile, claimed_sample_id: str | None) -
             detail="The uploaded file does not match the selected sample.",
         )
     return sample_id
+
+
+def _fixture_upload(sample_id: str) -> UploadFile:
+    path = FIXTURES / f"{sample_id}.pdf"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Sample document not available.")
+    data = path.read_bytes()
+    return UploadFile(
+        filename=f"{sample_id}.pdf",
+        file=BytesIO(data),
+        headers=Headers({"content-type": "application/pdf"}),
+    )
 
 
 async def _save_analysis(profile, file: UploadFile, result: AnalysisResponse) -> str:
@@ -184,6 +206,66 @@ async def sample_document(sample_id: str) -> FileResponse:
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Sample document not available.")
     return FileResponse(path, media_type="application/pdf", filename=f"{sample}.pdf")
+
+
+def _public_sample_stream(sample_id: str) -> StreamingResponse:
+    sample = sample_id.upper()
+    if sample not in SAMPLE_IDS:
+        raise HTTPException(status_code=404, detail="Sample document not found.")
+
+    async def event_stream():
+        queue: asyncio.Queue[dict] = asyncio.Queue()
+        upload = _fixture_upload(sample)
+
+        async def emit(event: TraceEvent) -> None:
+            await queue.put({"type": "trace", "event": event.model_dump(mode="json")})
+
+        async def run_analysis() -> None:
+            try:
+                result = await analyze_document(
+                    upload,
+                    emit=emit,
+                    trusted_sample_id=sample,
+                )
+                await _save_analysis(JUDGE_SAMPLE_PROFILE, upload, result)
+                await queue.put({
+                    "type": "result",
+                    "analysis": result.model_dump(mode="json"),
+                })
+            except HTTPException as exc:
+                await queue.put({"type": "error", "detail": str(exc.detail)})
+            except Exception:
+                await queue.put({
+                    "type": "error",
+                    "detail": "The analysis could not be completed. Please try again.",
+                })
+
+        worker = asyncio.create_task(run_analysis())
+        try:
+            while True:
+                message = await queue.get()
+                yield json.dumps(message, separators=(",", ":")) + "\n"
+                if message["type"] in {"result", "error"}:
+                    break
+        finally:
+            if not worker.done():
+                worker.cancel()
+            await asyncio.gather(worker, return_exceptions=True)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="application/x-ndjson",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/samples/{sample_id}/analyze/stream")
+async def analyze_public_sample_stream(sample_id: str) -> StreamingResponse:
+    """Judge/demo path: run reviewed D1–D4 fixtures with no Google sign-in."""
+    return _public_sample_stream(sample_id)
 
 
 @router.post("/analyze", response_model=AnalysisResponse)

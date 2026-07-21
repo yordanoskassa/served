@@ -67,7 +67,7 @@ def test_demo_identity_can_analyze_exact_reviewed_sample(sample_id: str) -> None
     assert response.status_code == 200
     assert analyzer.await_args.kwargs["trusted_sample_id"] == sample_id
     saved = database.analyses.insert_one.await_args.args[0]
-    assert saved["google_subject"].startswith("demo:")
+    assert saved["google_subject"] == "demo:sample-judge"
 
 
 def test_demo_identity_cannot_analyze_personal_upload() -> None:
@@ -102,3 +102,29 @@ def test_demo_identity_cannot_open_saved_history_or_real_bank_link() -> None:
 
     assert history.status_code == 403
     assert bank_link.status_code == 403
+
+
+def test_public_sample_stream_requires_no_auth_and_uses_fixtures() -> None:
+    result = AnalysisResponse(
+        document_type="Payment demand",
+        summary="Reviewed D3 sample.",
+        verdict=Verdict.SCAM,
+        confidence=Confidence.HIGH,
+        evidence=[],
+        next_step="Do not pay.",
+    )
+    analyzer = AsyncMock(return_value=result)
+    database = SimpleNamespace(analyses=SimpleNamespace(insert_one=AsyncMock()))
+
+    with (
+        patch("app.routes.analysis.analyze_document", new=analyzer),
+        patch("app.routes.analysis.get_db", return_value=database),
+    ):
+        response = TestClient(app).post("/api/documents/samples/D3/analyze/stream")
+
+    assert response.status_code == 200
+    lines = [line for line in response.text.split("\n") if line.strip()]
+    assert any('"type":"result"' in line for line in lines)
+    assert analyzer.await_args.kwargs["trusted_sample_id"] == "D3"
+    saved = database.analyses.insert_one.await_args.args[0]
+    assert saved["google_subject"] == "demo:sample-judge"

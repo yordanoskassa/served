@@ -18,14 +18,21 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  connectPlaidSandboxSample,
+  createUserPlaidLinkToken,
   deleteAllSavedAnalyses,
   disconnectPlaidConnection,
+  exchangeUserPlaidPublicToken,
   fetchPublicConfig,
   fetchUserPlaidConnection,
+  getDemoCredential,
   type DashboardSummary,
   type PlaidConnectionStatus,
+  type SavedAnalysisListItem,
   type UserProfile,
 } from "@/lib/api"
+import { isSandboxPlaidEnvironment, PLAID_SANDBOX_LABEL, pickPaymentRecordAnalysisId } from "@/lib/bankConnect"
+import { openPlaidLink } from "@/lib/plaidLink"
 
 type LoadState = "loading" | "ready" | "error"
 
@@ -42,10 +49,8 @@ function formatConnectedAt(value: string | null | undefined): string {
   return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
 }
 
-function plaidEnvironmentLabel(environment: PlaidConnectionStatus["environment"]): string {
-  if (environment === "sandbox") return "Sample connection"
-  if (environment === "production") return "Live connection"
-  return "Test connection"
+function plaidEnvironmentLabel(_environment: PlaidConnectionStatus["environment"]): string {
+  return PLAID_SANDBOX_LABEL
 }
 
 export function SettingsPanel({
@@ -53,17 +58,25 @@ export function SettingsPanel({
   credential,
   summary,
   summaryState,
+  savedRequests,
+  bankConnecting,
+  demoMode = false,
   onRefresh,
   onOpenDocuments,
+  onOpenBankRequest,
   onDataDeleted,
 }: {
   user: UserProfile
-  credential: string
+  credential?: string | null
   summary: DashboardSummary | null
   summaryState: LoadState
+  savedRequests: SavedAnalysisListItem[]
+  bankConnecting?: boolean
+  demoMode?: boolean
   onRefresh: () => void
-  onOpenDocuments: () => void
-  onDataDeleted: () => void
+  onOpenDocuments?: () => void
+  onOpenBankRequest?: (analysisId: string) => void
+  onDataDeleted?: () => void
 }) {
   const { logout } = useAuth()
   const [bank, setBank] = useState<PlaidConnectionStatus | null>(null)
@@ -77,19 +90,38 @@ export function SettingsPanel({
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [accessCredential, setAccessCredential] = useState<string | null>(credential ?? null)
+  const [localBankConnecting, setLocalBankConnecting] = useState(false)
+  const bankConnectingActive = bankConnecting || localBankConnecting
   const [showSampleTips, setShowSampleTips] = useState(() => {
     if (typeof window === "undefined") return true
     return localStorage.getItem(SAMPLE_TIPS_KEY) !== "off"
   })
   const bankController = useRef<AbortController | null>(null)
 
-  const loadBank = () => {
+  const ensureCredential = async (): Promise<string> => {
+    if (accessCredential) return accessCredential
+    if (credential) {
+      setAccessCredential(credential)
+      return credential
+    }
+    if (!demoMode) {
+      throw new Error("Sign in to connect a bank.")
+    }
+    const demo = await getDemoCredential()
+    setAccessCredential(demo)
+    return demo
+  }
+
+  const loadBank = (token?: string | null) => {
+    const active = token ?? accessCredential
+    if (!active) return
     bankController.current?.abort()
     const controller = new AbortController()
     bankController.current = controller
     setBankState("loading")
     setBankError(null)
-    void fetchUserPlaidConnection(credential, controller.signal)
+    void fetchUserPlaidConnection(active, controller.signal)
       .then((status) => {
         if (bankController.current !== controller) return
         setBank(status)
@@ -103,12 +135,41 @@ export function SettingsPanel({
   }
 
   useEffect(() => {
-    loadBank()
+    if (credential) setAccessCredential(credential)
+  }, [credential])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        let token = credential ?? accessCredential
+        if (!token) {
+          if (demoMode) {
+            token = await getDemoCredential()
+          } else {
+            setBankError("Sign in to connect a bank.")
+            setBankState("error")
+            return
+          }
+        }
+        if (cancelled) return
+        setAccessCredential(token)
+        loadBank(token)
+      } catch {
+        if (!cancelled) {
+          setBankError("Could not start a session for bank settings.")
+          setBankState("error")
+        }
+      }
+    })()
     void fetchPublicConfig()
       .then((config) => setEnvironment(String(config.environment ?? "")))
       .catch(() => setEnvironment(null))
-    return () => bankController.current?.abort()
-  }, [credential])
+    return () => {
+      cancelled = true
+      bankController.current?.abort()
+    }
+  }, [credential, demoMode])
 
   const copyEmail = async () => {
     try {
@@ -133,10 +194,11 @@ export function SettingsPanel({
     setBankError(null)
     setDisconnectSuccess(false)
     try {
-      await disconnectPlaidConnection(credential)
+      const token = await ensureCredential()
+      await disconnectPlaidConnection(token)
       setDisconnectOpen(false)
       setDisconnectSuccess(true)
-      loadBank()
+      loadBank(token)
     } catch (cause) {
       setBankError(cause instanceof Error ? cause.message : "Could not disconnect the bank.")
     } finally {
@@ -145,11 +207,12 @@ export function SettingsPanel({
   }
 
   const handleDeleteAll = async () => {
-    if (deleting) return
+    if (deleting || !onDataDeleted) return
     setDeleting(true)
     setDeleteError(null)
     try {
-      await deleteAllSavedAnalyses(credential)
+      const token = await ensureCredential()
+      await deleteAllSavedAnalyses(token)
       onDataDeleted()
       onRefresh()
       setDeleteOpen(false)
@@ -161,6 +224,52 @@ export function SettingsPanel({
   }
 
   const letterCount = summary?.counts?.documents ?? 0
+  const bankConnectAnalysisId = pickPaymentRecordAnalysisId(savedRequests)
+
+  const handleConnectSampleBank = () => {
+    setBankError(null)
+    setDisconnectSuccess(false)
+    setLocalBankConnecting(true)
+    void (async () => {
+      try {
+        const token = await ensureCredential()
+        await connectPlaidSandboxSample(token, bankConnectAnalysisId)
+        loadBank(token)
+      } catch (cause: unknown) {
+        setBankError(cause instanceof Error ? cause.message : "Unable to connect the sample bank.")
+      } finally {
+        setLocalBankConnecting(false)
+      }
+    })()
+  }
+
+  const handleConnectPlaidLink = () => {
+    setBankError(null)
+    setDisconnectSuccess(false)
+    setLocalBankConnecting(true)
+    void (async () => {
+      try {
+        const token = await ensureCredential()
+        await openPlaidLink({
+          fetchLinkToken: () => createUserPlaidLinkToken(token, bankConnectAnalysisId),
+          analysisIdForLegacyApi: bankConnectAnalysisId,
+          onSuccess: async (publicToken, institution) => {
+            await exchangeUserPlaidPublicToken(token, publicToken, institution, bankConnectAnalysisId)
+            loadBank(token)
+          },
+          onExit: (message) => {
+            if (message) setBankError(message)
+          },
+        })
+      } catch (cause: unknown) {
+        setBankError(cause instanceof Error ? cause.message : "Unable to open Plaid Link.")
+      } finally {
+        setLocalBankConnecting(false)
+      }
+    })()
+  }
+
+  const showSampleConnect = demoMode || (bank?.environment ? isSandboxPlaidEnvironment(bank.environment) : true)
 
   return (
     <div className="space-y-5">
@@ -192,6 +301,7 @@ export function SettingsPanel({
         </div>
       </section>
 
+      {!demoMode && (
       <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
         <div className="border-b border-black/5 px-5 py-4">
           <h3 className="text-sm font-semibold">Workspace</h3>
@@ -208,9 +318,11 @@ export function SettingsPanel({
               <Button type="button" variant="outline" className="h-9 px-3 text-xs" onClick={onRefresh} disabled={summaryState === "loading"}>
                 <RefreshCw className={summaryState === "loading" ? "animate-spin" : ""} size={14} /> Refresh
               </Button>
-              <Button type="button" variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
-                Open requests
-              </Button>
+              {onOpenDocuments && (
+                <Button type="button" variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
+                  Open requests
+                </Button>
+              )}
             </div>
           </div>
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-black/5 bg-background p-3">
@@ -227,6 +339,24 @@ export function SettingsPanel({
           </label>
         </div>
       </section>
+      )}
+
+      {demoMode && (
+        <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70 px-5 py-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 rounded border-black/20"
+              checked={showSampleTips}
+              onChange={toggleSampleTips}
+            />
+            <span className="text-left text-xs leading-5 text-zinc-600">
+              <span className="font-medium text-foreground">Sample request hints</span>
+              <span className="block text-zinc-500">Show sample labels on the landing mailbox and upload card.</span>
+            </span>
+          </label>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 px-5 py-4">
@@ -234,7 +364,7 @@ export function SettingsPanel({
             <Landmark size={16} />
             <h3 className="text-sm font-semibold">Connected bank</h3>
           </div>
-          <Button type="button" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={loadBank} disabled={bankState === "loading"}>
+          <Button type="button" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => { void ensureCredential().then((token) => loadBank(token)) }} disabled={bankState === "loading"}>
             <RefreshCw className={bankState === "loading" ? "animate-spin" : ""} size={13} /> Refresh
           </Button>
         </div>
@@ -242,7 +372,7 @@ export function SettingsPanel({
           {disconnectSuccess && (
             <Alert className="rounded-xl border-black/10 bg-background">
               <AlertTitle>Bank disconnected</AlertTitle>
-              <AlertDescription>Served no longer has access to this account. Open a verified payment-record request to connect again.</AlertDescription>
+              <AlertDescription>You can connect again below anytime—no saved request required.</AlertDescription>
             </Alert>
           )}
           {bankState === "loading" && <Skeleton className="h-24 w-full rounded-xl bg-black/5" />}
@@ -251,28 +381,67 @@ export function SettingsPanel({
               <AlertTitle>Could not load bank status</AlertTitle>
               <AlertDescription className="space-y-2">
                 <p>{bankError ?? "Try again in a moment."}</p>
-                <Button type="button" variant="outline" className="h-9 text-xs" onClick={loadBank}>Try again</Button>
+                <Button type="button" variant="outline" className="h-9 text-xs" onClick={() => loadBank(accessCredential)}>Try again</Button>
               </AlertDescription>
             </Alert>
           )}
           {bankState === "ready" && bank && (
             <>
               {!bank.configured && (
-                <p className="text-xs leading-5 text-zinc-500">The bank connection is not configured. Bank matching is currently unavailable.</p>
+                <Alert className="rounded-xl border-border bg-muted/80">
+                  <AlertTitle>Plaid not configured on server</AlertTitle>
+                  <AlertDescription className="text-xs leading-5">
+                    Set PLAID_CLIENT_ID and PLAID_SANDBOX_SECRET in EasyPanel. Demo accounts can still use the in-app sandbox stub.
+                  </AlertDescription>
+                </Alert>
               )}
-              {bank.configured && !bank.connected && (
+              {!bank.connected && (
                 <div className="rounded-xl border border-dashed border-black/15 bg-background p-4">
-                  <Badge variant="secondary" className="text-[10px]">Not connected</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px]">Not connected</Badge>
+                    <Badge variant="outline" className="text-[10px]">{PLAID_SANDBOX_LABEL}</Badge>
+                  </div>
                   <p className="mt-3 text-sm font-medium text-zinc-800">No bank linked</p>
                   <p className="mt-2 text-xs leading-5 text-zinc-500">
-                    Connect an account from a <strong className="font-medium text-zinc-700">verified</strong> request for bank records.
+                    {demoMode
+                      ? "Connect the Mendoza’s Kitchen Plaid Sandbox sample anytime—no saved subpoena required."
+                      : bankConnectAnalysisId
+                        ? "Connect with Plaid or the Mendoza sample—no extra setup. Matching still needs a verified payment-records request."
+                        : "Connect with Plaid or the sample bank. If connect fails, redeploy the latest EasyPanel backend—or run sample D4 once so the API can use your saved analysis as a fallback."}
                   </p>
-                  <Button type="button" variant="outline" className="mt-3 h-9 px-3 text-xs" onClick={onOpenDocuments}>
-                    Open saved requests
-                  </Button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {!demoMode && bank.configured && (
+                      <Button
+                        type="button"
+                        className="h-9 px-3 text-xs"
+                        disabled={bankConnectingActive}
+                        onClick={handleConnectPlaidLink}
+                      >
+                        <Landmark size={14} />
+                        {bankConnectingActive ? "Connecting…" : "Connect with Plaid"}
+                      </Button>
+                    )}
+                    {showSampleConnect && (
+                    <Button
+                      type="button"
+                      variant={demoMode ? "default" : "outline"}
+                      className="h-9 px-3 text-xs"
+                      disabled={bankConnectingActive}
+                      onClick={handleConnectSampleBank}
+                    >
+                      <Landmark size={14} />
+                      {bankConnectingActive ? "Connecting…" : "Connect sample bank"}
+                    </Button>
+                    )}
+                    {onOpenDocuments && !demoMode && (
+                      <Button type="button" variant="outline" className="h-9 px-3 text-xs" onClick={onOpenDocuments}>
+                        Open saved requests
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
-              {bank.configured && bank.connected && (
+              {bank.connected && (
                 <div className="rounded-xl border border-black/10 bg-background p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="default" className="text-[10px]">Connected</Badge>
@@ -285,6 +454,16 @@ export function SettingsPanel({
                   <p className="mt-4 text-xs leading-5 text-zinc-600">
                     Served can retrieve transactions for verified payment-record requests. Disconnect here to revoke access.
                   </p>
+                  {bankConnectAnalysisId && onOpenBankRequest && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-3 h-9 px-3 text-xs"
+                      onClick={() => onOpenBankRequest(bankConnectAnalysisId)}
+                    >
+                      Open payment records
+                    </Button>
+                  )}
                   <Dialog open={disconnectOpen} onOpenChange={setDisconnectOpen}>
                     <DialogTrigger asChild>
                       <Button type="button" variant="outline" className="mt-4 h-9 border-red-200 px-3 text-xs text-red-700 hover:bg-red-50">
@@ -323,6 +502,7 @@ export function SettingsPanel({
         </div>
       </section>
 
+      {!demoMode && (
       <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
         <div className="border-b border-black/5 px-5 py-4">
           <h3 className="text-sm font-semibold">Data & privacy</h3>
@@ -364,12 +544,15 @@ export function SettingsPanel({
           </Dialog>
         </div>
       </section>
+      )}
 
+      {!demoMode && (
       <div className="lg:hidden">
         <Button type="button" variant="outline" className="h-10 w-full" onClick={logout}>
           <LogOut size={16} /> Sign out
         </Button>
       </div>
+      )}
     </div>
   )
 }

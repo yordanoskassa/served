@@ -63,6 +63,21 @@ def _provider_error(exc: Exception, *, context: str = "plaid") -> HTTPException:
             status_code=503,
             detail="Plaid is temporarily unavailable. Try again in a moment.",
         )
+    if isinstance(exc, PlaidAPIError) and exc.code == "TRANSACTIONS_NOT_READY":
+        logger.info("%s Plaid transactions still preparing", context)
+        return HTTPException(
+            status_code=409,
+            detail="Plaid is still preparing the transaction history. Try again in a moment.",
+        )
+    if isinstance(exc, PlaidAPIError) and exc.code == "INVALID_CREDENTIALS":
+        logger.warning("%s Plaid INVALID_CREDENTIALS (custom sandbox user or API keys)", context)
+        return HTTPException(
+            status_code=502,
+            detail=(
+                "Plaid rejected the D4 sample bank configuration (INVALID_CREDENTIALS). "
+                "Redeploy the latest backend fixture, or check PLAID_SANDBOX_SECRET."
+            ),
+        )
     if isinstance(exc, PlaidAPIError):
         logger.warning(
             "%s Plaid API failure code=%s request_id=%s message=%s",
@@ -142,6 +157,29 @@ def _parse_transactions(result: dict) -> list[PlaidTransaction]:
                 detail="Plaid returned a transaction that could not be safely evaluated.",
             ) from exc
     return parsed
+
+
+def _seeded_d4_transactions() -> dict:
+    fixture = json.loads(D4_PLAID_FIXTURE.read_text())
+    transactions = fixture["override_accounts"][0]["transactions"]
+    return {
+        "transactions": [
+            {
+                "transaction_id": f"D4-SANDBOX-{index:03d}",
+                "account_id": "d4-business-checking",
+                "name": item["description"],
+                "merchant_name": None,
+                "date": item["date_transacted"],
+                "amount": item["amount"],
+                "iso_currency_code": item["currency"],
+                "pending": False,
+                "personal_finance_category": None,
+            }
+            for index, item in enumerate(transactions, start=1)
+        ],
+        "initial_update_complete": True,
+        "historical_update_complete": True,
+    }
 
 
 async def _connection_status_for_subject(subject: str) -> PlaidConnectionStatus:
@@ -236,6 +274,49 @@ async def connection_status(
     return await _connection_status_for_subject(profile.subject)
 
 
+@router.post("/connection/link-token", response_model=PlaidLinkTokenResponse)
+async def user_link_token(
+    authorization: str = Header(default=""),
+) -> PlaidLinkTokenResponse:
+    """Start Plaid Link from Settings without a saved analysis."""
+    profile = _authenticate(authorization)
+    if is_demo_profile(profile):
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access uses the seeded Sandbox account only.",
+        )
+    try:
+        result = await plaid_service.create_link_token(profile.subject)
+        return PlaidLinkTokenResponse.model_validate(result)
+    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
+        raise _provider_error(exc, context="connection-link-token") from None
+
+
+@router.post("/connection/exchange", response_model=PlaidConnectionStatus)
+async def user_exchange_token(
+    body: PlaidExchangeRequest,
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    """Finish Plaid Link from Settings (user-level bank connection)."""
+    profile = _authenticate(authorization)
+    if is_demo_profile(profile):
+        raise HTTPException(
+            status_code=403,
+            detail="Demo access cannot connect a personal bank account.",
+        )
+    try:
+        result = await plaid_service.exchange_public_token(body.public_token)
+    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
+        raise _provider_error(exc, context="connection-exchange") from None
+    return await _save_connection(
+        subject=profile.subject,
+        provider_result=result,
+        institution_id=body.institution_id,
+        institution_name=body.institution_name,
+        demo_fixture=False,
+    )
+
+
 @router.post("/analyses/{analysis_id}/link-token", response_model=PlaidLinkTokenResponse)
 async def link_token(
     analysis_id: str,
@@ -281,20 +362,14 @@ async def exchange_token(
     )
 
 
-@router.post("/analyses/{analysis_id}/sandbox-connect", response_model=PlaidConnectionStatus)
-async def connect_d4_sandbox(
-    analysis_id: str,
-    authorization: str = Header(default=""),
-) -> PlaidConnectionStatus:
-    """Connect D4 to its deterministic Plaid Sandbox business account."""
-    profile = _authenticate(authorization)
-    await _eligible_analysis(analysis_id, profile)
+async def _connect_seeded_sandbox_bank(profile, *, log_label: str) -> PlaidConnectionStatus:
+    """Connect the Mendoza D4 Plaid Sandbox item for this user (no analysis required)."""
     demo_profile = is_demo_profile(profile)
     subject_hint = profile.subject[:12] + "…" if len(profile.subject) > 12 else profile.subject
     logger.info(
-        "sandbox-connect start analysis_id=%s subject=%s plaid_environment=%s "
+        "sandbox-connect start context=%s subject=%s plaid_environment=%s "
         "sandbox_configured=%s fixture_path=%s fixture_exists=%s",
-        analysis_id,
+        log_label,
         subject_hint,
         settings.plaid_environment,
         plaid_service.sandbox_configured(),
@@ -337,9 +412,9 @@ async def connect_d4_sandbox(
         logger.info("sandbox-connect exchange ok item_id=%s", item_id)
     except OSError as exc:
         logger.exception(
-            "sandbox-connect fixture IO error path=%s analysis_id=%s",
+            "sandbox-connect fixture IO error path=%s context=%s",
             D4_PLAID_FIXTURE,
-            analysis_id,
+            log_label,
         )
         raise HTTPException(
             status_code=503,
@@ -347,9 +422,9 @@ async def connect_d4_sandbox(
         ) from exc
     except ValueError as exc:
         logger.warning(
-            "sandbox-connect invalid fixture JSON path=%s analysis_id=%s error=%s",
+            "sandbox-connect invalid fixture JSON path=%s context=%s error=%s",
             D4_PLAID_FIXTURE,
-            analysis_id,
+            log_label,
             exc,
         )
         raise HTTPException(
@@ -366,13 +441,33 @@ async def connect_d4_sandbox(
         demo_fixture=True,
     )
     logger.info(
-        "sandbox-connect success analysis_id=%s subject=%s demo_fixture=%s institution=%s",
-        analysis_id,
+        "sandbox-connect success context=%s subject=%s demo_fixture=%s institution=%s",
+        log_label,
         subject_hint,
         status.demo_fixture,
         status.institution_name,
     )
     return status
+
+
+@router.post("/connection/sandbox-connect", response_model=PlaidConnectionStatus)
+async def connect_sandbox_from_settings(
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    """Connect the D4 sample bank from Settings or Financial records (user-level)."""
+    profile = _authenticate(authorization)
+    return await _connect_seeded_sandbox_bank(profile, log_label="settings")
+
+
+@router.post("/analyses/{analysis_id}/sandbox-connect", response_model=PlaidConnectionStatus)
+async def connect_d4_sandbox(
+    analysis_id: str,
+    authorization: str = Header(default=""),
+) -> PlaidConnectionStatus:
+    """Connect D4 to its deterministic Plaid Sandbox business account."""
+    profile = _authenticate(authorization)
+    await _eligible_analysis(analysis_id, profile)
+    return await _connect_seeded_sandbox_bank(profile, log_label=f"analysis:{analysis_id}")
 
 
 @router.post("/analyses/{analysis_id}/match", response_model=PaymentMatchResponse)
@@ -420,32 +515,37 @@ async def match_transactions(
             bool(connection.get("demo_fixture")),
             plaid_api_env or settings.plaid_environment,
         )
-        if is_demo_profile(profile) and connection.get("demo_fixture"):
-            fixture = json.loads(D4_PLAID_FIXTURE.read_text())
-            transactions = fixture["override_accounts"][0]["transactions"]
-            result = {
-                "transactions": [
-                    {
-                        "transaction_id": f"DEMO-{index:03d}",
-                        "account_id": "demo-business-checking",
-                        "name": item["description"],
-                        "merchant_name": None,
-                        "date": item["date_transacted"],
-                        "amount": item["amount"],
-                        "iso_currency_code": item["currency"],
-                        "pending": False,
-                        "personal_finance_category": None,
-                    }
-                    for index, item in enumerate(transactions, start=1)
-                ],
-                "initial_update_complete": True,
-                "historical_update_complete": True,
-            }
+        seeded_result = _seeded_d4_transactions() if connection.get("demo_fixture") else None
+        if is_demo_profile(profile) and seeded_result:
+            result = seeded_result
         else:
-            result = await plaid_service.sync_transactions(
-                connection["access_token"],
-                plaid_environment=plaid_api_env,
-            )
+            try:
+                result = await plaid_service.sync_transactions(
+                    connection["access_token"],
+                    plaid_environment=plaid_api_env,
+                )
+            except PlaidAPIError as exc:
+                if seeded_result and exc.code == "TRANSACTIONS_NOT_READY":
+                    logger.warning(
+                        "plaid D4 sandbox history stayed pending; using reviewed seeded snapshot analysis_id=%s",
+                        analysis_id,
+                    )
+                    result = seeded_result
+                else:
+                    raise
+            if (
+                seeded_result
+                and len(result.get("transactions") or [])
+                != len(seeded_result["transactions"])
+            ):
+                logger.warning(
+                    "plaid D4 sandbox returned incomplete history actual=%s expected=%s; "
+                    "using reviewed seeded snapshot analysis_id=%s",
+                    len(result.get("transactions") or []),
+                    len(seeded_result["transactions"]),
+                    analysis_id,
+                )
+                result = seeded_result
         logger.info(
             "plaid match sync ok analysis_id=%s transactions=%s initial=%s historical=%s",
             analysis_id,

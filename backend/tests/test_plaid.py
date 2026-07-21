@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from bson import ObjectId
 from fastapi.testclient import TestClient
 
@@ -15,6 +16,7 @@ from app.schemas.auth import UserProfile
 from app.schemas.plaid import PlaidTransaction
 from app.services import plaid as plaid_service
 from app.services.financial_matcher import extract_payment_request, match_payment_transactions
+from app.services.plaid import PlaidAPIError
 
 
 PROFILE = UserProfile(
@@ -107,12 +109,62 @@ def test_financial_routes_require_google_authentication() -> None:
     assert client.get(f"/api/plaid/analyses/{analysis_id}/status").status_code == 401
     assert client.post(f"/api/plaid/analyses/{analysis_id}/link-token").status_code == 401
     assert client.post(f"/api/plaid/analyses/{analysis_id}/sandbox-connect").status_code == 401
+    assert client.post("/api/plaid/connection/sandbox-connect").status_code == 401
     assert client.post(
         f"/api/plaid/analyses/{analysis_id}/match",
         json={"cutoff_date": "2026-07-16"},
     ).status_code == 401
+    assert client.post("/api/plaid/connection/link-token").status_code == 401
+    assert client.post("/api/plaid/connection/exchange", json={"public_token": "x"}).status_code == 401
     assert client.post("/api/plaid/link-token").status_code == 404
     assert client.get("/api/plaid/transactions").status_code == 404
+
+
+def test_settings_link_token_does_not_require_analysis() -> None:
+    create_link_token = AsyncMock(return_value={
+        "link_token": "link-settings",
+        "expiration": "2026-07-18T22:00:00Z",
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.create_link_token", new=create_link_token),
+    ):
+        response = TestClient(app).post(
+            "/api/plaid/connection/link-token",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["link_token"] == "link-settings"
+    create_link_token.assert_awaited_once_with(PROFILE.subject)
+
+
+def test_settings_exchange_does_not_require_analysis() -> None:
+    connections = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(bank_connections=connections)
+    exchange = AsyncMock(return_value={
+        "access_token": "access-user",
+        "item_id": "item-user",
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.exchange_public_token", new=exchange),
+        patch("app.routes.plaid.get_db", return_value=database),
+    ):
+        response = TestClient(app).post(
+            "/api/plaid/connection/exchange",
+            headers={"Authorization": "Bearer google-token"},
+            json={
+                "public_token": "public-once",
+                "institution_id": "ins_oauth",
+                "institution_name": "OAuth Test Bank",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["connected"] is True
+    assert response.json()["demo_fixture"] is False
+    exchange.assert_awaited_once_with("public-once")
 
 
 def test_link_token_is_analysis_scoped_and_returns_only_temporary_token() -> None:
@@ -246,6 +298,32 @@ def test_d4_sandbox_connect_uses_seeded_audrea_transactions() -> None:
     _, update = connections.update_one.await_args.args
     assert update["$set"]["demo_fixture"] is True
     assert update["$set"]["access_token"] == "access-d4-seeded"
+
+
+def test_settings_sandbox_connect_does_not_require_analysis() -> None:
+    connections = SimpleNamespace(update_one=AsyncMock())
+    database = SimpleNamespace(bank_connections=connections)
+    create_public_token = AsyncMock(return_value={"public_token": "public-settings"})
+    exchange = AsyncMock(return_value={
+        "access_token": "access-settings",
+        "item_id": "item-settings",
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch("app.routes.plaid.plaid_service.create_sandbox_public_token", new=create_public_token),
+        patch("app.routes.plaid.plaid_service.exchange_sandbox_public_token", new=exchange),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        response = TestClient(app).post(
+            "/api/plaid/connection/sandbox-connect",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["demo_fixture"] is True
+    create_public_token.assert_awaited_once()
+    exchange.assert_awaited_once()
 
 
 def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> None:
@@ -403,6 +481,45 @@ def test_match_route_returns_review_manifest_without_excluded_details() -> None:
     )
 
 
+def test_signed_in_d4_uses_reviewed_snapshot_when_plaid_history_is_incomplete() -> None:
+    analysis_id = ObjectId()
+    analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))
+    connections = SimpleNamespace(find_one=AsyncMock(return_value={
+        "access_token": "access-sandbox-private",
+        "demo_fixture": True,
+    }))
+    database = SimpleNamespace(analyses=analyses, bank_connections=connections)
+    sync = AsyncMock(return_value={
+        "transactions": _fixture_plaid_items()[:3],
+        "initial_update_complete": True,
+        "historical_update_complete": True,
+    })
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.plaid_service.sync_transactions", new=sync),
+        patch("app.routes.plaid.get_db", return_value=database),
+        patch.object(plaid_service.settings, "plaid_environment", "sandbox"),
+    ):
+        response = TestClient(app).post(
+            f"/api/plaid/analyses/{analysis_id}/match",
+            headers={"Authorization": "Bearer google-token"},
+            json={"cutoff_date": "2026-07-16"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["summary"] == {
+        "total_searched": 28,
+        "include": 7,
+        "review": 2,
+        "exclude": 19,
+        "excluded_by_reason": {"NOT_TARGET_PAYEE": 17, "OUTSIDE_DATE_RANGE": 2},
+    }
+    sync.assert_awaited_once_with(
+        "access-sandbox-private",
+        plaid_environment="sandbox",
+    )
+
+
 def test_match_fails_closed_without_a_connection() -> None:
     analysis_id = ObjectId()
     database = SimpleNamespace(
@@ -477,3 +594,63 @@ def test_sandbox_public_token_payload_uses_custom_d4_user() -> None:
         "start_date": "2025-11-01",
         "end_date": "2026-07-19",
     }
+
+
+def test_transaction_sync_waits_for_historical_update() -> None:
+    first_page = {
+        "added": [],
+        "modified": [],
+        "removed": [],
+        "next_cursor": "cursor-not-ready",
+        "has_more": False,
+        "transactions_update_status": "NOT_READY",
+    }
+    ready_page = {
+        "added": [{"transaction_id": "tx-ready", "name": "PAYROLL ACH - AUDREA BARNES"}],
+        "modified": [],
+        "removed": [],
+        "next_cursor": "cursor-ready",
+        "has_more": False,
+        "transactions_update_status": "HISTORICAL_UPDATE_COMPLETE",
+    }
+    post = AsyncMock(side_effect=[first_page, ready_page])
+    sleep = AsyncMock()
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch("app.services.plaid.asyncio.sleep", new=sleep),
+    ):
+        result = asyncio.run(
+            plaid_service.sync_transactions("access-ready", plaid_environment="sandbox")
+        )
+
+    assert result["transactions"] == ready_page["added"]
+    assert result["initial_update_complete"] is True
+    assert result["historical_update_complete"] is True
+    assert post.await_args_list[1].args[1]["cursor"] == "cursor-not-ready"
+    sleep.assert_awaited_once_with(plaid_service.TRANSACTIONS_READY_DELAY_SECONDS)
+
+
+def test_transaction_sync_fails_closed_when_history_stays_pending() -> None:
+    pending_page = {
+        "added": [],
+        "modified": [],
+        "removed": [],
+        "next_cursor": "cursor-pending",
+        "has_more": False,
+        "transactions_update_status": "NOT_READY",
+    }
+    post = AsyncMock(return_value=pending_page)
+    sleep = AsyncMock()
+    with (
+        patch("app.services.plaid._post", new=post),
+        patch("app.services.plaid.asyncio.sleep", new=sleep),
+        patch.object(plaid_service, "TRANSACTIONS_READY_MAX_POLLS", 2),
+    ):
+        with pytest.raises(PlaidAPIError, match="Plaid could not complete the request") as exc:
+            asyncio.run(
+                plaid_service.sync_transactions("access-pending", plaid_environment="sandbox")
+            )
+
+    assert exc.value.code == "TRANSACTIONS_NOT_READY"
+    assert post.await_count == 2
+    sleep.assert_awaited_once_with(plaid_service.TRANSACTIONS_READY_DELAY_SECONDS)

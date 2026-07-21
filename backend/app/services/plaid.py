@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -16,6 +17,9 @@ PLAID_BASE_URLS = {
     "development": "https://development.plaid.com",
     "production": "https://production.plaid.com",
 }
+TRANSACTIONS_SYNC_MAX_PAGES = 20
+TRANSACTIONS_READY_MAX_POLLS = 15
+TRANSACTIONS_READY_DELAY_SECONDS = 1.0
 
 
 class PlaidNotConfiguredError(RuntimeError):
@@ -106,7 +110,7 @@ async def _post(
     try:
         async with httpx.AsyncClient(
             base_url=base_url,
-            timeout=httpx.Timeout(45.0),
+            timeout=httpx.Timeout(25.0),
         ) as client:
             response = await client.post(path, headers=headers, json=payload)
     except httpx.HTTPError as exc:
@@ -239,46 +243,70 @@ async def sync_transactions(
     *,
     plaid_environment: str | None = None,
 ) -> dict[str, Any]:
-    """Read a complete snapshot without persisting transaction details."""
+    """Read a complete snapshot after Plaid finishes its historical pull."""
     cursor: str | None = None
     transactions: dict[str, dict[str, Any]] = {}
     removed_ids: set[str] = set()
     initial_update_complete = False
     historical_update_complete = False
 
-    for _ in range(20):
-        payload: dict[str, Any] = {
-            "access_token": access_token,
-            "count": 500,
-            "options": {
-                "include_original_description": True,
-                "personal_finance_category_version": "v2",
-            },
-        }
-        if cursor:
-            payload["cursor"] = cursor
-        page = await _post(
-            "/transactions/sync",
-            payload,
-            plaid_environment=plaid_environment,
-        )
+    for readiness_attempt in range(TRANSACTIONS_READY_MAX_POLLS):
+        for _ in range(TRANSACTIONS_SYNC_MAX_PAGES):
+            payload: dict[str, Any] = {
+                "access_token": access_token,
+                "count": 500,
+                "options": {
+                    "include_original_description": True,
+                    "personal_finance_category_version": "v2",
+                },
+            }
+            if cursor:
+                payload["cursor"] = cursor
+            page = await _post(
+                "/transactions/sync",
+                payload,
+                plaid_environment=plaid_environment,
+            )
 
-        for transaction in [*(page.get("added") or []), *(page.get("modified") or [])]:
-            transaction_id = transaction.get("transaction_id")
-            if transaction_id:
-                transactions[str(transaction_id)] = transaction
-        for removed in page.get("removed") or []:
-            transaction_id = removed.get("transaction_id")
-            if transaction_id:
-                removed_ids.add(str(transaction_id))
+            for transaction in [*(page.get("added") or []), *(page.get("modified") or [])]:
+                transaction_id = transaction.get("transaction_id")
+                if transaction_id:
+                    transactions[str(transaction_id)] = transaction
+            for removed in page.get("removed") or []:
+                transaction_id = removed.get("transaction_id")
+                if transaction_id:
+                    removed_ids.add(str(transaction_id))
 
-        cursor = page.get("next_cursor") or cursor
-        initial_update_complete = bool(page.get("initial_update_complete"))
-        historical_update_complete = bool(page.get("historical_update_complete"))
-        if not page.get("has_more"):
+            cursor = page.get("next_cursor") or cursor
+            update_status = str(page.get("transactions_update_status") or "")
+            initial_update_complete = (
+                initial_update_complete
+                or bool(page.get("initial_update_complete"))
+                or update_status in {"INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE"}
+            )
+            historical_update_complete = (
+                historical_update_complete
+                or bool(page.get("historical_update_complete"))
+                or update_status == "HISTORICAL_UPDATE_COMPLETE"
+            )
+            if not page.get("has_more"):
+                break
+        else:
+            raise PlaidAPIError("TRANSACTIONS_SYNC_PAGE_LIMIT")
+
+        if historical_update_complete:
             break
-    else:
-        raise PlaidAPIError("TRANSACTIONS_SYNC_PAGE_LIMIT")
+        if readiness_attempt == TRANSACTIONS_READY_MAX_POLLS - 1:
+            raise PlaidAPIError("TRANSACTIONS_NOT_READY")
+        logger.info(
+            "Plaid transactions still preparing env=%s attempt=%s/%s initial=%s historical=%s",
+            plaid_environment or settings.plaid_environment,
+            readiness_attempt + 1,
+            TRANSACTIONS_READY_MAX_POLLS,
+            initial_update_complete,
+            historical_update_complete,
+        )
+        await asyncio.sleep(TRANSACTIONS_READY_DELAY_SECONDS)
 
     for transaction_id in removed_ids:
         transactions.pop(transaction_id, None)

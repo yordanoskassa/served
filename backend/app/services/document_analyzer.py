@@ -1236,35 +1236,49 @@ async def analyze_document(
         evidence_count=len(legal_passages),
         evidence_ids=[f"legal:{passage.id}" for passage in legal_passages],
     )
-    try:
-        explanation = await coordinator.run(
-            "explainer",
-            parsed=parsed,
-            checker=checker,
-            verdict=result.verdict,
-            legal_passage_ids=[passage.id for passage in legal_passages],
-            trace=trace,
-            raise_on_error=True,
-        )
-    except AgentUnavailableError:
-        logger.exception("EXPLAINER failed")
-        explanation = None
-    explainer_status = "complete"
-    if explanation is None:
+    if trusted_sample_id:
         explanation = _fallback_explanation(parsed, checker, result.verdict)
-        explainer_status = "degraded"
-    await trace.finish(
-        key="explainer",
-        kind="agent",
-        status=explainer_status,
-        label="EXPLAINER prepares plain language",
-        input_summary=f"Immutable outcome: {result.verdict.value.upper()}",
-        output_summary=(
-            "Model explanation completed"
-            if explainer_status == "complete"
-            else "Deterministic fallback explanation used"
-        ),
-    )
+        explainer_status = "complete"
+        await trace.finish(
+            key="explainer",
+            kind="agent",
+            status=explainer_status,
+            label="EXPLAINER prepares plain language",
+            input_summary=f"Immutable outcome: {result.verdict.value.upper()}",
+            output_summary=(
+                f"Reviewed sample {trusted_sample_id} uses fixture explanation (no OpenAI call)"
+            ),
+        )
+    else:
+        try:
+            explanation = await coordinator.run(
+                "explainer",
+                parsed=parsed,
+                checker=checker,
+                verdict=result.verdict,
+                legal_passage_ids=[passage.id for passage in legal_passages],
+                trace=trace,
+                raise_on_error=True,
+            )
+        except AgentUnavailableError:
+            logger.exception("EXPLAINER failed")
+            explanation = None
+        explainer_status = "complete"
+        if explanation is None:
+            explanation = _fallback_explanation(parsed, checker, result.verdict)
+            explainer_status = "degraded"
+        await trace.finish(
+            key="explainer",
+            kind="agent",
+            status=explainer_status,
+            label="EXPLAINER prepares plain language",
+            input_summary=f"Immutable outcome: {result.verdict.value.upper()}",
+            output_summary=(
+                "Model explanation completed"
+                if explainer_status == "complete"
+                else "Deterministic fallback explanation used"
+            ),
+        )
 
     patterns = load_fraud_patterns()
     indicator_items = [

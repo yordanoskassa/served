@@ -101,10 +101,10 @@ export function EmailEvidenceBrief({ analysisId, documentName, compact = false }
           </div>
         </div>
 
-        <Alert className="rounded-2xl border-amber-200 bg-amber-50 text-amber-950">
+        <Alert className="rounded-2xl border-border bg-muted text-foreground">
           <FileText size={16} aria-hidden="true" />
           <AlertTitle>The original letter is not attached</AlertTitle>
-          <AlertDescription className="text-amber-900/75">Served does not retain uploaded file bytes. The email contains the saved structured analysis and source links. It is informational, not legal advice or a court filing.</AlertDescription>
+          <AlertDescription className="text-muted-foreground">Served does not retain uploaded file bytes. The email contains the saved structured analysis and source links. It is informational, not legal advice or a court filing.</AlertDescription>
         </Alert>
 
         {sendState === "error" && <Alert variant="destructive" className="rounded-2xl bg-red-50">

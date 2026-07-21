@@ -141,7 +141,7 @@ async def demo_auth() -> DemoAuthResponse:
     expires_at = int(time.time()) + DEMO_TOKEN_TTL_SECONDS
     return DemoAuthResponse(
         credential=_encode_demo_token(
-            session_id=secrets.token_urlsafe(18),
+            session_id="sample-judge",
             expires_at=expires_at,
         ),
         expires_in=DEMO_TOKEN_TTL_SECONDS,

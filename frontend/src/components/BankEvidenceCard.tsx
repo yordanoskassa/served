@@ -8,16 +8,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   connectPlaidSandboxDemo,
-  createPlaidLinkToken,
+  createUserPlaidLinkToken,
   disconnectPlaidConnection,
-  exchangePlaidPublicToken,
+  exchangeUserPlaidPublicToken,
   fetchPlaidStatus,
   getDemoCredential,
   matchPlaidTransactions,
+  type Analysis,
   type PaymentMatchRecord,
   type PaymentMatchResponse,
   type PlaidConnectionStatus,
 } from "@/lib/api"
+import { isSandboxPlaidEnvironment } from "@/lib/bankConnect"
+import { openPlaidLink } from "@/lib/plaidLink"
 
 type LoadState = "loading" | "ready" | "error"
 type ReviewDecision = "approved" | "excluded" | "counsel"
@@ -31,7 +34,7 @@ async function holdTransactionLoading(startedAt: number): Promise<void> {
 }
 
 function isDemoPlaidEnvironment(environment: PlaidConnectionStatus["environment"] | undefined): boolean {
-  return environment === "sandbox" || environment === "development"
+  return isSandboxPlaidEnvironment(environment)
 }
 
 function normalizeCutoffDate(value: string | null | undefined): string {
@@ -70,6 +73,22 @@ function reasonLabel(record: PaymentMatchRecord): string {
   return "Near-name payee needs human review"
 }
 
+function requestText(analysis: Analysis): string {
+  return analysis.breakdown?.requested_actions.join(" ") || analysis.summary
+}
+
+function requestedPerson(analysis: Analysis): string {
+  const match = requestText(analysis).match(
+    /(?:benefit\s+of|payments?\s+(?:made\s+)?to)\s+([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){1,3})\s+from\b/,
+  )
+  return match?.[1]?.trim() || analysis.breakdown?.parties[0] || "Named person"
+}
+
+function requestedStartDate(analysis: Analysis): string {
+  const match = requestText(analysis).match(/\bfrom\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i)
+  return match?.[1] || "Displayed start date"
+}
+
 function PaymentRow({ record, decision, onDecision }: {
   record: PaymentMatchRecord
   decision?: ReviewDecision
@@ -87,7 +106,7 @@ function PaymentRow({ record, decision, onDecision }: {
   return <article className={`rounded-2xl border p-4 text-black transition-all ${stateClass}`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><p className="text-sm font-semibold">{record.description}</p><p className="mt-1 text-xs text-zinc-500">{record.date} · {reasonLabel(record)}</p></div>
-      <div className="text-right"><Badge variant={record.disposition === "INCLUDE" ? "default" : "warning"}>{record.disposition}</Badge><p className="mt-2 text-sm font-semibold">{money(record.amount, record.currency)}</p></div>
+      <div className="text-right"><Badge variant={record.disposition === "INCLUDE" ? "default" : "warning"}>{record.disposition === "INCLUDE" ? "CANDIDATE" : "REVIEW"}</Badge><p className="mt-2 text-sm font-semibold">{money(record.amount, record.currency)}</p></div>
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-black/5 pt-3">
       <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Owner decision</span>
@@ -112,8 +131,10 @@ function TransactionLoader({ label }: { label: string | null }) {
   </div>
 }
 
-export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE, onWorkflowChange }: {
+export function BankEvidenceCard({ analysis, analysisId, documentName, cutoffDate = DEFAULT_CUTOFF_DATE, onWorkflowChange }: {
+  analysis: Analysis
   analysisId: string
+  documentName?: string
   cutoffDate?: string | null
   onWorkflowChange?: (state: EvidenceWorkflowState) => void
 }) {
@@ -121,6 +142,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const [demoCredential, setDemoCredential] = useState<string | null>(null)
   const accessCredential = credential ?? demoCredential
   const normalizedCutoff = normalizeCutoffDate(cutoffDate)
+  const scopePerson = requestedPerson(analysis)
+  const scopeStart = requestedStartDate(analysis)
   const [status, setStatus] = useState<PlaidConnectionStatus | null>(null)
   const [statusState, setStatusState] = useState<LoadState>("loading")
   const [busy, setBusy] = useState(false)
@@ -253,42 +276,27 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
     setBusyLabel("Opening secure bank connection…")
     setError(null)
     try {
-      const linkToken = await createPlaidLinkToken(analysisId, accessCredential)
-      if (!window.Plaid) throw new Error("Plaid Link did not load. Refresh and try again.")
-      let handler: PlaidLinkHandler | null = null
-      handler = window.Plaid.create({
-        token: linkToken,
-        onSuccess: (publicToken, metadata) => {
+      await openPlaidLink({
+        fetchLinkToken: () => createUserPlaidLinkToken(accessCredential, analysisId),
+        analysisIdForLegacyApi: analysisId,
+        onSuccess: async (publicToken, institution) => {
           const startedAt = performance.now()
           setBusyLabel("Bank connected. Fetching transactions…")
-          void (async () => {
-            try {
-              const nextStatus = await exchangePlaidPublicToken(analysisId, accessCredential, publicToken, metadata.institution)
-              setStatus(nextStatus)
-              setBusyLabel("Matching transactions to the subpoena…")
-              const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
-              await holdTransactionLoading(startedAt)
-              setRecords(nextRecords)
-              autoMatchStarted.current = true
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "The bank could not be connected.")
-            } finally {
-              setBusy(false)
-              setBusyLabel(null)
-              handler?.destroy()
-            }
-          })()
+          const nextStatus = await exchangeUserPlaidPublicToken(accessCredential, publicToken, institution, analysisId)
+          setStatus(nextStatus)
+          setBusyLabel("Matching transactions to the subpoena…")
+          const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
+          await holdTransactionLoading(startedAt)
+          setRecords(nextRecords)
+          autoMatchStarted.current = true
         },
-        onExit: (linkError) => {
-          if (linkError?.error_message) setError(linkError.error_message)
-          setBusy(false)
-          setBusyLabel(null)
-          handler?.destroy()
+        onExit: (message) => {
+          if (message) setError(message)
         },
       })
-      handler.open()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The bank connection could not start.")
+    } finally {
       setBusy(false)
       setBusyLabel(null)
     }
@@ -329,8 +337,24 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const exportManifest = () => {
     if (!records) return
     const candidates = [...records.include, ...records.review]
-    const escape = (value: string | number | null) => `"${String(value ?? "").replaceAll('"', '""')}"`
+    const approvedCount = candidates.filter((record) => decisions[record.record_id] === "approved").length
+    const keptOutCount = candidates.filter((record) => decisions[record.record_id] === "excluded").length
+    const counselCount = candidates.filter((record) => decisions[record.record_id] === "counsel").length
+    const escape = (value: string | number | null | undefined) => `"${String(value ?? "").replaceAll('"', '""')}"`
     const rows = [
+      ["criteria_source_document", records.criteria_snapshot.source_document],
+      ["criteria_case", analysis.breakdown?.case_number],
+      ["criteria_person", records.criteria_snapshot.target_payee],
+      ["criteria_date_range", `${records.criteria_snapshot.start_date} through ${records.criteria_snapshot.cutoff_date}`],
+      ["criteria_record_type", "Payments and bank records"],
+      ["summary_searched", records.summary.total_searched],
+      ["summary_candidate", records.summary.include],
+      ["summary_needs_review", records.summary.review],
+      ["summary_kept_out_by_rule", records.summary.exclude],
+      ["owner_approved", approvedCount],
+      ["owner_kept_out", keptOutCount],
+      ["owner_marked_for_counsel", counselCount],
+      [],
       ["record_id", "description", "date", "amount", "currency", "served_recommendation", "owner_decision", "reason_code"],
       ...candidates.map((record) => [
         record.record_id,
@@ -369,6 +393,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const reviewComplete = candidateRecords.length > 0 && reviewedCount === candidateRecords.length
   const approvedSuggestedCount = records?.include.filter((record) => decisions[record.record_id] === "approved").length ?? 0
   const allSuggestedApproved = Boolean(records?.include.length) && approvedSuggestedCount === records?.include.length
+  const approvedCount = candidateRecords.filter((record) => decisions[record.record_id] === "approved").length
+  const ownerKeptOutCount = candidateRecords.filter((record) => decisions[record.record_id] === "excluded").length
+  const counselCount = candidateRecords.filter((record) => decisions[record.record_id] === "counsel").length
 
   const demoPlaid = isDemoPlaidEnvironment(status?.environment)
   const wrongDemoBank = demoPlaid && status.connected && !status.demo_fixture
@@ -383,11 +410,22 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   return <section id={`records-${analysisId}`} className="mt-5 scroll-mt-24 overflow-hidden rounded-[28px] border border-black/10 bg-[#111] text-white shadow-[0_20px_50px_rgba(0,0,0,.18)]">
     <div className="p-5 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-black"><Zap size={20} /></span><div><h3 className="type-subsection text-white">Payment records</h3><p className="type-caption mt-1 text-white/55">Bank transaction review for Audrea Barnes.</p></div></div>
+        <div className="flex items-start gap-3"><span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white text-black"><Zap size={20} /></span><div><h3 className="type-subsection text-white">Candidate payment records</h3><p className="type-caption mt-1 text-white/55">The request controls which bank transactions enter review.</p></div></div>
         <Badge className="bg-white text-black">VERIFIED</Badge>
       </div>
 
-      <div className="mt-5 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[.04] sm:grid-cols-4">
+      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[.04]">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Locked request scope</p><p className="mt-1 text-xs text-white/55">Served searches against these extracted limits, not the whole account.</p></div><p className="max-w-[16rem] truncate text-[10px] text-white/35" title={documentName || "Saved request"}>{documentName || "Saved request"}</p></div>
+        <div className="grid gap-px bg-white/10 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="bg-[#171717] p-3"><p className="text-[9px] uppercase tracking-[.14em] text-white/35">Case</p><p className="mt-1.5 break-all text-xs font-semibold">{analysis.breakdown?.case_number || "Verified saved case"}</p></div>
+          <div className="bg-[#171717] p-3"><p className="text-[9px] uppercase tracking-[.14em] text-white/35">Person</p><p className="mt-1.5 text-xs font-semibold">{records?.criteria_snapshot.target_payee || scopePerson}</p></div>
+          <div className="bg-[#171717] p-3"><p className="text-[9px] uppercase tracking-[.14em] text-white/35">Date range</p><p className="mt-1.5 text-xs font-semibold">{records?.criteria_snapshot.start_date || scopeStart} through {confirmedCutoff}</p></div>
+          <div className="bg-[#171717] p-3"><p className="text-[9px] uppercase tracking-[.14em] text-white/35">Requested records</p><p className="mt-1.5 text-xs font-semibold">Payments and bank records</p></div>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 px-4 py-3 text-[10px] text-white/60">{["Owner-scoped analysis", "VERIFIED request", "Supported record type"].map((gate) => <span className="inline-flex items-center gap-1.5" key={gate}><CheckCircle2 className="text-brand-green" size={13} />{gate}</span>)}</div>
+      </div>
+
+      <div className="mt-3 grid overflow-hidden rounded-2xl border border-white/10 bg-white/[.04] sm:grid-cols-4">
         {progress.map((step, index) => <div className={`flex items-center gap-2 px-3 py-3 text-[11px] ${index < progress.length - 1 ? "border-b border-white/10 sm:border-r sm:border-b-0" : ""}`} key={step.label}><span className={`grid size-5 shrink-0 place-items-center rounded-full text-[9px] font-bold ${step.done ? "bg-brand-green text-black" : "bg-white/10 text-white/40"}`}>{step.done ? "✓" : index + 1}</span><span className={step.done ? "text-white" : "text-white/40"}>{step.label}</span></div>)}
       </div>
 
@@ -426,9 +464,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
           </AlertDescription>
         </Alert>
       )}
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Transaction review</p><h4 className="mt-1 text-lg font-semibold">Found what the request asks for. Kept everything else outside.</h4></div><div className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] text-white/55">{records.summary.total_searched} searched</div></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Transaction review</p><h4 className="mt-1 text-lg font-semibold">Found candidate records. Kept everything else outside.</h4></div><div className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] text-white/55">{records.summary.total_searched} searched</div></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3" aria-label="Transaction partitions">
-        <button type="button" aria-pressed={activePartition === "matched"} onClick={() => setActivePartition("matched")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "matched" ? "border-emerald-300 bg-emerald-300 text-emerald-950 shadow-[0_10px_30px_rgba(52,211,153,.14)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Matched</p><CheckCircle2 size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className={`mt-1 text-xs ${activePartition === "matched" ? "text-emerald-900/70" : "text-white/45"}`}>{approvedSuggestedCount} owner approved</p></button>
+        <button type="button" aria-pressed={activePartition === "matched"} onClick={() => setActivePartition("matched")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "matched" ? "border-emerald-300 bg-emerald-300 text-emerald-950 shadow-[0_10px_30px_rgba(52,211,153,.14)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Candidate</p><CheckCircle2 size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className={`mt-1 text-xs ${activePartition === "matched" ? "text-emerald-900/70" : "text-white/45"}`}>{approvedSuggestedCount} owner approved</p></button>
         <button type="button" aria-pressed={activePartition === "review"} onClick={() => setActivePartition("review")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "review" ? "border-white/40 bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,.08)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Needs review</p><AlertTriangle size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.review}</p><p className={`mt-1 text-xs ${activePartition === "review" ? "text-black/60" : "text-white/45"}`}>Human decision required</p></button>
         <button type="button" aria-pressed={activePartition === "excluded"} onClick={() => setActivePartition("excluded")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "excluded" ? "border-sky-200 bg-sky-100 text-sky-950 shadow-[0_10px_30px_rgba(186,230,253,.10)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Kept outside</p><EyeOff size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.exclude}</p><p className={`mt-1 text-xs ${activePartition === "excluded" ? "text-sky-900/65" : "text-white/45"}`}>Protected from the packet</p></button>
       </div>
@@ -440,8 +478,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Review before export.</strong> {records.legal_boundary} Nothing is automatically sent or shared.</p></div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
         <div><p className="text-sm font-semibold">{reviewedCount} of {candidateRecords.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">The manifest contains your decisions and matching reasons. It is not automatically sent.</p></div>
-        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download response list again" : "Export response list"}</Button>
+        <Button className="bg-white text-black hover:bg-white/90" disabled={!reviewComplete} onClick={exportManifest}><Download size={16} /> {packetReady ? "Download review list again" : "Download review list"}</Button>
       </div>
+      {packetReady && <div className="mt-3 flex items-start gap-2 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-xs leading-5 text-emerald-100"><CheckCircle2 className="mt-0.5 shrink-0" size={16} /><p><strong>Review list prepared.</strong> {approvedCount} approved, {ownerKeptOutCount} kept out, and {counselCount} marked for counsel. The locked criteria and reason codes are included. Nothing was sent.</p></div>}
     </div>}
   </section>
 }

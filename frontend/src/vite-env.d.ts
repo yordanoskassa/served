@@ -12,6 +12,7 @@ interface Window {
   Plaid?: {
     create: (options: {
       token: string
+      receivedRedirectUri?: string
       onSuccess: (
         publicToken: string,
         metadata: { institution: PlaidInstitution | null },

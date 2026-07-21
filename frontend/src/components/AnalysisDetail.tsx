@@ -13,6 +13,7 @@ import {
   FileText,
   Hash,
   ListChecks,
+  LockKeyhole,
   Scale,
   Search,
   ShieldCheck,
@@ -34,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Analysis, TraceEvent } from "@/lib/api"
 
 type CaseReviewDecision = "possible_match" | "different_case" | "attorney_review"
+type PersonContext = "yes" | "no" | "unsure"
 
 const verdictCopy = {
   scam: { label: "SCAM", variant: "destructive" as const },
@@ -99,6 +101,8 @@ export function AnalysisDetail({
   const [resultTab, setResultTab] = useState("overview")
   const [humanTab, setHumanTab] = useState("brief")
   const [caseReviewDecision, setCaseReviewDecision] = useState<CaseReviewDecision | null>(null)
+  const [personContext, setPersonContext] = useState<PersonContext | null>(null)
+  const [reviewBriefPrepared, setReviewBriefPrepared] = useState(false)
   const [evidenceWorkflow, setEvidenceWorkflow] = useState<EvidenceWorkflowState>({
     sourceReady: false,
     candidatesReady: false,
@@ -152,6 +156,18 @@ export function AnalysisDetail({
     ? analysis.evidence.find((item) => item.id.startsWith("docket:near") || item.label.toLowerCase().includes("possible case-number"))
     : undefined
   const candidateCaseNumber = possibleCase ? possibleCaseNumber(possibleCase.detail) : null
+  const contextPerson = breakdown.parties[0] || "the person named in the request"
+  const contextLabels: Record<PersonContext, string> = {
+    yes: "Yes",
+    no: "No",
+    unsure: "Not sure",
+  }
+  const canPrepareReviewBrief = !possibleCase || Boolean(personContext)
+  const humanReviewBoundary = analysis.verdict === "verified"
+    ? "VERIFIED means the public case and caption parties matched. It does not authenticate this paper, prove service, or decide any duty to produce records."
+    : analysis.verdict === "cannot_confirm"
+      ? "CANNOT_CONFIRM remains unchanged. A clerk may confirm administrative case information; an attorney decides duties, objections, service, and strategy."
+      : "The scam-warning result remains unchanged. Use only independently sourced official routes; an attorney decides duties, objections, service, and strategy."
   const detailItems = [
     { label: "Court or issuer", value: breakdown.court || breakdown.claimed_authority, icon: Building2 },
     { label: "Court directory", value: courtStatus, icon: Building2 },
@@ -281,11 +297,25 @@ export function AnalysisDetail({
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-950/70">Served found a supported public docket candidate, but the number on the letter did not match exactly. Review the difference before contacting the court or sharing records.</p>
             </div>
-            <div className="grid gap-px bg-black/[.07] sm:grid-cols-2">
-              <div className="bg-white p-4 sm:p-5"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-zinc-400">On the letter</p><p className="mt-2 font-mono text-base font-semibold">{breakdown.case_number || "Case number not readable"}</p><p className="mt-2 text-xs leading-5 text-zinc-500">Extracted from the uploaded document. It has not been verified against an exact public docket.</p></div>
-              <div className="bg-amber-50/40 p-4 sm:p-5"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-amber-700">Public docket candidate</p><p className="mt-2 font-mono text-base font-semibold text-amber-950">{candidateCaseNumber || "Possible nearby case"}</p><p className="mt-2 text-xs leading-5 text-zinc-600">{possibleCase.detail}</p>{possibleCase.source_url && <a className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 underline decoration-amber-900/30 underline-offset-4" href={possibleCase.source_url} target="_blank" rel="noreferrer">Open public docket <ExternalLink size={13} /></a>}</div>
+            <div className="border-b border-black/[.07] p-4 sm:p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[.16em] text-amber-800">Context question</p>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <div><p className="font-display text-xl font-medium tracking-[-.03em]">Do you know {contextPerson}?</p><p className="mt-1 text-xs leading-5 text-zinc-500">Your answer is recorded as user-provided context. It never changes the CANNOT_CONFIRM verdict.</p></div>
+                <div className="flex flex-wrap gap-2" role="group" aria-label={`Do you know ${contextPerson}?`}>
+                  {(["yes", "no", "unsure"] as const).map((answer) => <Button key={answer} className="h-9 px-4 text-xs" aria-pressed={personContext === answer} variant={personContext === answer ? "default" : "outline"} onClick={() => { setPersonContext(answer); setReviewBriefPrepared(false) }}>{contextLabels[answer]}</Button>)}
+                </div>
+              </div>
             </div>
             <div className="p-4 sm:p-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Evidence chain</p>
+              <div className="mt-3 grid gap-px overflow-hidden rounded-xl border border-black/[.07] bg-black/[.07] sm:grid-cols-2 xl:grid-cols-4">
+                <div className="bg-white p-4"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-zinc-400">1 · Document</p><p className="mt-2 break-all font-mono text-sm font-semibold">{breakdown.case_number || "Not readable"}</p><p className="mt-2 text-xs leading-5 text-zinc-500">Number printed on the uploaded request.</p></div>
+                <div className="bg-white p-4"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-zinc-400">2 · Exact search</p><p className="mt-2 text-sm font-semibold">No exact case-and-party match</p><p className="mt-2 text-xs leading-5 text-zinc-500">The submitted number did not establish the match required for VERIFIED.</p></div>
+                <div className="bg-amber-50 p-4"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-amber-700">3 · Nearby record</p><p className="mt-2 break-all font-mono text-sm font-semibold text-amber-950">{candidateCaseNumber || "Possible nearby case"}</p><p className="mt-2 text-xs leading-5 text-zinc-600">Possible typo remains unresolved.</p>{possibleCase.source_url && <a className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-900 underline decoration-amber-900/30 underline-offset-4" href={possibleCase.source_url} target="_blank" rel="noreferrer">Open public docket <ExternalLink size={13} /></a>}</div>
+                <div className="bg-white p-4"><p className="text-[9px] font-bold uppercase tracking-[.16em] text-zinc-400">4 · User context</p><p className="mt-2 text-sm font-semibold">{personContext ? contextLabels[personContext] : "Not answered yet"}</p><p className="mt-2 text-xs leading-5 text-zinc-500">Kept separate from court evidence and the fixed verdict.</p></div>
+              </div>
+            </div>
+            <div className="border-t border-black/[.07] p-4 sm:p-5">
               <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-zinc-400">Record your review</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button aria-pressed={caseReviewDecision === "possible_match"} variant={caseReviewDecision === "possible_match" ? "default" : "outline"} onClick={() => setCaseReviewDecision("possible_match")}><CheckCircle2 size={15} />{caseReviewDecision === "possible_match" ? "Marked as possible" : "Mark as possible match"}</Button>
@@ -302,10 +332,10 @@ export function AnalysisDetail({
               <TabsTrigger className="rounded-xl py-2 text-xs data-[state=active]:bg-white" value="attorney">Attorney handoff</TabsTrigger>
             </TabsList>
             <TabsContent value="brief" className="mt-4">
-              <section className="grid gap-4 rounded-2xl border border-black/[.07] bg-white p-4 sm:p-5 lg:grid-cols-[1fr_18rem]">
-                <div><div className="flex items-center gap-2"><FileText size={17} /><p className="text-sm font-semibold">Owner-controlled evidence brief</p></div><h4 className="type-subsection mt-3">Take the facts, source links, and limits with you.</h4><p className="type-body mt-2">The brief keeps the visible request, public-record evidence, code decision, and unresolved limits in separate sections.</p>{savedAnalysisId && <div className="mt-4"><EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact /></div>}</div>
-                <aside className="rounded-xl bg-muted p-4"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-zinc-400">Brief contents</p><ul className="mt-3 space-y-2 text-xs leading-5 text-zinc-600"><li>Document facts and displayed dates</li><li>Docket evidence and source links</li><li>Party cross-check and fixed verdict</li><li>Verification limits</li><li>Reviewed official clerk route</li><li>Candidate-record summary</li></ul></aside>
-              </section>
+              {!canPrepareReviewBrief ? <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5"><div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-900"><LockKeyhole size={17} /></span><div><p className="text-sm font-semibold text-amber-950">Answer the context question first</p><p className="mt-1 text-xs leading-5 text-amber-950/70">The review summary stays locked until you record whether you know {contextPerson}. Your answer will remain separate from court evidence and will not change the verdict.</p></div></div></section> : <section className="grid gap-4 rounded-2xl border border-black/[.07] bg-white p-4 sm:p-5 lg:grid-cols-[1fr_18rem]">
+                <div><div className="flex items-center gap-2"><FileText size={17} /><p className="text-sm font-semibold">Owner-controlled evidence brief</p></div><h4 className="type-subsection mt-3">Take the facts, source links, and limits with you.</h4><p className="type-body mt-2">The brief keeps the visible request, public-record evidence, code decision, user context, and unresolved limits in separate sections.</p><div className="mt-4 flex flex-wrap items-center gap-2"><Button onClick={() => setReviewBriefPrepared(true)} disabled={reviewBriefPrepared}><FileCheck2 size={15} />{reviewBriefPrepared ? "Review summary prepared" : "Prepare review summary"}</Button>{reviewBriefPrepared && savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact />}</div>{reviewBriefPrepared && <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-950"><CheckCircle2 className="mt-0.5 shrink-0" size={15} /><p><strong>No conclusion was invented.</strong> The summary is prepared in this workspace. Nothing was sent.</p></div>}</div>
+                <aside className="rounded-xl bg-muted p-4"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-zinc-400">Brief contents</p><ul className="mt-3 space-y-2 text-xs leading-5 text-zinc-600"><li>Document facts and displayed dates</li><li>Exact docket search receipt</li><li>Party cross-check and fixed verdict</li>{possibleCase && <><li>Possible typo, still unresolved</li><li>User context, kept separate</li></>}<li>Verification limits</li><li>Reviewed official clerk route</li><li>Candidate-record summary</li></ul></aside>
+              </section>}
             </TabsContent>
             <TabsContent value="clerk" className="mt-0"><GuidedClerkCall analysis={analysis} /></TabsContent>
             <TabsContent value="attorney" className="mt-4">
@@ -315,6 +345,7 @@ export function AnalysisDetail({
               </section>
             </TabsContent>
           </Tabs>
+          <div className="mt-4 rounded-2xl border border-black/[.07] bg-muted px-4 py-3 text-xs leading-5 text-zinc-600"><strong className="text-zinc-900">Legal boundary:</strong> {humanReviewBoundary}</div>
         </TabsContent>
 
         <TabsContent forceMount value="records" className="mt-5 data-[state=inactive]:hidden">
@@ -322,16 +353,16 @@ export function AnalysisDetail({
           {analysis.verdict === "verified" && savedAnalysisId && hasEvidenceWorkflow && <CaseWorkflow analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} workflow={evidenceWorkflow} />}
           {analysis.verdict === "verified" && paymentRequest
             ? savedAnalysisId
-              ? <BankEvidenceCard analysisId={savedAnalysisId} cutoffDate={breakdown.document_date} onWorkflowChange={updateEvidenceWorkflow} />
+              ? <BankEvidenceCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} cutoffDate={breakdown.document_date} onWorkflowChange={updateEvidenceWorkflow} />
               : <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>Save this verified request before connecting financial data.</AlertDescription></Alert>
-            : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} onWorkflowChange={updateEvidenceWorkflow} />}
+            : <PayrollRecordsCard analysis={analysis} analysisId={savedAnalysisId} documentName={documentName} onWorkflowChange={updateEvidenceWorkflow} />}
           {analysis.verdict !== "verified" && paymentRequest && <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Bank payments remain locked</AlertTitle><AlertDescription>The request must pass verification before any financial source can open.</AlertDescription></Alert>}
         </TabsContent>
       </Tabs>
 
       <div className="mt-6 flex flex-wrap gap-2 border-t border-black/[.07] pt-5">
         <Button variant="outline" onClick={onBack}><ArrowLeft size={16} /> {backLabel}</Button>
-        {savedAnalysisId && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact />}
+        {savedAnalysisId && (!possibleCase || personContext) && <EmailEvidenceBrief analysisId={savedAnalysisId} documentName={documentName} compact />}
       </div>
     </div>
   </Card>

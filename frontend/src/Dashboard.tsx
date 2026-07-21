@@ -1,5 +1,5 @@
 import { ChevronRight, FileSpreadsheet, FileText, LayoutDashboard, LogIn, LogOut, Scale, Settings } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
 import { AnalysisDetail } from "@/components/AnalysisDetail"
@@ -14,7 +14,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchAgentStatus, fetchDashboardSummary, fetchSavedAnalyses, fetchSavedAnalysis, type AgentStatus, type Analysis, type DashboardSummary, type SavedAnalysisDetail, type SavedAnalysisListItem, type TraceEvent } from "@/lib/api"
+import { connectPlaidSandboxSample, fetchAgentStatus, fetchDashboardSummary, fetchSavedAnalyses, fetchSavedAnalysis, getDemoCredential, type AgentStatus, type Analysis, type DashboardSummary, type SavedAnalysisDetail, type SavedAnalysisListItem, type TraceEvent } from "@/lib/api"
+import { pickPaymentRecordAnalysisId } from "@/lib/bankConnect"
+import { DEMO_USER } from "@/lib/demoUser"
 import type { EntryIntent } from "@/lib/entry"
 
 type LoadState = "loading" | "ready" | "error"
@@ -84,6 +86,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
   const [historyHasMore, setHistoryHasMore] = useState(false)
   const [historyLoadingMore, setHistoryLoadingMore] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [bankConnecting, setBankConnecting] = useState(false)
   const intentConsumed = useRef(false)
   const savedDetailController = useRef<AbortController | null>(null)
   const workspaceController = useRef<AbortController | null>(null)
@@ -273,6 +276,29 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
     setActiveTab(value)
   }
 
+  const bankConnectAnalysisId = useMemo(
+    () => pickPaymentRecordAnalysisId(historyItems),
+    [historyItems],
+  )
+
+  const connectSampleBank = useCallback(async () => {
+    setBankConnecting(true)
+    try {
+      const token = credential ?? (demoMode ? await getDemoCredential() : null)
+      if (!token) return
+      await connectPlaidSandboxSample(token, bankConnectAnalysisId)
+    } finally {
+      setBankConnecting(false)
+    }
+  }, [credential, demoMode])
+
+  const openBankRequest = useCallback((analysisId: string) => {
+    void openSavedAnalysis(analysisId)
+    window.setTimeout(() => {
+      document.getElementById(`records-${analysisId}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 400)
+  }, [credential])
+
   const handleDataDeleted = () => {
     closeSavedAnalysis(false)
     setHistoryItems([])
@@ -292,7 +318,7 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="min-h-screen bg-background text-foreground selection:bg-foreground selection:text-background">
-      {!demoMode && <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 border-r border-black/10 bg-card/75 p-5 backdrop-blur-2xl lg:block">
         <button type="button" className="flex items-center gap-3" onClick={() => setActiveTab("overview")}>
           <BrandMark className="size-9" />
           <span className="font-display text-xl font-normal tracking-[-.03em]">Served</span>
@@ -304,22 +330,25 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
           <TabsTrigger value="sources" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><FileSpreadsheet size={16} /> Financial records</TabsTrigger>
           <TabsTrigger value="settings" className="justify-start gap-3 rounded-full px-4 py-2 text-zinc-500 data-[state=active]:bg-brand-soft data-[state=active]:text-black data-[state=active]:shadow-none"><Settings size={16} /> Settings</TabsTrigger>
         </TabsList>
-        <button type="button" onClick={logout} className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full px-4 py-2 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> Sign out</button>
-      </aside>}
+        <button type="button" onClick={demoMode ? onGoHome : logout} className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full px-4 py-2 text-sm text-zinc-500 transition hover:bg-black/5 hover:text-black"><LogOut size={16} /> {demoMode ? "Exit demo" : "Sign out"}</button>
+      </aside>
 
-      <main className={demoMode ? "" : "lg:ml-56"}>
+      <main className="lg:ml-56">
         <header className="sticky top-0 z-20 border-b border-black/[.08] bg-white/95 shadow-[0_1px_0_rgba(0,0,0,.03)] backdrop-blur-2xl">
           <div className="flex items-center justify-between px-5 py-3 sm:px-6 lg:px-8">
             <div className="flex items-center gap-4">
-              <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className={`group items-center gap-2 ${demoMode ? "flex" : "flex lg:hidden"}`} onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
+              <button type="button" aria-label={demoMode ? "Go to Served home" : "Go to dashboard home"} className="group flex items-center gap-2 lg:hidden" onClick={() => { if (demoMode && onGoHome) onGoHome(); else setActiveTab("overview") }}><BrandMark className="size-8 transition-transform group-hover:-rotate-3" /><span className="font-display text-lg font-normal">Served</span></button>
               {!demoMode && <div className="hidden lg:block"><p className="type-caption">{greeting()}</p></div>}
             </div>
-            {demoMode ? <div className="flex items-center gap-3"><span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-medium uppercase tracking-[.12em] text-white">Demo · reviewed fixtures</span><Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button></div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
+            {demoMode ? <div className="flex items-center gap-2">
+              <Button variant="outline" className="h-9" onClick={() => setActiveTab("settings")}><Settings size={14} /> Bank settings</Button>
+              <Button variant="outline" className="h-9" onClick={onExitDemo}><LogIn size={14} /> Sign in for your own files</Button>
+            </div> : <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/60 py-1.5 pl-1.5 pr-3 text-sm backdrop-blur-xl">
               <Avatar className="size-8"><AvatarImage src={workspaceUser.picture ?? undefined} alt={workspaceUser.name} /><AvatarFallback className="bg-[#1a1a1a] text-xs text-white">{userInitials(workspaceUser.name)}</AvatarFallback></Avatar>
               <span className="max-w-28 truncate">{workspaceUser.given_name || workspaceUser.name}</span>
             </div>}
           </div>
-          <div className="overflow-x-auto border-t border-black/[.06] bg-white">
+          {activeTab === "overview" && <div className="overflow-x-auto border-t border-black/[.06] bg-white">
             <ol className="mx-auto grid min-w-[680px] max-w-[1280px] grid-cols-4 px-4 sm:px-6 lg:px-8" aria-label="Response workflow">
               {workflowSteps.map((step, index) => {
                 const active = index === workflowStepIndex
@@ -331,16 +360,16 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
                 </li>
               })}
             </ol>
-          </div>
+          </div>}
         </header>
 
-        {!demoMode && <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
+        <TabsList className="mx-5 mt-4 grid h-auto grid-cols-3 rounded-[22px] bg-black/5 p-1 sm:grid-cols-5 sm:rounded-full lg:hidden">
           <TabsTrigger value="overview" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Overview</TabsTrigger>
           <TabsTrigger value="documents" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Requests</TabsTrigger>
           <TabsTrigger value="response" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Response</TabsTrigger>
           <TabsTrigger value="sources" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Records</TabsTrigger>
           <TabsTrigger value="settings" className="rounded-full px-2 py-2 text-[11px] data-[state=active]:bg-white">Settings</TabsTrigger>
-        </TabsList>}
+        </TabsList>
 
         <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <TabsContent forceMount value="overview" className="mt-0 space-y-5 sm:space-y-6 data-[state=inactive]:hidden">
@@ -396,6 +425,17 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
 
           </TabsContent>
 
+          {demoMode && <TabsContent value="settings" className="mt-0">
+            <SettingsPanel
+              demoMode
+              user={DEMO_USER}
+              summary={null}
+              summaryState="ready"
+              savedRequests={[]}
+              onRefresh={() => undefined}
+            />
+          </TabsContent>}
+
           {!demoMode && <><TabsContent value="documents" className="mt-0">
             {savedDetailState === "idle" ? <section className="overflow-hidden rounded-2xl border border-black/[.08] bg-white/70">
               <div className="border-b border-black/5 px-5 py-4"><h2 className="type-ui-heading">Saved requests</h2><p className="type-caption mt-1">Reopen verification, record matching, and response review.</p></div>
@@ -435,19 +475,24 @@ export function Dashboard({ initialIntent = null, onIntentConsumed, demoMode = f
               loadState={agentState}
               summary={summary}
               summaryState={summaryState}
+              bankConnecting={bankConnecting}
               onRefresh={() => setRefreshKey((value) => value + 1)}
               onOpenDocuments={openDocuments}
+              onConnectSampleBank={() => { void connectSampleBank() }}
             />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-0">
             <SettingsPanel
               user={user!}
-              credential={credential!}
+              credential={credential}
               summary={summary}
               summaryState={summaryState}
+              savedRequests={historyItems}
+              bankConnecting={bankConnecting}
               onRefresh={() => setRefreshKey((value) => value + 1)}
               onOpenDocuments={openDocuments}
+              onOpenBankRequest={openBankRequest}
               onDataDeleted={handleDataDeleted}
             />
           </TabsContent></>}

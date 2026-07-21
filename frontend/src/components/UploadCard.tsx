@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { type Analysis, type TraceEvent, analyzeDocumentStream, getDemoCredential, loadSampleDocument } from "@/lib/api"
+import { type Analysis, type TraceEvent, analyzeDocumentStream, analyzeSampleStream, loadSampleDocument } from "@/lib/api"
 import { useAuth } from "@/AuthContext"
 
 function formatFileSize(bytes: number): string {
@@ -194,10 +194,21 @@ export function UploadCard({ onAnalysisComplete, onAnalysisStateChange, onTraceE
     const controller = new AbortController()
     analysisController.current = controller
     try {
-      const accessCredential = credential ?? await getDemoCredential()
+      setSelectedSample(sample)
+      if (!credential) {
+        const sampleFile = await loadSampleDocument(sample)
+        setFile(sampleFile)
+        const result = await analyzeSampleStream(sample, onTraceEvent, controller.signal)
+        await holdSampleScan(scanStartedAt, controller.signal)
+        if (controller.signal.aborted) return
+        setAnalysis(result)
+        onAnalysisComplete?.(result)
+        onAnalysisStateChange?.("complete")
+        return
+      }
+      const accessCredential = credential
       const sampleFile = await loadSampleDocument(sample)
       setFile(sampleFile)
-      setSelectedSample(sample)
       const result = await analyzeDocumentStream(sampleFile, accessCredential, onTraceEvent, controller.signal, sample)
       await holdSampleScan(scanStartedAt, controller.signal)
       if (controller.signal.aborted) return

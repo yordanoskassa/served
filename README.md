@@ -130,6 +130,12 @@ the document-verification verdict. Production deployment
 requires a separately managed production secret and the appropriate Plaid
 production approval.
 
+D1–D4 on the landing mailbox run **reviewed fixtures** (READER/CHECKER/EXPLAINER
+without live OpenAI on the sample path). Judges can use samples **without Google
+sign-in** via `POST /api/documents/samples/{D1|D2|D3|D4}/analyze/stream`, or the
+frontend demo session from `POST /api/auth/demo`. Personal uploads still require
+Google sign-in.
+
 ### D4 sample connect — EasyPanel logs
 
 After deploy, container stdout includes structured Plaid lines (no secrets). On
@@ -143,9 +149,17 @@ After deploy, container stdout includes structured Plaid lines (no secrets). On
   Plaid’s message.
 - `sandbox-connect success` or `sandbox-connect Plaid API failure`.
 
-A uvicorn `502` on `POST …/sandbox-connect` with no `Plaid API error` line often
-means the process restarted (OOM/health) or an old image without the sandbox API
-fix is still running.
+A uvicorn `502` on `POST …/sandbox-connect` with `INVALID_CREDENTIALS` on
+`/sandbox/public_token/create` often means the custom-user JSON used a string
+`"version": "2"` instead of numeric `"version": 2` — the fixture in this repo
+uses an integer version.
+
+If the browser shows **CORS blocked** / **Failed to fetch** on `sandbox-connect`
+but `curl` from your machine returns JSON with `access-control-allow-origin`,
+the EasyPanel proxy likely timed out or returned **502/504** while Plaid was
+still running—check logs for `Plaid API error` or redeploy the latest backend
+(includes `POST /api/plaid/connection/sandbox-connect` so Settings does not
+need a saved analysis id).
 
 ## Versioned legal sources
 
