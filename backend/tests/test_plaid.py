@@ -401,6 +401,36 @@ def test_settings_sandbox_connect_does_not_require_analysis() -> None:
     exchange.assert_not_awaited()
 
 
+def test_disconnect_skips_plaid_for_local_sample_fixture() -> None:
+    connections = SimpleNamespace(
+        find_one=AsyncMock(return_value={
+            "access_token": f"served-seeded-fixture:{PROFILE.subject}",
+            "demo_fixture": True,
+            "environment": "sandbox",
+        }),
+        delete_one=AsyncMock(),
+    )
+    snapshots = SimpleNamespace(delete_one=AsyncMock())
+    remove_item = AsyncMock()
+    with (
+        patch("app.routes.plaid._verify_google_token", return_value=PROFILE),
+        patch("app.routes.plaid.get_db", return_value=SimpleNamespace(
+            bank_connections=connections,
+            bank_transaction_snapshots=snapshots,
+        )),
+        patch("app.routes.plaid.plaid_service.remove_item", new=remove_item),
+    ):
+        response = TestClient(app).delete(
+            "/api/plaid/connection",
+            headers={"Authorization": "Bearer google-token"},
+        )
+
+    assert response.status_code == 204
+    remove_item.assert_not_awaited()
+    connections.delete_one.assert_awaited_once()
+    snapshots.delete_one.assert_awaited_once()
+
+
 def test_d4_sandbox_connect_works_when_plaid_environment_is_development() -> None:
     analysis_id = ObjectId()
     analyses = SimpleNamespace(find_one=AsyncMock(return_value=_analysis_record(analysis_id)))

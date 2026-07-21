@@ -844,6 +844,11 @@ async def match_transactions(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
+def _is_local_fixture_token(access_token: str | None) -> bool:
+    token = str(access_token or "")
+    return token.startswith("served-seeded-fixture:") or token.startswith("served-demo-fixture:")
+
+
 @router.delete("/connection", status_code=status.HTTP_204_NO_CONTENT)
 async def disconnect(
     authorization: str = Header(default=""),
@@ -855,22 +860,33 @@ async def disconnect(
             {"google_subject": profile.subject},
             {"access_token": 1, "environment": 1, "demo_fixture": 1},
         )
-        if (
+        access_token = connection.get("access_token") if connection else None
+        should_call_plaid = (
             connection
-            and connection.get("access_token")
+            and access_token
             and not is_demo_profile(profile)
-        ):
-            await plaid_service.remove_item(
-                connection["access_token"],
-                plaid_environment=_connection_plaid_environment(connection),
-            )
+            and not connection.get("demo_fixture")
+            and not _is_local_fixture_token(access_token)
+        )
+        if should_call_plaid:
+            try:
+                await plaid_service.remove_item(
+                    access_token,
+                    plaid_environment=_connection_plaid_environment(connection),
+                )
+            except (PlaidAPIError, PlaidNotConfiguredError) as exc:
+                logger.warning(
+                    "disconnect Plaid remove_item failed subject=%s code=%s; clearing local connection anyway",
+                    profile.subject[:12],
+                    getattr(exc, "code", type(exc).__name__),
+                )
         await collection.delete_one({"google_subject": profile.subject})
         await get_db().bank_transaction_snapshots.delete_one({
             "google_subject": profile.subject,
         })
-    except (PlaidAPIError, PlaidNotConfiguredError) as exc:
-        raise _provider_error(exc) from None
     except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise
         raise HTTPException(
             status_code=503,
             detail="The bank connection could not be removed.",
