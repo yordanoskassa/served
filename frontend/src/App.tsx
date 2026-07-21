@@ -11,6 +11,7 @@ import { LandingDetails } from "@/components/LandingDetails"
 import { LandingFooter } from "@/components/LandingFooter"
 import { LandingPricing } from "@/components/LandingPricing"
 import { LandingTrustBar } from "@/components/LandingTrustBar"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { fetchGoogleClientId } from "@/lib/api"
 import { entryLabel, type EntryIntent } from "@/lib/entry"
@@ -82,6 +83,17 @@ export function App() {
     setShowAuth(true)
   }, [])
 
+  const openJudgeDemo = useCallback(() => {
+    setShowAuth(false)
+    setEntryIntent(null)
+    setDemoIntent("D4")
+    try {
+      sessionStorage.removeItem(ENTRY_STORAGE_KEY)
+    } catch {
+      // The demo can still open when session storage is unavailable.
+    }
+  }, [])
+
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>
   if (user) return <Dashboard initialIntent={entryIntent} onIntentConsumed={consumeEntryIntent} />
   if (demoIntent) return <Dashboard demoMode initialIntent={demoIntent} onExitDemo={openUploadAuth} onGoHome={() => setDemoIntent(null)} />
@@ -107,7 +119,7 @@ export function App() {
   )
 
   if (clientIdLoading) return landing
-  if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader></DialogContent></Dialog>
+  if (!clientId) return <Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent><DialogHeader className="items-center text-center"><RefreshCw className="mb-2" size={22} /><DialogTitle>Sign-in unavailable</DialogTitle><DialogDescription>{error || "Google sign-in is not configured."}</DialogDescription></DialogHeader><Button type="button" variant="outline" onClick={openJudgeDemo}>Run judge demo without sign-in</Button></DialogContent></Dialog>
 
-  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Google sign-in for {entryLabel(entryIntent)}.</DialogDescription><LoginPage destination={entryLabel(entryIntent)} /></DialogContent></Dialog></GoogleOAuthProvider>
+  return <GoogleOAuthProvider clientId={clientId}><Dialog open={showAuth} onOpenChange={setShowAuth}>{landing}<DialogContent className="max-w-md border-0 bg-transparent p-0 shadow-none"><DialogTitle className="sr-only">Sign in to Served</DialogTitle><DialogDescription className="sr-only">Google sign-in for {entryLabel(entryIntent)}, with a seeded judge demo available without sign-in.</DialogDescription><LoginPage destination={entryLabel(entryIntent)} onContinueDemo={openJudgeDemo} /></DialogContent></Dialog></GoogleOAuthProvider>
 }

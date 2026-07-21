@@ -1,4 +1,5 @@
 import { useGoogleLogin } from "@react-oauth/google"
+import { ArrowRight, PlayCircle } from "lucide-react"
 import { useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -6,7 +7,7 @@ import { BrandMark } from "@/components/BrandMark"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
-export function LoginPage({ destination = "your workspace" }: { destination?: string }) {
+export function LoginPage({ destination = "your workspace", onContinueDemo }: { destination?: string; onContinueDemo?: () => void }) {
   const { login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -54,7 +55,15 @@ export function LoginPage({ destination = "your workspace" }: { destination?: st
           </svg>
           {loading ? "Signing in..." : "Sign in with Google"}
         </Button>
-        <p className="mt-6 type-caption">No shared login · no automatic sharing</p>
+
+        {onContinueDemo && <>
+          <div className="my-4 flex items-center gap-3" aria-hidden="true"><span className="h-px flex-1 bg-black/10" /><span className="text-[10px] font-semibold uppercase tracking-[.14em] text-zinc-400">or</span><span className="h-px flex-1 bg-black/10" /></div>
+          <Button type="button" variant="outline" onClick={onContinueDemo} disabled={loading} className="w-full border-black/15 bg-white py-3.5 font-semibold hover:bg-brand-soft">
+            <PlayCircle size={17} /> Run judge demo without sign-in <ArrowRight size={15} />
+          </Button>
+          <p className="mt-3 text-[11px] leading-5 text-zinc-500">Seeded D4 request and sandbox financial data only. Personal uploads stay behind Google sign-in.</p>
+        </>}
+        <p className="mt-5 type-caption">No shared login · no automatic sharing</p>
       </div>
     </div>
   )
