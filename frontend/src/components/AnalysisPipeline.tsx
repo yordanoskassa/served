@@ -165,6 +165,50 @@ function eventTime(event: TraceEvent): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })
 }
 
+function agentForEvent(event: TraceEvent | undefined) {
+  const key = event?.key
+  if (key === "reader" || key === "court_directory") return {
+    owner: "READER",
+    role: "Extracts visible facts and routes only through reviewed court data.",
+    icon: FileCheck2,
+    dot: "bg-sky-400",
+    pill: "border-sky-300/25 bg-sky-400/15 text-sky-200",
+    panel: "border-sky-300/20 bg-sky-400/[.08]",
+  }
+  if (key === "checker" || key === "courtlistener" || key === "scam_patterns") return {
+    owner: "CHECKER",
+    role: "Investigates docket evidence and approved warning signals without deciding the verdict.",
+    icon: Search,
+    dot: "bg-zinc-400",
+    pill: "border-zinc-300/25 bg-zinc-400/15 text-zinc-200",
+    panel: "border-zinc-300/20 bg-zinc-400/[.08]",
+  }
+  if (key === "rules") return {
+    owner: "FIXED CODE",
+    role: "Compares the supported facts and selects the immutable result state.",
+    icon: Braces,
+    dot: "bg-emerald-400",
+    pill: "border-emerald-300/25 bg-emerald-400/15 text-emerald-100",
+    panel: "border-emerald-300/20 bg-emerald-400/[.08]",
+  }
+  if (key === "explainer" || key === "legal_passages") return {
+    owner: "EXPLAINER",
+    role: "Explains the locked outcome using accepted evidence, approved passages, and limitations.",
+    icon: Bot,
+    dot: "bg-violet-400",
+    pill: "border-violet-300/25 bg-violet-400/15 text-violet-100",
+    panel: "border-violet-300/20 bg-violet-400/[.08]",
+  }
+  return {
+    owner: "ORCHESTRATOR",
+    role: "Controls secure intake, ordered execution, and the final evidence package.",
+    icon: event?.key === "result" ? Check : FileInput,
+    dot: "bg-brand-green",
+    pill: "border-brand-green/25 bg-brand-green/15 text-brand-green",
+    panel: "border-brand-green/20 bg-brand-green/[.07]",
+  }
+}
+
 export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
   const visibleEvents = events.slice(-10).reverse()
   const activeEvent = [...latestByKey(events).values()]
@@ -172,6 +216,8 @@ export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
     .sort((left, right) => right.seq - left.seq)[0]
   const currentEvent = activeEvent ?? [...events].sort((left, right) => right.seq - left.seq)[0]
   const currentRunning = currentEvent?.status === "started"
+  const currentAgent = agentForEvent(currentEvent)
+  const CurrentIcon = currentAgent.icon
 
   return <aside className="h-fit overflow-hidden rounded-2xl border border-black/[.07] bg-[#171717] text-white" aria-label="Live analysis activity">
     <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4">
@@ -179,9 +225,9 @@ export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
       <span className="mt-1 flex items-center gap-1.5 text-[9px] uppercase tracking-[.12em] text-white/45"><span className="size-1.5 animate-pulse rounded-full bg-brand-green motion-reduce:animate-none" />Live</span>
     </div>
 
-    <div className="border-b border-white/10 bg-white/[.04] p-4" aria-live="polite">
-      <div className="flex items-center gap-2"><CircleDot className={currentRunning || !currentEvent ? "animate-pulse text-brand-green motion-reduce:animate-none" : "text-white/45"} size={14} /><p className="text-xs font-semibold">{currentEvent ? `${currentRunning ? "Now" : "Latest"}: ${currentEvent.label}` : "Now: Connecting to secure intake"}</p></div>
-      {currentEvent && <p className="mt-2 text-[11px] leading-5 text-white/60">{eventMessage(currentEvent)}</p>}
+    <div className={cn("border-b p-4", currentAgent.panel)} aria-live="polite">
+      <div className="flex items-start gap-3"><span className={cn("grid size-9 shrink-0 place-items-center rounded-xl border", currentAgent.pill)}><CurrentIcon size={17} /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className={cn("rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-[.14em]", currentAgent.pill)}>{currentAgent.owner}</span><span className="flex items-center gap-1 text-[9px] uppercase tracking-[.12em] text-white/40"><CircleDot className={currentRunning || !currentEvent ? "animate-pulse motion-reduce:animate-none" : ""} size={11} />{currentRunning ? "Working now" : "Latest step"}</span></div><p className="mt-2 text-sm font-semibold leading-5">{currentEvent?.label ?? "Connecting to secure intake"}</p><p className="mt-1 text-[10px] leading-4 text-white/50">{currentAgent.role}</p></div></div>
+      {currentEvent && <p className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-[11px] leading-5 text-white/70">{eventMessage(currentEvent)}</p>}
       {currentEvent?.input_summary && <p className="mt-2 rounded-lg bg-black/25 px-2.5 py-2 text-[10px] leading-4 text-white/50"><span className="font-semibold text-white/70">Input:</span> {currentEvent.input_summary}</p>}
     </div>
 
@@ -190,8 +236,9 @@ export function LiveActivityLog({ events }: { events: TraceEvent[] }) {
         const running = event.status === "started"
         const limited = ["degraded", "skipped", "unavailable"].includes(event.status)
         const failed = event.status === "failed"
-        return <motion.li initial={false} animate={{ opacity: 1 }} className="rounded-xl px-2.5 py-2.5 hover:bg-white/[.04]" key={`${event.seq}-${event.key}-${event.status}`}>
-          <div className="flex gap-2.5"><span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", running ? "animate-pulse bg-brand-green motion-reduce:animate-none" : failed ? "bg-red-400" : limited ? "bg-neutral-300" : "bg-white/45")} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><p className="text-[11px] font-medium leading-4 text-white/85">{event.label}</p><span className="shrink-0 text-[9px] text-white/25">{eventTime(event)}</span></div><p className="mt-1 text-[10px] leading-4 text-white/45">{eventMessage(event)}</p>{event.evidence_count > 0 && <p className="mt-1 text-[9px] text-brand-green/70">{event.evidence_count} evidence item{event.evidence_count === 1 ? "" : "s"} attached</p>}</div></div>
+        const agent = agentForEvent(event)
+        return <motion.li initial={false} animate={{ opacity: 1 }} className="rounded-xl border border-transparent px-2.5 py-2.5 hover:border-white/[.06] hover:bg-white/[.04]" key={`${event.seq}-${event.key}-${event.status}`}>
+          <div className="flex gap-2.5"><span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", running ? `animate-pulse motion-reduce:animate-none ${agent.dot}` : failed ? "bg-red-400" : limited ? "bg-neutral-300" : agent.dot)} /><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><span className={cn("text-[8px] font-bold uppercase tracking-[.13em]", running ? "text-white/75" : "text-white/35")}>{agent.owner}</span><p className="mt-0.5 text-[11px] font-medium leading-4 text-white/85">{event.label}</p></div><span className="shrink-0 text-[9px] text-white/25">{eventTime(event)}</span></div><p className="mt-1 text-[10px] leading-4 text-white/45">{eventMessage(event)}</p>{event.evidence_count > 0 && <p className="mt-1 text-[9px] text-brand-green/70">{event.evidence_count} evidence item{event.evidence_count === 1 ? "" : "s"} attached</p>}</div></div>
         </motion.li>
       })}
     </ol>}

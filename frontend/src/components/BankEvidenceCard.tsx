@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, DatabaseZap, Download, Landmark, LoaderCircle, RefreshCw, ShieldCheck, Zap } from "lucide-react"
+import { AlertTriangle, Check, CheckCircle2, DatabaseZap, Download, EyeOff, Landmark, LoaderCircle, RefreshCw, ShieldCheck, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { useAuth } from "@/AuthContext"
@@ -21,7 +21,14 @@ import {
 
 type LoadState = "loading" | "ready" | "error"
 type ReviewDecision = "approved" | "excluded" | "counsel"
+type TransactionPartition = "matched" | "review" | "excluded"
 const DEFAULT_CUTOFF_DATE = "2026-07-16"
+const MIN_TRANSACTION_LOADING_MS = 1100
+
+async function holdTransactionLoading(startedAt: number): Promise<void> {
+  const remaining = MIN_TRANSACTION_LOADING_MS - (performance.now() - startedAt)
+  if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining))
+}
 
 function isDemoPlaidEnvironment(environment: PlaidConnectionStatus["environment"] | undefined): boolean {
   return environment === "sandbox" || environment === "development"
@@ -68,18 +75,41 @@ function PaymentRow({ record, decision, onDecision }: {
   decision?: ReviewDecision
   onDecision: (decision: ReviewDecision) => void
 }) {
-  return <article className="rounded-2xl bg-white p-4 text-black">
+  const stateClass = decision === "approved"
+    ? "border-emerald-300 bg-emerald-50 shadow-[inset_4px_0_0_#22c55e]"
+    : decision === "excluded"
+      ? "border-zinc-300 bg-zinc-100 opacity-80"
+      : decision === "counsel"
+        ? "border-zinc-300 bg-zinc-100 shadow-[inset_4px_0_0_#737373]"
+        : record.disposition === "REVIEW"
+          ? "border-zinc-200 bg-white"
+          : "border-transparent bg-white"
+  return <article className={`rounded-2xl border p-4 text-black transition-all ${stateClass}`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><p className="text-sm font-semibold">{record.description}</p><p className="mt-1 text-xs text-zinc-500">{record.date} · {reasonLabel(record)}</p></div>
       <div className="text-right"><Badge variant={record.disposition === "INCLUDE" ? "default" : "warning"}>{record.disposition}</Badge><p className="mt-2 text-sm font-semibold">{money(record.amount, record.currency)}</p></div>
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-black/5 pt-3">
       <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Owner decision</span>
-      <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "approved" ? "bg-brand-green text-black" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("approved")}>Approve</button>
-      <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "excluded" ? "bg-black text-white" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("excluded")}>Exclude</button>
-      {record.disposition === "REVIEW" && <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "counsel" ? "bg-neutral-300 text-black" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("counsel")}>Ask counsel</button>}
+      <button type="button" aria-pressed={decision === "approved"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "approved" ? "bg-emerald-600 text-white" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("approved")}>{decision === "approved" && <Check size={11} />}{decision === "approved" ? "Approved" : "Approve"}</button>
+      <button type="button" aria-pressed={decision === "excluded"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "excluded" ? "bg-black text-white" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("excluded")}>{decision === "excluded" && <EyeOff size={11} />}{decision === "excluded" ? "Kept out" : "Keep out"}</button>
+      {record.disposition === "REVIEW" && <button type="button" aria-pressed={decision === "counsel"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${decision === "counsel" ? "bg-neutral-500 text-white" : "bg-black/5 text-zinc-600 hover:bg-black/10"}`} onClick={() => onDecision("counsel")}>{decision === "counsel" && <Check size={11} />}{decision === "counsel" ? "Counsel review" : "Ask counsel"}</button>}
     </div>
   </article>
+}
+
+function TransactionLoader({ label }: { label: string | null }) {
+  const stages = ["Open read-only source", "Fetch scoped transactions", "Apply D4 matching rules"]
+  const activeIndex = label?.toLowerCase().includes("connect") || label?.toLowerCase().includes("open")
+    ? 0
+    : label?.toLowerCase().includes("fetch")
+      ? 1
+      : 2
+  return <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-4" role="status" aria-live="polite">
+    <div className="flex items-center gap-3"><span className="relative grid size-10 place-items-center rounded-xl bg-brand-green/15 text-brand-green"><DatabaseZap className="animate-pulse" size={19} /><span className="absolute inset-0 animate-ping rounded-xl border border-brand-green/20 motion-reduce:animate-none" /></span><div><p className="text-sm font-semibold text-white">{label || "Preparing the transaction review"}</p><p className="mt-0.5 text-[10px] text-white/40">Only the verified payee, date range, and requested category are used.</p></div></div>
+    <div className="mt-4 grid gap-2 sm:grid-cols-3">{stages.map((stage, index) => <div className={`rounded-xl border px-3 py-2.5 transition ${index < activeIndex ? "border-emerald-400/20 bg-emerald-400/10" : index === activeIndex ? "border-brand-green/30 bg-brand-green/10" : "border-white/[.07] bg-white/[.03]"}`} key={stage}><div className="flex items-center gap-2"><span className={`grid size-5 place-items-center rounded-full text-[9px] font-bold ${index < activeIndex ? "bg-emerald-400 text-black" : index === activeIndex ? "animate-pulse bg-brand-green text-black motion-reduce:animate-none" : "bg-white/10 text-white/35"}`}>{index < activeIndex ? "✓" : index + 1}</span><span className={`text-[10px] ${index <= activeIndex ? "text-white/80" : "text-white/35"}`}>{stage}</span></div></div>)}</div>
+    <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full w-2/5 animate-[scan-progress_1.2s_ease-in-out_infinite] rounded-full bg-brand-green motion-reduce:animate-none" /></div>
+  </div>
 }
 
 export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE, onWorkflowChange }: {
@@ -98,6 +128,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const [error, setError] = useState<string | null>(null)
   const [confirmedCutoff, setConfirmedCutoff] = useState(normalizedCutoff)
   const [records, setRecords] = useState<PaymentMatchResponse | null>(null)
+  const [activePartition, setActivePartition] = useState<TransactionPartition>("matched")
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision>>(() => {
     try {
       return JSON.parse(localStorage.getItem(`served-payment-review-${analysisId}`) || "{}") as Record<string, ReviewDecision>
@@ -130,6 +161,10 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   }, [analysisId, decisions])
 
   useEffect(() => {
+    if (records) setActivePartition("matched")
+  }, [records])
+
+  useEffect(() => {
     const total = records ? records.include.length + records.review.length : 0
     const reviewed = records
       ? [...records.include, ...records.review].filter((record) => Boolean(decisions[record.record_id])).length
@@ -156,10 +191,14 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
           && (nextStatus.environment === "production" || nextStatus.demo_fixture)
         if (readyForMatch && !autoMatchStarted.current) {
           autoMatchStarted.current = true
+          const startedAt = performance.now()
           setBusy(true)
           setBusyLabel("Fetching and matching transactions…")
           void matchPlaidTransactions(analysisId, accessCredential, normalizedCutoff)
-            .then(setRecords)
+            .then(async (nextRecords) => {
+              await holdTransactionLoading(startedAt)
+              setRecords(nextRecords)
+            })
             .catch((cause) => setError(cause instanceof Error ? cause.message : "Payment records could not be matched."))
             .finally(() => {
               setBusy(false)
@@ -178,6 +217,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const connectSampleAccount = async () => {
     if (!accessCredential || busy) return
     setBusy(true)
+    const startedAt = performance.now()
     setError(null)
     try {
       if (status?.connected && !status.demo_fixture) {
@@ -191,7 +231,9 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       const nextStatus = await connectPlaidSandboxDemo(analysisId, accessCredential)
       setStatus(nextStatus)
       setBusyLabel("Matching Audrea Barnes payments…")
-      setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
+      const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
+      await holdTransactionLoading(startedAt)
+      setRecords(nextRecords)
       autoMatchStarted.current = true
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The sample account could not be connected.")
@@ -217,13 +259,16 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       handler = window.Plaid.create({
         token: linkToken,
         onSuccess: (publicToken, metadata) => {
+          const startedAt = performance.now()
           setBusyLabel("Bank connected. Fetching transactions…")
           void (async () => {
             try {
               const nextStatus = await exchangePlaidPublicToken(analysisId, accessCredential, publicToken, metadata.institution)
               setStatus(nextStatus)
               setBusyLabel("Matching transactions to the subpoena…")
-              setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
+              const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
+              await holdTransactionLoading(startedAt)
+              setRecords(nextRecords)
               autoMatchStarted.current = true
             } catch (cause) {
               setError(cause instanceof Error ? cause.message : "The bank could not be connected.")
@@ -244,7 +289,6 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       handler.open()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The bank connection could not start.")
-    } finally {
       setBusy(false)
       setBusyLabel(null)
     }
@@ -253,10 +297,13 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const matchRecords = async () => {
     if (!accessCredential || busy) return
     setBusy(true)
+    const startedAt = performance.now()
     setBusyLabel("Refreshing transaction match…")
     setError(null)
     try {
-      setRecords(await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff))
+      const nextRecords = await matchPlaidTransactions(analysisId, accessCredential, confirmedCutoff)
+      await holdTransactionLoading(startedAt)
+      setRecords(nextRecords)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Payment records could not be matched.")
     } finally {
@@ -306,7 +353,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
     setPacketReady(true)
   }
 
-  if (statusState === "loading") return <section className="mt-5 rounded-2xl border border-black/5 bg-white/70 p-4" aria-busy="true"><div className="flex items-center gap-3"><LoaderCircle className="animate-spin text-zinc-400" size={18} /><p className="text-sm text-zinc-500">Checking financial-record eligibility…</p></div></section>
+  if (statusState === "loading") return <section className="mt-5 rounded-2xl border border-black/10 bg-[#111] p-4 text-white" aria-busy="true"><TransactionLoader label="Checking financial-record eligibility…" /></section>
   if (statusState === "error") return <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Financial tools remain locked</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
   if (!status?.configured) return <Alert className="mt-5 rounded-2xl border-border bg-muted text-muted-foreground"><AlertTitle>Bank connection unavailable</AlertTitle><AlertDescription>The request is verified, but the bank connection is not configured.</AlertDescription></Alert>
 
@@ -320,6 +367,8 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
   const candidateRecords = records ? [...records.include, ...records.review] : []
   const reviewedCount = candidateRecords.filter((record) => Boolean(decisions[record.record_id])).length
   const reviewComplete = candidateRecords.length > 0 && reviewedCount === candidateRecords.length
+  const approvedSuggestedCount = records?.include.filter((record) => decisions[record.record_id] === "approved").length ?? 0
+  const allSuggestedApproved = Boolean(records?.include.length) && approvedSuggestedCount === records?.include.length
 
   const demoPlaid = isDemoPlaidEnvironment(status?.environment)
   const wrongDemoBank = demoPlaid && status.connected && !status.demo_fixture
@@ -343,7 +392,7 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
       </div>
 
       {wrongDemoBank && (
-        <Alert className="mt-4 border-amber-400/40 bg-amber-400/10 text-white">
+        <Alert className="mt-4 border-white/25 bg-white/10 text-white">
           <AlertTitle>Not the D4 demo bank</AlertTitle>
           <AlertDescription className="space-y-2 text-white/75">
             <p>
@@ -361,13 +410,13 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
 
       {!status.connected ? <div className="mt-5 rounded-2xl bg-white/[.07] p-4 sm:p-5"><Button className="h-12 w-full bg-white text-sm font-medium text-black hover:bg-white/90 sm:w-auto sm:px-7" disabled={busy} onClick={() => { void connect() }}>{busy ? <LoaderCircle className="animate-spin" size={17} /> : <Landmark size={17} />}{busyLabel || (demoPlaid ? "Connect sample account" : "Connect bank account")}</Button>{demoPlaid && <p className="type-caption mt-2 text-white/40">Loads Mendoza’s Kitchen with 28 seeded D4 transactions—not the generic bank picker.</p>}</div> : <div className="mt-5 rounded-2xl bg-white/[.07] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><CheckCircle2 className="text-white" size={18} /><div><p className="type-ui font-medium text-white">{status.institution_name || "Bank connected"}</p>{status.demo_fixture && <p className="type-caption mt-0.5 text-white/40">Mendoza’s Kitchen · Business checking · 28 transactions</p>}</div></div><div className="flex flex-wrap items-end gap-2">{wrongDemoBank && <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={busy} onClick={() => { void connectSampleAccount() }}><Landmark size={15} />Use sample account</Button>}<label className="type-caption text-white/50">Through<input className="mt-1 block h-9 rounded-xl border border-white/15 bg-black/20 px-3 text-xs text-white" type="date" value={confirmedCutoff} onChange={(event) => setConfirmedCutoff(event.target.value)} /></label><Button className="bg-white text-black hover:bg-white/90" disabled={busy || !confirmedCutoff || (demoPlaid && !status.demo_fixture)} onClick={() => { void matchRecords() }}>{busy ? <LoaderCircle className="animate-spin" size={16} /> : <RefreshCw size={16} />}{busyLabel || "Refresh records"}</Button></div></div>
-        {busy && <div className="mt-4 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-white/65"><DatabaseZap className="text-brand-green" size={15} /><span>{busyLabel}</span></div>}
+        {busy && <TransactionLoader label={busyLabel} />}
       </div>}
     </div>
 
     {records && <div className="border-t border-white/10 bg-white/[.04] p-4 sm:p-5">
       {showDemoMismatch && (
-        <Alert className="mb-4 border-amber-400/40 bg-amber-400/10 text-white">
+        <Alert className="mb-4 border-white/25 bg-white/10 text-white">
           <AlertTitle>These counts are not the D4 demo</AlertTitle>
           <AlertDescription className="space-y-2 text-white/75">
             <p>Expected on sample D4: 7 include, 2 review, 19 exclude (28 transactions). Switch to the sample account to match the homepage.</p>
@@ -377,10 +426,17 @@ export function BankEvidenceCard({ analysisId, cutoffDate = DEFAULT_CUTOFF_DATE,
           </AlertDescription>
         </Alert>
       )}
-      <div className="grid gap-2 sm:grid-cols-4"><div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.total_searched}</p><p className="mt-1 text-xs text-white/60">transactions searched</p></div><div className="rounded-2xl bg-brand-green p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className="mt-1 text-xs font-medium">include candidates</p></div><div className="rounded-2xl bg-neutral-300 p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.review}</p><p className="mt-1 text-xs font-medium">need review</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{records.summary.exclude}</p><p className="mt-1 text-xs text-white/60">kept outside</p></div></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-brand-green">Transaction review</p><h4 className="mt-1 text-lg font-semibold">Found what the request asks for. Kept everything else outside.</h4></div><div className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] text-white/55">{records.summary.total_searched} searched</div></div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3" aria-label="Transaction partitions">
+        <button type="button" aria-pressed={activePartition === "matched"} onClick={() => setActivePartition("matched")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "matched" ? "border-emerald-300 bg-emerald-300 text-emerald-950 shadow-[0_10px_30px_rgba(52,211,153,.14)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Matched</p><CheckCircle2 size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.include}</p><p className={`mt-1 text-xs ${activePartition === "matched" ? "text-emerald-900/70" : "text-white/45"}`}>{approvedSuggestedCount} owner approved</p></button>
+        <button type="button" aria-pressed={activePartition === "review"} onClick={() => setActivePartition("review")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "review" ? "border-white/40 bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,.08)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Needs review</p><AlertTriangle size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.review}</p><p className={`mt-1 text-xs ${activePartition === "review" ? "text-black/60" : "text-white/45"}`}>Human decision required</p></button>
+        <button type="button" aria-pressed={activePartition === "excluded"} onClick={() => setActivePartition("excluded")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "excluded" ? "border-sky-200 bg-sky-100 text-sky-950 shadow-[0_10px_30px_rgba(186,230,253,.10)]" : "border-white/10 bg-white/[.05] text-white hover:bg-white/10"}`}><div className="flex items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Kept outside</p><EyeOff size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{records.summary.exclude}</p><p className={`mt-1 text-xs ${activePartition === "excluded" ? "text-sky-900/65" : "text-white/45"}`}>Protected from the packet</p></button>
+      </div>
       <p className="mt-4 text-xs leading-5 text-white/55">{records.review_notice}</p>
-      {records.include.length > 0 && <div className="mt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/40">Include candidates</p><button type="button" className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white/75 hover:bg-white/15" onClick={approveSuggested}>Approve {records.include.length} suggested</button></div><div className="mt-2 space-y-2">{records.include.map((record) => <PaymentRow key={record.record_id} record={record} decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />)}</div></div>}
-      {records.review.length > 0 && <div className="mt-4"><div className="flex items-center gap-2 text-muted-foreground"><AlertTriangle size={15} /><p className="text-[10px] font-semibold uppercase tracking-[.18em]">Human review needed</p></div><div className="mt-2 space-y-2">{records.review.map((record) => <PaymentRow key={record.record_id} record={record} decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />)}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{records.boundary_warning}</p></div>}
+
+      {activePartition === "matched" && <div className="mt-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-emerald-300">Exact candidate matches</p><p className="mt-1 text-xs text-white/45">Payee and displayed date range matched. The owner still approves each record.</p></div><button type="button" disabled={allSuggestedApproved} className={`rounded-full px-3 py-1.5 text-[10px] font-semibold transition ${allSuggestedApproved ? "bg-emerald-400/20 text-emerald-200" : "bg-white/10 text-white/75 hover:bg-white/15"}`} onClick={approveSuggested}>{allSuggestedApproved ? "All suggested approved" : `Approve ${records.include.length} suggested`}</button></div><div className="mt-3 space-y-2">{records.include.map((record) => <PaymentRow key={record.record_id} record={record} decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />)}</div></div>}
+      {activePartition === "review" && <div className="mt-4"><div className="flex items-center gap-2 text-white/70"><AlertTriangle size={15} /><p className="text-[10px] font-semibold uppercase tracking-[.18em]">Resolve before export</p></div><div className="mt-3 space-y-2">{records.review.map((record) => <PaymentRow key={record.record_id} record={record} decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />)}</div><p className="mt-3 text-xs leading-5 text-white/45">{records.boundary_warning}</p></div>}
+      {activePartition === "excluded" && <div className="mt-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-sky-200">Protected from the response packet</p><p className="mt-1 text-xs leading-5 text-white/45">Served records only an audit ID and exclusion reason. Unrelated transaction details stay out of the candidate workspace.</p></div><div className="mt-3 grid gap-2 sm:grid-cols-2">{records.excluded_audit.map((record) => <article className="flex items-center justify-between gap-3 rounded-xl border border-white/[.08] bg-white/[.04] px-3 py-3" key={record.record_id}><div className="min-w-0"><p className="truncate text-xs font-semibold text-white/75">{record.record_id}</p><p className="mt-1 text-[10px] text-white/35">{record.reason_code === "OUTSIDE_DATE_RANGE" ? "Outside the displayed date range" : "Different payee, not requested"}</p></div><Badge className="shrink-0 bg-sky-100 text-sky-950">KEPT OUT</Badge></article>)}</div></div>}
       <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Review before export.</strong> {records.legal_boundary} Nothing is automatically sent or shared.</p></div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">
         <div><p className="text-sm font-semibold">{reviewedCount} of {candidateRecords.length} candidates reviewed</p><p className="mt-1 text-[10px] text-white/45">The manifest contains your decisions and matching reasons. It is not automatically sent.</p></div>

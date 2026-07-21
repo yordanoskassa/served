@@ -1,6 +1,9 @@
 import {
+  AlertTriangle,
+  Check,
   CheckCircle2,
   Download,
+  EyeOff,
   FileSpreadsheet,
   LockKeyhole,
   LoaderCircle,
@@ -32,6 +35,7 @@ const recordLabels: Record<PayrollRecordType, string> = {
 }
 
 type ReviewDecision = "approved" | "excluded" | "counsel"
+type PayrollPartition = "strong" | "possible" | "outside"
 
 function dateRange(record: PayrollCandidate): string {
   return `${record.period_start} to ${record.period_end}`
@@ -53,9 +57,9 @@ function CandidateDecision({ decision, possible, onDecision }: {
 }) {
   return <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-black/5 pt-3">
     <span className="mr-1 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Owner decision</span>
-    <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "approved" ? "bg-brand-green text-black" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("approved")}>Approve</button>
-    <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "excluded" ? "bg-black text-white" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("excluded")}>Exclude</button>
-    {possible && <button type="button" className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "counsel" ? "bg-neutral-300 text-black" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("counsel")}>Ask counsel</button>}
+    <button type="button" aria-pressed={decision === "approved"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "approved" ? "bg-emerald-600 text-white" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("approved")}>{decision === "approved" && <Check size={11} />}{decision === "approved" ? "Approved" : "Approve"}</button>
+    <button type="button" aria-pressed={decision === "excluded"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "excluded" ? "bg-black text-white" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("excluded")}>{decision === "excluded" && <EyeOff size={11} />}{decision === "excluded" ? "Kept out" : "Keep out"}</button>
+    {possible && <button type="button" aria-pressed={decision === "counsel"} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold ${decision === "counsel" ? "bg-neutral-500 text-white" : "bg-black/5 text-zinc-600"}`} onClick={() => onDecision("counsel")}>{decision === "counsel" && <Check size={11} />}{decision === "counsel" ? "Counsel review" : "Ask counsel"}</button>}
   </div>
 }
 
@@ -70,6 +74,7 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
   const input = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<PayrollMatchResponse | null>(null)
+  const [activePartition, setActivePartition] = useState<PayrollPartition>("strong")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [decisions, setDecisions] = useState<Record<string, ReviewDecision>>(() => {
@@ -99,6 +104,10 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
   useEffect(() => {
     if (analysisId) localStorage.setItem(`served-payroll-review-${analysisId}`, JSON.stringify(decisions))
   }, [analysisId, decisions])
+
+  useEffect(() => {
+    if (result) setActivePartition("strong")
+  }, [result])
 
   useEffect(() => {
     const candidates = result ? [...result.strong_matches, ...result.possible_matches] : []
@@ -195,6 +204,8 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
   const candidates = result ? [...result.strong_matches, ...result.possible_matches] : []
   const reviewedCount = candidates.filter((record) => Boolean(decisions[record.record_id])).length
   const reviewComplete = candidates.length > 0 && reviewedCount === candidates.length
+  const strongApprovedCount = result?.strong_matches.filter((record) => decisions[record.record_id] === "approved").length ?? 0
+  const allStrongApproved = Boolean(result?.strong_matches.length) && strongApprovedCount === result?.strong_matches.length
 
   return <section id={analysisId ? `records-${analysisId}` : undefined} className="mt-5 scroll-mt-24 overflow-hidden rounded-2xl border border-black/10 bg-[#111] text-white">
     <div className="p-4 sm:p-5">
@@ -235,10 +246,10 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
       </div>}
 
       {result && <div className="mt-5 space-y-4">
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-2xl bg-brand-green p-4 text-black"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.strong}</p><p className="mt-1 text-xs font-medium">strong candidate records</p></div>
-          <div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.possible}</p><p className="mt-1 text-xs text-white/60">possible, needs review</p></div>
-          <div className="rounded-2xl bg-white/10 p-4"><p className="text-3xl font-semibold tracking-[-.05em]">{result.summary.outside_criteria}</p><p className="mt-1 text-xs text-white/60">kept outside candidate set</p></div>
+        <div className="grid gap-2 sm:grid-cols-3" aria-label="Payroll record partitions">
+          <button type="button" aria-pressed={activePartition === "strong"} onClick={() => setActivePartition("strong")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "strong" ? "border-emerald-300 bg-emerald-300 text-emerald-950" : "border-white/10 bg-white/[.05] text-white"}`}><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Matched</p><CheckCircle2 size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{result.summary.strong}</p><p className={`mt-1 text-xs ${activePartition === "strong" ? "text-emerald-900/70" : "text-white/45"}`}>{strongApprovedCount} owner approved</p></button>
+          <button type="button" aria-pressed={activePartition === "possible"} onClick={() => setActivePartition("possible")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "possible" ? "border-white/40 bg-white text-black" : "border-white/10 bg-white/[.05] text-white"}`}><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Needs review</p><AlertTriangle size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{result.summary.possible}</p><p className={`mt-1 text-xs ${activePartition === "possible" ? "text-black/60" : "text-white/45"}`}>Human decision required</p></button>
+          <button type="button" aria-pressed={activePartition === "outside"} onClick={() => setActivePartition("outside")} className={`rounded-2xl border p-4 text-left transition ${activePartition === "outside" ? "border-sky-200 bg-sky-100 text-sky-950" : "border-white/10 bg-white/[.05] text-white"}`}><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.14em]">Kept outside</p><EyeOff size={16} /></div><p className="mt-2 text-3xl font-semibold tracking-[-.05em]">{result.summary.outside_criteria}</p><p className={`mt-1 text-xs ${activePartition === "outside" ? "text-sky-900/65" : "text-white/45"}`}>Protected from the packet</p></button>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4">
@@ -247,19 +258,22 @@ export function PayrollRecordsCard({ analysis, analysisId, onWorkflowChange }: {
           <div className="mt-2 flex flex-wrap gap-1.5">{result.criteria.record_types.map((type) => <Badge className="bg-white/10 text-white" key={type}>{recordLabels[type]}</Badge>)}</div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-end"><button type="button" className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white/75 hover:bg-white/15" onClick={approveSuggested}>Approve {result.strong_matches.length} suggested</button></div>
-          {result.strong_matches.map((record) => <article className="rounded-2xl bg-white p-4 text-black" key={record.record_id}>
+        {activePartition === "strong" && <div className="space-y-2">
+          <div className="flex justify-end"><button type="button" disabled={allStrongApproved} className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${allStrongApproved ? "bg-emerald-400/20 text-emerald-200" : "bg-white/10 text-white/75 hover:bg-white/15"}`} onClick={approveSuggested}>{allStrongApproved ? "All suggested approved" : `Approve ${result.strong_matches.length} suggested`}</button></div>
+          {result.strong_matches.map((record) => <article className={`rounded-2xl border p-4 text-black transition ${decisions[record.record_id] === "approved" ? "border-emerald-300 bg-emerald-50 shadow-[inset_4px_0_0_#22c55e]" : decisions[record.record_id] === "excluded" ? "border-zinc-300 bg-zinc-100 opacity-80" : "border-transparent bg-white"}`} key={record.record_id}>
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold">{recordLabels[record.record_type]}</p><p className="mt-1 text-xs text-zinc-500">{dateRange(record)} · {record.source}</p></div><Badge>{record.match_strength.toUpperCase()}</Badge></div>
             <p className="mt-3 text-xs leading-5 text-zinc-500">{record.match_reason}</p>
             <CandidateDecision decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />
           </article>)}
-          {result.possible_matches.map((record) => <article className="rounded-2xl bg-white p-4 text-black" key={record.record_id}>
+        </div>}
+        {activePartition === "possible" && <div className="space-y-2">
+          {result.possible_matches.map((record) => <article className={`rounded-2xl border p-4 text-black transition ${decisions[record.record_id] === "approved" ? "border-emerald-300 bg-emerald-50 shadow-[inset_4px_0_0_#22c55e]" : decisions[record.record_id] === "excluded" ? "border-zinc-300 bg-zinc-100 opacity-80" : decisions[record.record_id] === "counsel" ? "border-zinc-300 bg-zinc-100 shadow-[inset_4px_0_0_#737373]" : "border-zinc-200 bg-white"}`} key={record.record_id}>
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold">{recordLabels[record.record_type]}</p><p className="mt-1 text-xs text-zinc-500">{dateRange(record)} · {record.source}</p></div><Badge variant="warning">REVIEW</Badge></div>
             <p className="mt-3 text-xs leading-5 text-zinc-500">{record.match_reason}</p>
             <CandidateDecision possible decision={decisions[record.record_id]} onDecision={(decision) => decide(record.record_id, decision)} />
           </article>)}
-        </div>
+        </div>}
+        {activePartition === "outside" && <div className="rounded-2xl border border-sky-200/20 bg-sky-100/10 p-4"><div className="flex items-start gap-3"><EyeOff className="mt-0.5 shrink-0 text-sky-200" size={18} /><div><p className="text-sm font-semibold">{result.summary.outside_criteria} payroll records stayed outside</p><p className="mt-1 text-xs leading-5 text-white/50">Their details are not copied into this candidate workspace because they fall outside the named employee, requested record types, or displayed date range.</p></div></div></div>}
 
         <div className="flex items-start gap-2 rounded-2xl border border-brand-green/30 bg-brand-green/10 p-4 text-xs leading-5 text-white/70"><ShieldCheck className="mt-0.5 shrink-0 text-brand-green" size={15} /><p><strong className="text-white">Human review required.</strong> {result.manifest_note} {result.privacy_note}</p></div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4">

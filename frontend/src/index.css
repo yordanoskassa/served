@@ -110,6 +110,12 @@
   50% { top: calc(100% - 1px); opacity: 1; }
 }
 
+@keyframes scan-progress {
+  0% { transform: translateX(-115%); }
+  55% { transform: translateX(120%); }
+  100% { transform: translateX(250%); }
+}
+
 .served-scan-line {
   animation: served-document-scan 2.8s ease-in-out infinite;
 }
